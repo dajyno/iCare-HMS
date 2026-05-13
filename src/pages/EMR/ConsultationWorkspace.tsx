@@ -96,13 +96,29 @@ const ConsultationWorkspace = () => {
     },
   });
 
-  const { register, handleSubmit, control, setValue, reset, formState: { errors } } = useForm({
+  const form = useForm({
     resolver: zodResolver(consultationSchema),
     defaultValues: {
       prescriptions: [],
       labRequests: [],
     }
   });
+  const { register, handleSubmit, control, setValue, reset, watch, formState: { errors } } = form;
+
+  const watchPrescriptions = watch("prescriptions");
+  const watchLabRequests = watch("labRequests");
+
+  const getMedLabel = (id: string) => {
+    if (!Array.isArray(medications)) return id;
+    const m = medications.find((m: any) => m.id === id);
+    return m ? `${m.name} (${m.strength})` : id;
+  };
+
+  const getLabLabel = (id: string) => {
+    if (!Array.isArray(labTests)) return id;
+    const t = labTests.find((t: any) => t.id === id);
+    return t ? `${t.name} ($${t.price})` : id;
+  };
 
   const { fields: prescriptionFields, append: appendPrescription, remove: removePrescription } = useFieldArray({
     control,
@@ -236,7 +252,9 @@ const ConsultationWorkspace = () => {
                 setValue("patientId", val as any);
               }}>
                 <SelectTrigger className="h-11">
-                  <SelectValue placeholder="Search or select patient..." />
+                  <SelectValue placeholder="Search or select patient...">
+                    {selectedPatient ? `${selectedPatient.firstName} ${selectedPatient.lastName} (${selectedPatient.patientId})` : ''}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {Array.isArray(patients) && patients.map((p: any) => (
@@ -348,7 +366,9 @@ const ConsultationWorkspace = () => {
                               <Label>Medication</Label>
                               <Select onValueChange={(val) => setValue(`prescriptions.${index}.medicationId` as any, val as any)}>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select drug" />
+                                  <SelectValue placeholder="Select drug">
+                                    {watchPrescriptions?.[index]?.medicationId ? getMedLabel(watchPrescriptions[index].medicationId) : ''}
+                                  </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
                                   {Array.isArray(medications) && medications.map((m: any) => (
@@ -401,7 +421,9 @@ const ConsultationWorkspace = () => {
                               <Label>Test Name</Label>
                               <Select onValueChange={(val) => setValue(`labRequests.${index}.testId` as any, val as any)}>
                                 <SelectTrigger className="max-w-md">
-                                  <SelectValue placeholder="Select laboratory test..." />
+                                  <SelectValue placeholder="Select laboratory test...">
+                                    {watchLabRequests?.[index]?.testId ? getLabLabel(watchLabRequests[index].testId) : ''}
+                                  </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
                                   {Array.isArray(labTests) && labTests.map((t: any) => (
