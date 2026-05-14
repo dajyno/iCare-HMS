@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
@@ -26,7 +26,7 @@ const categoryBadge: Record<string, string> = {
   HMO: "bg-amber-50 text-amber-700 border-amber-100",
 };
 
-const PatientList = () => {
+const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
@@ -35,9 +35,26 @@ const PatientList = () => {
   const [showApptModal, setShowApptModal] = useState(false);
   const [editPatient, setEditPatient] = useState<any>(null);
   const [apptPatient, setApptPatient] = useState<any>(null);
-  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [categoryFilter, setCategoryFilter] = useState(defaultCategory || "All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [showFilters, setShowFilters] = useState(false);
+  const [companySuggestions, setCompanySuggestions] = useState<string[]>([]);
+  const [hmoSuggestions, setHmoSuggestions] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (defaultCategory) setCategoryFilter(defaultCategory);
+  }, [defaultCategory]);
+
+  useEffect(() => {
+    supabase.from("patients").select("company_name").not("company_name", "is", null).then(({ data }) => {
+      const names = [...new Set((data || []).map((r: any) => r.company_name).filter(Boolean))];
+      setCompanySuggestions(names);
+    });
+    supabase.from("patients").select("insurance_provider").not("insurance_provider", "is", null).then(({ data }) => {
+      const names = [...new Set((data || []).map((r: any) => r.insurance_provider).filter(Boolean))];
+      setHmoSuggestions(names);
+    });
+  }, []);
 
   const { data: patients, isLoading, isError, error } = useQuery({
     queryKey: ["patients"],
@@ -380,13 +397,13 @@ const PatientList = () => {
 
       {/* New Patient Modal */}
       <Dialog open={showNewModal} onOpenChange={setShowNewModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Register New Patient</DialogTitle>
             <DialogDescription>Fill in the patient details to create a new record.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleNewSubmit} className="space-y-5">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <Label>First Name *</Label>
                 <Input required value={newForm.firstName || ""} onChange={(e) => setNewForm({ ...newForm, firstName: e.target.value })} />
@@ -394,10 +411,6 @@ const PatientList = () => {
               <div className="space-y-1.5">
                 <Label>Last Name *</Label>
                 <Input required value={newForm.lastName || ""} onChange={(e) => setNewForm({ ...newForm, lastName: e.target.value })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Folder No. *</Label>
-                <Input required value={newForm.patientId || ""} onChange={(e) => setNewForm({ ...newForm, patientId: e.target.value })} placeholder="e.g. PAT003" />
               </div>
               <div className="space-y-1.5">
                 <Label>Gender *</Label>
@@ -408,6 +421,10 @@ const PatientList = () => {
                     <SelectItem value="Female">Female</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Folder No. *</Label>
+                <Input required value={newForm.patientId || ""} onChange={(e) => setNewForm({ ...newForm, patientId: e.target.value })} placeholder={newForm.category === "Family" ? "e.g. DOE-001" : "e.g. PAT003"} />
               </div>
               <div className="space-y-1.5">
                 <Label>Date of Birth *</Label>
@@ -433,14 +450,6 @@ const PatientList = () => {
                 <Label>Email</Label>
                 <Input type="email" value={newForm.email || ""} onChange={(e) => setNewForm({ ...newForm, email: e.target.value })} />
               </div>
-              <div className="col-span-2 space-y-1.5">
-                <Label>Address</Label>
-                <Input value={newForm.address || ""} onChange={(e) => setNewForm({ ...newForm, address: e.target.value })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Emergency Contact</Label>
-                <Input value={newForm.emergencyContact || ""} onChange={(e) => setNewForm({ ...newForm, emergencyContact: e.target.value })} />
-              </div>
               <div className="space-y-1.5">
                 <Label>Blood Group</Label>
                 <Select value={newForm.bloodGroup || ""} onValueChange={(v) => setNewForm({ ...newForm, bloodGroup: v })}>
@@ -450,12 +459,20 @@ const PatientList = () => {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="col-span-3 space-y-1.5">
+                <Label>Address</Label>
+                <Input value={newForm.address || ""} onChange={(e) => setNewForm({ ...newForm, address: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Emergency Contact</Label>
+                <Input value={newForm.emergencyContact || ""} onChange={(e) => setNewForm({ ...newForm, emergencyContact: e.target.value })} />
+              </div>
               <div className="col-span-2 space-y-1.5">
                 <Label>Allergies / Medical History</Label>
                 <Textarea value={newForm.allergies || ""} onChange={(e) => setNewForm({ ...newForm, allergies: e.target.value })} placeholder="List any allergies or relevant history" />
               </div>
 
-              <div className="col-span-2 border-t pt-4">
+              <div className="col-span-3 border-t pt-4">
                 <h4 className="text-sm font-bold text-slate-700 mb-3">Next of Kin</h4>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-1.5">
@@ -474,12 +491,21 @@ const PatientList = () => {
               </div>
 
               {newForm.category === "Corporate" && (
-                <div className="col-span-2 border-t pt-4">
+                <div className="col-span-3 border-t pt-4">
                   <h4 className="text-sm font-bold text-slate-700 mb-3">Company Information</h4>
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-1.5">
                       <Label>Company Name</Label>
-                      <Input value={newForm.companyName || ""} onChange={(e) => setNewForm({ ...newForm, companyName: e.target.value })} />
+                      <input
+                        list="company-list"
+                        value={newForm.companyName || ""}
+                        onChange={(e) => setNewForm({ ...newForm, companyName: e.target.value })}
+                        className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        placeholder="Search or type company name..."
+                      />
+                      <datalist id="company-list">
+                        {companySuggestions.map((name) => <option key={name} value={name} />)}
+                      </datalist>
                     </div>
                     <div className="space-y-1.5">
                       <Label>Company Phone</Label>
@@ -494,12 +520,21 @@ const PatientList = () => {
               )}
 
               {newForm.category === "HMO" && (
-                <div className="col-span-2 border-t pt-4">
+                <div className="col-span-3 border-t pt-4">
                   <h4 className="text-sm font-bold text-slate-700 mb-3">Insurance / HMO Details</h4>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-1.5">
-                      <Label>Insurance Provider</Label>
-                      <Input value={newForm.insuranceProvider || ""} onChange={(e) => setNewForm({ ...newForm, insuranceProvider: e.target.value })} />
+                      <Label>HMO Provider</Label>
+                      <input
+                        list="hmo-list"
+                        value={newForm.insuranceProvider || ""}
+                        onChange={(e) => setNewForm({ ...newForm, insuranceProvider: e.target.value })}
+                        className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        placeholder="Search or type HMO provider..."
+                      />
+                      <datalist id="hmo-list">
+                        {hmoSuggestions.map((name) => <option key={name} value={name} />)}
+                      </datalist>
                     </div>
                     <div className="space-y-1.5">
                       <Label>Insurance ID</Label>
@@ -522,7 +557,7 @@ const PatientList = () => {
 
       {/* Edit Patient Modal */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Patient</DialogTitle>
             <DialogDescription>Update patient information. Folder number cannot be changed.</DialogDescription>

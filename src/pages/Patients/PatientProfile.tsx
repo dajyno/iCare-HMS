@@ -203,23 +203,54 @@ const PatientProfile = () => {
 
         <TabsContent value="overview" className="space-y-6 mt-6">
           <Card className="border-none shadow-sm ring-1 ring-slate-200">
-            <CardHeader><CardTitle className="text-sm font-bold">Medical Information</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-sm font-bold flex items-center gap-2"><FolderOpen className="w-4 h-4 text-blue-500" /> Folder Information</CardTitle></CardHeader>
+            <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+              <div>
+                <span className="text-[10px] font-bold uppercase text-slate-400">Folder Type</span>
+                <p className="mt-1">
+                  <Badge variant="outline" className={`font-bold mt-0.5 ${categoryBadge[patient.category] || ""}`}>{patient.category}</Badge>
+                </p>
+              </div>
+              <div><span className="text-[10px] font-bold uppercase text-slate-400">Folder No.</span><p className="font-semibold mt-1 font-mono">{patient.patientId}</p></div>
+              <div><span className="text-[10px] font-bold uppercase text-slate-400">Status</span><p className="mt-1"><Badge className={patient.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}>{patient.status === "active" ? "Active" : "Inactive"}</Badge></p></div>
+              <div><span className="text-[10px] font-bold uppercase text-slate-400">Registered</span><p className="font-semibold mt-1">{patient.registrationDate ? new Date(patient.registrationDate).toLocaleDateString() : "N/A"}</p></div>
+            </CardContent>
+            {(patient.nextOfKinName || patient.companyName || patient.insuranceProvider) && (
+              <CardContent className="border-t border-slate-100 pt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                {patient.nextOfKinName && (
+                  <div>
+                    <span className="text-[10px] font-bold uppercase text-slate-400">Next of Kin</span>
+                    <p className="font-semibold mt-1">{patient.nextOfKinName} {patient.nextOfKinRelation ? `(${patient.nextOfKinRelation})` : ""}</p>
+                    {patient.nextOfKinPhone && <p className="text-xs text-slate-500">{patient.nextOfKinPhone}</p>}
+                  </div>
+                )}
+                {patient.companyName && (
+                  <div>
+                    <span className="text-[10px] font-bold uppercase text-slate-400">Company</span>
+                    <p className="font-semibold mt-1">{patient.companyName}</p>
+                    {patient.companyPhone && <p className="text-xs text-slate-500">{patient.companyPhone}</p>}
+                  </div>
+                )}
+                {patient.insuranceProvider && (
+                  <div>
+                    <span className="text-[10px] font-bold uppercase text-slate-400">HMO / Insurance</span>
+                    <p className="font-semibold mt-1">{patient.insuranceProvider}</p>
+                    {patient.insuranceId && <p className="text-xs text-slate-500">ID: {patient.insuranceId}</p>}
+                  </div>
+                )}
+              </CardContent>
+            )}
+          </Card>
+
+          <Card className="border-none shadow-sm ring-1 ring-slate-200">
+            <CardHeader><CardTitle className="text-sm font-bold flex items-center gap-2"><Activity className="w-4 h-4 text-emerald-500" /> Medical Information</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
               <div><span className="text-[10px] font-bold uppercase text-slate-400">Blood Group</span><p className="font-semibold mt-1">{patient.bloodGroup || "N/A"}</p></div>
               <div><span className="text-[10px] font-bold uppercase text-slate-400">Allergies</span><p className="font-semibold mt-1">{patient.allergies || "None"}</p></div>
               <div><span className="text-[10px] font-bold uppercase text-slate-400">Medical History</span><p className="font-semibold mt-1">{patient.medicalHistory || "None"}</p></div>
-              <div><span className="text-[10px] font-bold uppercase text-slate-400">Registered</span><p className="font-semibold mt-1">{patient.registrationDate ? new Date(patient.registrationDate).toLocaleDateString() : "N/A"}</p></div>
+              <div><span className="text-[10px] font-bold uppercase text-slate-400">Emergency Contact</span><p className="font-semibold mt-1">{patient.emergencyContact || "N/A"}</p></div>
             </CardContent>
           </Card>
-          {patient.category === "HMO" && (patient.insuranceProvider || patient.insuranceId) && (
-            <Card className="border-none shadow-sm ring-1 ring-slate-200">
-              <CardHeader><CardTitle className="text-sm font-bold">Insurance / HMO</CardTitle></CardHeader>
-              <CardContent className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-[10px] font-bold uppercase text-slate-400">Provider</span><p className="font-semibold mt-1">{patient.insuranceProvider || "N/A"}</p></div>
-                <div><span className="text-[10px] font-bold uppercase text-slate-400">ID</span><p className="font-semibold mt-1">{patient.insuranceId || "N/A"}</p></div>
-              </CardContent>
-            </Card>
-          )}
         </TabsContent>
 
         <TabsContent value="consultations" className="mt-6 space-y-4">

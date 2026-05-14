@@ -6,6 +6,7 @@ import Login from "./pages/Auth/Login";
 import Overview from "./pages/Dashboard/Overview";
 import PatientList from "./pages/Patients/PatientList";
 import PatientProfile from "./pages/Patients/PatientProfile";
+import FamilyPatients from "./pages/Patients/FamilyPatients";
 import AppointmentList from "./pages/Appointments/AppointmentList";
 import ConsultationWorkspace from "./pages/Consultations/ConsultationWorkspace";
 import LabQueue from "./pages/Laboratory/LabQueue";
@@ -19,6 +20,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const StaffList = () => <div className="p-6">Staff List Placeholder</div>;
 const ReportsOverview = () => <div className="p-6">Reports Overview Placeholder</div>;
+const IndividualPatients = () => <PatientList defaultCategory="Individual" />;
+const CorporatePatients = () => <PatientList defaultCategory="Corporate" />;
+const HmoPatients = () => <PatientList defaultCategory="HMO" />;
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
@@ -59,6 +63,38 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <PatientList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/patients/individual"
+              element={
+                <ProtectedRoute>
+                  <IndividualPatients />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/patients/family"
+              element={
+                <ProtectedRoute>
+                  <FamilyPatients />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/patients/corporate"
+              element={
+                <ProtectedRoute>
+                  <CorporatePatients />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/patients/hmo"
+              element={
+                <ProtectedRoute>
+                  <HmoPatients />
                 </ProtectedRoute>
               }
             />

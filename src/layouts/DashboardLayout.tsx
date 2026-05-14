@@ -36,10 +36,47 @@ const SidebarItem = ({ icon: Icon, label, href, active }: any) => (
         : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
     )}
   >
-    <Icon className="w-5 h-5" strokeWidth={2} />
+    {Icon && <Icon className="w-5 h-5" strokeWidth={2} />}
     <span>{label}</span>
   </Link>
 );
+
+const SidebarGroup = ({ icon: Icon, label, children, currentPath }: any) => {
+  const [open, setOpen] = useState(true);
+  const hasActiveChild = children?.some((c: any) =>
+    c.href === "/" ? currentPath === "/" : currentPath.startsWith(c.href)
+  );
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(!open)}
+        className={cn(
+          "flex items-center gap-3 px-3 py-2 rounded-md transition-all text-sm font-medium w-full text-left",
+          hasActiveChild
+            ? "bg-sky-50 text-sky-700 shadow-none"
+            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+        )}
+      >
+        <Icon className="w-5 h-5 shrink-0" strokeWidth={2} />
+        <span className="flex-1">{label}</span>
+        <ChevronDown className={cn("w-4 h-4 transition-transform shrink-0", open && "rotate-180")} />
+      </button>
+      {open && (
+        <div className="ml-3 mt-0.5 space-y-0.5 border-l border-slate-200 pl-3">
+          {children.map((child: any) => (
+            <SidebarItem
+              key={child.href}
+              href={child.href}
+              label={child.label}
+              active={currentPath.startsWith(child.href)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
@@ -74,7 +111,13 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-    { icon: Users, label: "Patients", href: "/patients" },
+    { icon: Users, label: "Patients", children: [
+      { label: "All Patients", href: "/patients" },
+      { label: "Individual", href: "/patients/individual" },
+      { label: "Family", href: "/patients/family" },
+      { label: "Corporate", href: "/patients/corporate" },
+      { label: "HMO", href: "/patients/hmo" },
+    ]},
     { icon: Calendar, label: "Appointments", href: "/appointments" },
     { icon: ClipboardList, label: "Consultations", href: "/consultations" },
     { icon: CreditCard, label: "Billing", href: "/billing" },
@@ -100,13 +143,17 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
         <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-hide">
           <nav className="space-y-1">
-            {navItems.map((item) => (
-              <SidebarItem
-                key={item.href}
-                {...item}
-                active={item.href === "/" ? location.pathname === "/" : location.pathname.startsWith(item.href)}
-              />
-            ))}
+            {navItems.map((item: any) =>
+              item.children ? (
+                <SidebarGroup key={item.label} {...item} currentPath={location.pathname} />
+              ) : (
+                <SidebarItem
+                  key={item.href}
+                  {...item}
+                  active={item.href === "/" ? location.pathname === "/" : location.pathname.startsWith(item.href)}
+                />
+              )
+            )}
           </nav>
         </div>
 

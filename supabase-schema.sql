@@ -589,6 +589,28 @@ insert into public.lab_tests (name, category, price, sample_type) values
   ('Chest X-Ray', 'Radiology', 60.0, 'Imaging')
 on conflict do nothing;
 
+-- Patients (2 per category for testing)
+insert into public.patients (patient_id, first_name, last_name, gender, date_of_birth, phone, email, address, category, status, blood_group, allergies, next_of_kin_name, next_of_kin_phone, next_of_kin_relation) values
+  ('PAT001', 'John', 'Doe', 'Male', '1990-01-01', '1234567890', 'john@example.com', '123 Main St', 'Individual', 'active', 'O+', 'Penicillin', 'Jane Doe', '1234567891', 'Spouse'),
+  ('PAT002', 'Sarah', 'Connor', 'Female', '1985-05-15', '0987654321', 'sarah@example.com', '456 Oak Rd', 'Individual', 'active', 'A-', null, null, null, null),
+  ('ADEBAYO-001', 'Tunde', 'Adebayo', 'Male', '1980-03-10', '+2348043333333', 'tunde.adebayo@email.com', '7 Peace Close, Ibadan', 'Family', 'active', 'O-', null, 'Funke Adebayo', '+2348054444444', 'Spouse'),
+  ('ADEBAYO-002', 'Funke', 'Adebayo', 'Female', '1985-08-17', '+2348054444444', 'funke.adebayo@email.com', '7 Peace Close, Ibadan', 'Family', 'active', 'B+', null, 'Tunde Adebayo', '+2348043333333', 'Spouse'),
+  ('OKAFOR-001', 'Chuka', 'Okafor', 'Male', '1978-01-05', '+2348101111111', 'chuka.okafor@email.com', '23 Unity Rd, Enugu', 'Family', 'active', 'AB+', null, 'Ngozi Okafor', '+2348112222222', 'Spouse'),
+  ('OKAFOR-002', 'Ngozi', 'Okafor', 'Female', '1982-06-30', '+2348112222222', 'ngozi.okafor@email.com', '23 Unity Rd, Enugu', 'Family', 'active', 'A-', null, 'Chuka Okafor', '+2348101111111', 'Spouse'),
+  ('PAT004', 'Emeka', 'Nwosu', 'Male', '1992-01-30', '+2348065555555', 'emeka.nwosu@email.com', '10 Marina, Lagos', 'Corporate', 'active', 'B-', null, null, null, null),
+  ('PAT005', 'Amara', 'Okafor', 'Female', '1990-07-14', '+2348076666666', 'amara.okafor@email.com', '22 Broad St, Lagos', 'Corporate', 'active', 'AB-', null, null, null, null),
+  ('PAT006', 'Ibrahim', 'Musa', 'Male', '1975-12-05', '+2348087777777', 'ibrahim.musa@email.com', '5 Kano Rd, Kaduna', 'HMO', 'active', 'O+', null, null, null, null),
+  ('PAT007', 'Ngozi', 'Eze', 'Female', '1988-04-20', '+2348098888888', 'ngozi.eze@email.com', '12 Enugu Rd, Port Harcourt', 'HMO', 'active', 'A-', null, null, null, null)
+on conflict (patient_id) do nothing;
+
+-- Corporate company info
+update public.patients set company_name = 'ZenithCare Ltd', company_phone = '+2348120000001', company_address = 'Zenith Heights, Victoria Island, Lagos' where patient_id = 'PAT004';
+update public.patients set company_name = 'FirstBank Plc', company_phone = '+2348120000002', company_address = 'Samuel Asabia House, Marina, Lagos' where patient_id = 'PAT005';
+
+-- HMO insurance info
+update public.patients set insurance_provider = 'Hygeia HMO', insurance_id = 'HGY-2024-001' where patient_id = 'PAT006';
+update public.patients set insurance_provider = 'Reliance HMO', insurance_id = 'RLN-2024-002' where patient_id = 'PAT007';
+
 -- Wards and Beds
 do $$
 declare
