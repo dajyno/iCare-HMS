@@ -168,7 +168,7 @@ async function startServer() {
     }
   });
 
-  // EMR Routes
+  // Consultation Routes
   app.post("/api/consultations", authenticate, async (req: any, res) => {
     try {
       const { patientId, chiefComplaint, symptoms, diagnosis, clinicalNotes, treatmentPlan, vitalSigns, prescriptions, labRequests, appointmentId } = req.body;
