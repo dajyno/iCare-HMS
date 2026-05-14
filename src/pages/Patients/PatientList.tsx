@@ -82,6 +82,19 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
     },
   });
 
+  const { data: doctors } = useQuery({
+    queryKey: ["doctors"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("users")
+        .select("id, full_name")
+        .eq("role", "Doctor")
+        .eq("status", "active");
+      if (error) throw error;
+      return toCamel(data);
+    },
+  });
+
   const createMutation = useMutation({
     mutationFn: async (formData: any) => {
       const { data, error } = await supabase.from("patients").insert(formData).select().single();
