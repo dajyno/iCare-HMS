@@ -197,6 +197,27 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
     });
   };
 
+  const filteredPatients = useMemo(() => {
+    if (!Array.isArray(patients)) return [];
+    let result = patients;
+    if (categoryFilter && categoryFilter !== "All") {
+      result = result.filter((p: any) => p.category === categoryFilter);
+    }
+    if (statusFilter && statusFilter !== "All") {
+      result = result.filter((p: any) => p.status === statusFilter);
+    }
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter((p: any) =>
+        (p.patientId && p.patientId.toLowerCase().includes(term)) ||
+        (p.firstName && p.firstName.toLowerCase().includes(term)) ||
+        (p.lastName && p.lastName.toLowerCase().includes(term)) ||
+        (p.phone && p.phone.toLowerCase().includes(term))
+      );
+    }
+    return result;
+  }, [patients, categoryFilter, statusFilter, searchTerm]);
+
   if (isLoading) {
     return (
       <div className="h-[60vh] flex flex-col items-center justify-center p-12">
