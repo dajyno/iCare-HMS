@@ -39,6 +39,7 @@
 ## Prerequisites
 
 - **Node.js** >= 18
+- **Supabase project** — [create one free](https://supabase.com)
 
 ## Environment Variables
 
@@ -47,9 +48,15 @@ Copy `.env.example` to `.env` and configure:
 ```
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-JWT_SECRET=your_jwt_secret_key
-GEMINI_API_KEY=your_gemini_api_key   # optional, for AI features
 ```
+
+Get these from your Supabase project: **Project Settings → API → Project URL / anon key**.
+
+### Supabase Setup
+
+1. Open your Supabase project's **SQL Editor**
+2. Paste and run the contents of [`supabase-schema.sql`](./supabase-schema.sql) — this creates all tables, RLS policies, and seed data
+3. Go to **Authentication → Settings** and **disable "Confirm email"** (required for auto-provisioning to work)
 
 ## Quick Start
 
@@ -63,15 +70,9 @@ npm run dev
 
 The app runs on `http://localhost:5173` by default.
 
-### Seed Data
-
-To populate the database with sample data:
-
-```bash
-npx tsx prisma/seed.ts
-```
-
 ### Default Login Credentials
+
+Accounts are auto-provisioned on first login. Use any of the following:
 
 | Email | Password | Role |
 |-------|----------|------|

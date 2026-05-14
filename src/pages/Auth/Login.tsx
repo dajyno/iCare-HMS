@@ -23,7 +23,7 @@ const Login = () => {
       await login(email, password);
       navigate("/dashboard");
     } catch (err: any) {
-      setError(err.response?.data?.error || "Login failed. Please check your credentials.");
+      setError(err.message || "Login failed. Please check your credentials.");
     } finally {
       setLoading(false);
     }
