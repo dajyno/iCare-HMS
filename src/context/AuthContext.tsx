@@ -27,7 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        fetchProfile(session.user.id, session.user);
+        fetchProfile(session.user.id);
       } else {
         setLoading(false);
       }
@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        fetchProfile(session.user.id, session.user);
+        fetchProfile(session.user.id);
       } else {
         setUser(null);
         setLoading(false);
@@ -45,33 +45,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchProfile = async (userId: string, authUser?: { email?: string; user_metadata?: { full_name?: string; role?: string } }) => {
+  const fetchProfile = async (userId: string) => {
     const { data, error } = await supabase
       .from("users")
       .select("*")
       .eq("id", userId)
       .single();
-
-    if (data && !error) {
+    if (!error && data) {
       setUser(toCamel(data) as unknown as User);
-      setLoading(false);
-      return;
     }
-
-    // Profile missing (trigger may not have fired) — create it from auth metadata
-    if (authUser) {
-      const name = authUser.user_metadata?.full_name || authUser.email?.split("@")[0] || "User";
-      const role = authUser.user_metadata?.role || "Doctor";
-      await supabase.from("users").insert({ id: userId, email: authUser.email, full_name: name, role });
-
-      const { data: newData } = await supabase
-        .from("users")
-        .select("*")
-        .eq("id", userId)
-        .single();
-      if (newData) setUser(toCamel(newData) as unknown as User);
-    }
-
     setLoading(false);
   };
 
@@ -107,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const { data } = await supabase.auth.getSession();
     if (data.session?.user) {
-      await fetchProfile(data.session.user.id, data.session.user);
+      await fetchProfile(data.session.user.id);
     }
   };
 
