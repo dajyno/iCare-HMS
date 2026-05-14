@@ -23,7 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import SearchableSelect from "@/components/ui/searchable-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const consultationSchema = z.object({
@@ -107,18 +107,6 @@ const ConsultationWorkspace = () => {
 
   const watchPrescriptions = watch("prescriptions");
   const watchLabRequests = watch("labRequests");
-
-  const getMedLabel = (id: string) => {
-    if (!Array.isArray(medications)) return id;
-    const m = medications.find((m: any) => m.id === id);
-    return m ? `${m.name} (${m.strength})` : id;
-  };
-
-  const getLabLabel = (id: string) => {
-    if (!Array.isArray(labTests)) return id;
-    const t = labTests.find((t: any) => t.id === id);
-    return t ? `${t.name} (₦${t.price})` : id;
-  };
 
   const { fields: prescriptionFields, append: appendPrescription, remove: removePrescription } = useFieldArray({
     control,
@@ -244,26 +232,13 @@ const ConsultationWorkspace = () => {
             <CardDescription>Select a patient and associated appointment</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-2">
               <Label>Patient</Label>
-              <Select onValueChange={(val) => {
+              <SearchableSelect value={selectedPatient?.id || ""} onValueChange={(val) => {
                 const p = Array.isArray(patients) ? patients.find((p: any) => p.id === val) : null;
                 setSelectedPatient(p);
                 setValue("patientId", val as any);
-              }}>
-                <SelectTrigger className="h-11">
-                  <SelectValue placeholder="Search or select patient...">
-                    {selectedPatient ? `${selectedPatient.firstName} ${selectedPatient.lastName} (${selectedPatient.patientId})` : ''}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.isArray(patients) && patients.map((p: any) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.firstName} {p.lastName} ({p.patientId})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              }} placeholder="Search or select patient..." options={(Array.isArray(patients) ? patients : []).map((p: any) => ({value: p.id, label: `${p.firstName} ${p.lastName} (${p.patientId})`}))} />
             </div>
           </CardContent>
         </Card>
@@ -364,18 +339,7 @@ const ConsultationWorkspace = () => {
                           <div key={field.id} className="p-4 grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                             <div className="md:col-span-1 space-y-2">
                               <Label>Medication</Label>
-                              <Select onValueChange={(val) => setValue(`prescriptions.${index}.medicationId` as any, val as any)}>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select drug">
-                                    {watchPrescriptions?.[index]?.medicationId ? getMedLabel(watchPrescriptions[index].medicationId) : ''}
-                                  </SelectValue>
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {Array.isArray(medications) && medications.map((m: any) => (
-                                    <SelectItem key={m.id} value={m.id}>{m.name} ({m.strength})</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <SearchableSelect value={watchPrescriptions?.[index]?.medicationId || ""} onValueChange={(val) => setValue(`prescriptions.${index}.medicationId` as any, val as any)} placeholder="Select drug" options={(Array.isArray(medications) ? medications : []).map((m: any) => ({value: m.id, label: `${m.name} (${m.strength})`}))} />
                             </div>
                             <div className="space-y-2">
                               <Label>Dosage</Label>
@@ -419,18 +383,7 @@ const ConsultationWorkspace = () => {
                           <div key={field.id} className="p-4 flex items-end gap-6">
                             <div className="flex-1 space-y-2">
                               <Label>Test Name</Label>
-                              <Select onValueChange={(val) => setValue(`labRequests.${index}.testId` as any, val as any)}>
-                                <SelectTrigger className="max-w-md">
-                                  <SelectValue placeholder="Select laboratory test...">
-                                    {watchLabRequests?.[index]?.testId ? getLabLabel(watchLabRequests[index].testId) : ''}
-                                  </SelectValue>
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {Array.isArray(labTests) && labTests.map((t: any) => (
-                                    <SelectItem key={t.id} value={t.id}>{t.name} (₦{t.price})</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <SearchableSelect value={watchLabRequests?.[index]?.testId || ""} onValueChange={(val) => setValue(`labRequests.${index}.testId` as any, val as any)} placeholder="Select laboratory test..." options={(Array.isArray(labTests) ? labTests : []).map((t: any) => ({value: t.id, label: `${t.name} (₦${t.price})`}))} />
                             </div>
                             <Button type="button" variant="ghost" size="icon" className="text-rose-500" onClick={() => removeLab(index)}>
                               <Trash2 className="w-4 h-4" />

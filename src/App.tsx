@@ -9,6 +9,7 @@ import PatientProfile from "./pages/Patients/PatientProfile";
 import FamilyPatients from "./pages/Patients/FamilyPatients";
 import AppointmentList from "./pages/Appointments/AppointmentList";
 import ConsultationWorkspace from "./pages/Consultations/ConsultationWorkspace";
+import VitalSigns from "./pages/Consultations/VitalSigns";
 import LabQueue from "./pages/Laboratory/LabQueue";
 import PharmacyQueue from "./pages/Pharmacy/PharmacyQueue";
 import BillingOverview from "./pages/Billing/BillingOverview";
@@ -119,6 +120,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <ConsultationWorkspace />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/consultations/vitals"
+              element={
+                <ProtectedRoute>
+                  <VitalSigns />
                 </ProtectedRoute>
               }
             />

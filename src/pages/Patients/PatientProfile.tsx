@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import SearchableSelect from "@/components/ui/searchable-select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 const categoryBadge: Record<string, string> = {
@@ -816,44 +816,24 @@ const PatientProfile = () => {
               <div className="space-y-1.5"><Label>Folder No.</Label><Input value={editForm.patientId || ""} disabled className="bg-slate-100" /></div>
               <div className="space-y-1.5">
                 <Label>Status</Label>
-                <Select value={editForm.status || "active"} onValueChange={(v) => setEditForm({ ...editForm, status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
+                <SearchableSelect value={editForm.status || "active"} onValueChange={(v) => setEditForm({ ...editForm, status: v })} options={[{value:"active",label:"Active"},{value:"inactive",label:"Inactive"}]} />
               </div>
               <div className="space-y-1.5"><Label>First Name <span className="text-red-500">*</span></Label><Input required value={editForm.firstName || ""} onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} /></div>
               <div className="space-y-1.5"><Label>Last Name <span className="text-red-500">*</span></Label><Input required value={editForm.lastName || ""} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} /></div>
               <div className="space-y-1.5">
                 <Label>Gender</Label>
-                <Select value={editForm.gender || ""} onValueChange={(v) => setEditForm({ ...editForm, gender: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="Male">Male</SelectItem><SelectItem value="Female">Female</SelectItem></SelectContent>
-                </Select>
+                <SearchableSelect value={editForm.gender || ""} onValueChange={(v) => setEditForm({ ...editForm, gender: v })} placeholder="Select" options={[{value:"Male",label:"Male"},{value:"Female",label:"Female"}]} />
               </div>
               <div className="space-y-1.5"><Label>Date of Birth</Label><Input type="date" value={editForm.dateOfBirth || ""} onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })} /></div>
               <div className="space-y-1.5">
                 <Label>Category <span className="text-red-500">*</span></Label>
-                <Select value={editForm.category || "Individual"} onValueChange={(v) => setEditForm({ ...editForm, category: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Individual">Individual</SelectItem>
-                    <SelectItem value="Family">Family</SelectItem>
-                    <SelectItem value="Corporate">Corporate</SelectItem>
-                    <SelectItem value="HMO">HMO</SelectItem>
-                  </SelectContent>
-                </Select>
+                <SearchableSelect value={editForm.category || "Individual"} onValueChange={(v) => setEditForm({ ...editForm, category: v })} options={[{value:"Individual",label:"Individual"},{value:"Family",label:"Family"},{value:"Corporate",label:"Corporate"},{value:"HMO",label:"HMO"}]} />
               </div>
               <div className="space-y-1.5"><Label>Phone</Label><Input value={editForm.phone || ""} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} /></div>
               <div className="space-y-1.5"><Label>Email</Label><Input type="email" value={editForm.email || ""} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} /></div>
               <div className="col-span-2 space-y-1.5"><Label>Address</Label><Input value={editForm.address || ""} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} /></div>
               <div className="space-y-1.5"><Label>Blood Group</Label>
-                <Select value={editForm.bloodGroup || ""} onValueChange={(v) => setEditForm({ ...editForm, bloodGroup: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>{["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
-                </Select>
+                <SearchableSelect value={editForm.bloodGroup || ""} onValueChange={(v) => setEditForm({ ...editForm, bloodGroup: v })} placeholder="Select" options={["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(b => ({value:b,label:b}))} />
               </div>
               <div className="col-span-2 space-y-1.5"><Label>Allergies / Medical History</Label><Textarea value={editForm.allergies || ""} onChange={(e) => setEditForm({ ...editForm, allergies: e.target.value })} /></div>
             </div>
@@ -954,14 +934,7 @@ const PatientProfile = () => {
           <form onSubmit={handleLabSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label>Lab Test *</Label>
-              <Select value={labForm.testId || ""} onValueChange={(v) => setLabForm({ ...labForm, testId: v })}>
-                <SelectTrigger><SelectValue placeholder="Select test" /></SelectTrigger>
-                <SelectContent>
-                  {(Array.isArray(labTests) ? labTests.filter((t: any) => t.category !== "Radiology") : []).map((t: any) => (
-                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect value={labForm.testId || ""} onValueChange={(v) => setLabForm({ ...labForm, testId: v })} placeholder="Select test" options={(Array.isArray(labTests) ? labTests.filter((t: any) => t.category !== "Radiology") : []).map((t: any) => ({value: t.id, label: t.name}))} />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowLabModal(false)}>Cancel</Button>
@@ -983,14 +956,7 @@ const PatientProfile = () => {
           <form onSubmit={handleRadSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label>Radiology Test *</Label>
-              <Select value={radForm.testId || ""} onValueChange={(v) => setRadForm({ ...radForm, testId: v })}>
-                <SelectTrigger><SelectValue placeholder="Select test" /></SelectTrigger>
-                <SelectContent>
-                  {(Array.isArray(labTests) ? labTests.filter((t: any) => t.category === "Radiology") : []).map((t: any) => (
-                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect value={radForm.testId || ""} onValueChange={(v) => setRadForm({ ...radForm, testId: v })} placeholder="Select test" options={(Array.isArray(labTests) ? labTests.filter((t: any) => t.category === "Radiology") : []).map((t: any) => ({value: t.id, label: t.name}))} />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowRadModal(false)}>Cancel</Button>
@@ -1012,14 +978,7 @@ const PatientProfile = () => {
           <form onSubmit={handleRxSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label>Medication *</Label>
-              <Select value={rxForm.medicationId || ""} onValueChange={(v) => setRxForm({ ...rxForm, medicationId: v })}>
-                <SelectTrigger><SelectValue placeholder="Select medication" /></SelectTrigger>
-                <SelectContent>
-                  {(Array.isArray(medications) ? medications : []).map((m: any) => (
-                    <SelectItem key={m.id} value={m.id}>{m.name} {m.strength || ""}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect value={rxForm.medicationId || ""} onValueChange={(v) => setRxForm({ ...rxForm, medicationId: v })} placeholder="Select medication" options={(Array.isArray(medications) ? medications : []).map((m: any) => ({value: m.id, label: `${m.name} ${m.strength || ""}`.trim()}))} />
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1.5"><Label>Dosage *</Label><Input required placeholder="e.g. 500mg" value={rxForm.dosage || ""} onChange={(e) => setRxForm({ ...rxForm, dosage: e.target.value })} /></div>

@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import SearchableSelect from "@/components/ui/searchable-select";
 import { Textarea } from "@/components/ui/textarea";
 
 const FamilyPatients = () => {
@@ -258,13 +258,7 @@ const FamilyPatients = () => {
               </div>
               <div className="space-y-1.5">
                 <Label>Gender *</Label>
-                <Select value={newForm.gender || ""} onValueChange={(v) => setNewForm({ ...newForm, gender: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Male">Male</SelectItem>
-                    <SelectItem value="Female">Female</SelectItem>
-                  </SelectContent>
-                </Select>
+                <SearchableSelect value={newForm.gender || ""} onValueChange={(v) => setNewForm({ ...newForm, gender: v })} placeholder="Select" options={[{value:"Male",label:"Male"},{value:"Female",label:"Female"}]} />
               </div>
               <div className="space-y-1.5">
                 <Label>Folder No. *</Label>
@@ -284,34 +278,16 @@ const FamilyPatients = () => {
               </div>
               <div className="space-y-1.5">
                 <Label>Blood Group</Label>
-                <Select value={newForm.bloodGroup || ""} onValueChange={(v) => setNewForm({ ...newForm, bloodGroup: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>
-                    {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect value={newForm.bloodGroup || ""} onValueChange={(v) => setNewForm({ ...newForm, bloodGroup: v })} placeholder="Select" options={["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(b => ({value:b,label:b}))} />
               </div>
               <div className="space-y-1.5">
                 <Label>Role *</Label>
-                <Select value={newForm.role || "primary"} onValueChange={(v) => setNewForm({ ...newForm, role: v, familyId: v === "primary" ? null : newForm.familyId })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="primary">Primary Member</SelectItem>
-                    <SelectItem value="dependant">Dependant</SelectItem>
-                  </SelectContent>
-                </Select>
+                <SearchableSelect value={newForm.role || "primary"} onValueChange={(v) => setNewForm({ ...newForm, role: v, familyId: v === "primary" ? null : newForm.familyId })} options={[{value:"primary",label:"Primary Member"},{value:"dependant",label:"Dependant"}]} />
               </div>
               {newForm.role === "dependant" && (
                 <div className="space-y-1.5">
                   <Label>Family Head *</Label>
-                  <Select value={newForm.familyId || ""} onValueChange={(v) => setNewForm({ ...newForm, familyId: v })}>
-                    <SelectTrigger><SelectValue placeholder="Select primary member" /></SelectTrigger>
-                    <SelectContent>
-                      {(Array.isArray(primaryPatients) ? primaryPatients : []).map((pp: any) => (
-                        <SelectItem key={pp.id} value={pp.id}>{pp.firstName} {pp.lastName} ({pp.patientId})</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableSelect value={newForm.familyId || ""} onValueChange={(v) => setNewForm({ ...newForm, familyId: v })} placeholder="Select primary member" options={(Array.isArray(primaryPatients) ? primaryPatients : []).map((pp: any) => ({value: pp.id, label: `${pp.firstName} ${pp.lastName} (${pp.patientId})`}))} />
                 </div>
               )}
               <div className="col-span-2 space-y-1.5">

@@ -41,11 +41,15 @@ const SidebarItem = ({ icon: Icon, label, href, active }: any) => (
   </Link>
 );
 
-const SidebarGroup = ({ icon: Icon, label, children, currentPath }: any) => {
-  const [open, setOpen] = useState(true);
+const SidebarGroup = ({ icon: Icon, label, children, currentPath, defaultOpen }: any) => {
+  const [open, setOpen] = useState(defaultOpen ?? false);
   const hasActiveChild = children?.some((c: any) =>
     c.href === "/" ? currentPath === "/" : currentPath.startsWith(c.href)
   );
+
+  useEffect(() => {
+    if (hasActiveChild) setOpen(true);
+  }, [hasActiveChild]);
 
   return (
     <div>
@@ -119,7 +123,10 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       { label: "HMO", href: "/patients/hmo" },
     ]},
     { icon: Calendar, label: "Appointments", href: "/appointments" },
-    { icon: ClipboardList, label: "Consultations", href: "/consultations" },
+    { icon: ClipboardList, label: "Consultations", children: [
+      { label: "Clinical Workspace", href: "/consultations" },
+      { label: "Vital Signs", href: "/consultations/vitals" },
+    ]},
     { icon: CreditCard, label: "Billing", href: "/billing" },
     { icon: FlaskConical, label: "Laboratory", href: "/laboratory" },
     { icon: Pill, label: "Pharmacy", href: "/pharmacy" },
