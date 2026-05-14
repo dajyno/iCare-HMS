@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { 
@@ -23,6 +24,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const PatientList = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+
   const { data: patients, isLoading, isError, error } = useQuery({
     queryKey: ["patients"],
     queryFn: async () => {
@@ -34,6 +37,19 @@ const PatientList = () => {
       return toCamel(data);
     },
   });
+
+  const filteredPatients = useMemo(() => {
+    if (!Array.isArray(patients)) return patients;
+    if (!searchTerm.trim()) return patients;
+    const q = searchTerm.toLowerCase();
+    return patients.filter((p: any) =>
+      p.patientId?.toLowerCase().includes(q) ||
+      p.firstName?.toLowerCase().includes(q) ||
+      p.lastName?.toLowerCase().includes(q) ||
+      `${p.firstName} ${p.lastName}`.toLowerCase().includes(q) ||
+      p.phone?.includes(q)
+    );
+  }, [patients, searchTerm]);
 
   if (isLoading) {
     return (
@@ -83,6 +99,8 @@ const PatientList = () => {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by ID, name, or phone..." 
               className="pl-9 bg-white max-w-md h-9"
             />
@@ -102,8 +120,8 @@ const PatientList = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {Array.isArray(patients) ? (
-                patients.map((patient: any) => (
+              {Array.isArray(filteredPatients) ? (
+                filteredPatients.map((patient: any) => (
                   <tr key={patient.id} className="hover:bg-slate-50/80 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">

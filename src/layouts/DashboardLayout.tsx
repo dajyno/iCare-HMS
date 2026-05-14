@@ -1,6 +1,7 @@
-import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { supabase } from "@/src/lib/supabase";
 import {
   LayoutDashboard,
   Users,
@@ -43,12 +44,39 @@ const SidebarItem = ({ icon: Icon, label, href, active }: any) => (
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const { data } = await supabase
+          .from("patients")
+          .select("id, patient_id, first_name, last_name, phone")
+          .or(`first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%,patient_id.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%`)
+          .limit(8);
+        setSearchResults(data || []);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
     { icon: Users, label: "Patients", href: "/patients" },
     { icon: Calendar, label: "Appointments", href: "/appointments" },
-    { icon: ClipboardList, label: "EMR Records", href: "/emr" },
+    { icon: ClipboardList, label: "Consultations", href: "/consultations" },
     { icon: CreditCard, label: "Billing", href: "/billing" },
     { icon: FlaskConical, label: "Laboratory", href: "/laboratory" },
     { icon: Pill, label: "Pharmacy", href: "/pharmacy" },
@@ -129,12 +157,37 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
           <div className="flex items-center gap-6">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
               <input
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search patients, reports..."
                 className="w-64 pl-9 pr-4 py-1.5 text-sm bg-slate-100 border-none rounded-full focus:ring-2 focus:ring-sky-500 transition-all outline-none"
               />
+              {searchQuery.trim() && (
+                <div className="absolute top-full mt-2 right-0 w-80 bg-white rounded-xl border border-slate-200 shadow-lg z-50 overflow-hidden">
+                  {searching ? (
+                    <div className="p-4 text-center text-sm text-slate-400">Searching...</div>
+                  ) : searchResults.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-slate-400">No results found</div>
+                  ) : (
+                    <div className="py-2">
+                      <div className="px-4 py-1 text-[10px] font-bold uppercase text-slate-400 tracking-wider">Patients</div>
+                      {searchResults.map((r: any) => (
+                        <button
+                          key={r.id}
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center justify-between"
+                          onClick={() => { navigate(`/patients`); setSearchQuery(""); setSearchResults([]); }}
+                        >
+                          <span className="font-medium text-slate-900">{r.first_name} {r.last_name}</span>
+                          <span className="text-xs text-slate-400 font-mono">{r.patient_id}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             
             <button className="relative p-1 text-slate-400 hover:text-sky-600 transition-colors">

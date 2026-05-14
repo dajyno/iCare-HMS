@@ -6,7 +6,7 @@ import Login from "./pages/Auth/Login";
 import Overview from "./pages/Dashboard/Overview";
 import PatientList from "./pages/Patients/PatientList";
 import AppointmentList from "./pages/Appointments/AppointmentList";
-import ConsultationWorkspace from "./pages/EMR/ConsultationWorkspace";
+import ConsultationWorkspace from "./pages/Consultations/ConsultationWorkspace";
 import LabQueue from "./pages/Laboratory/LabQueue";
 import PharmacyQueue from "./pages/Pharmacy/PharmacyQueue";
 import BillingOverview from "./pages/Billing/BillingOverview";
@@ -70,7 +70,7 @@ export default function App() {
               }
             />
             <Route
-              path="/emr"
+              path="/consultations"
               element={
                 <ProtectedRoute>
                   <ConsultationWorkspace />

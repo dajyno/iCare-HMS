@@ -82,7 +82,7 @@ const Overview = () => {
     { label: "Total Patients", value: stats?.totalPatients || 0, icon: Users, color: "text-sky-600", bg: "bg-sky-50", trend: "12% from last month" },
     { label: "Appointments Today", value: stats?.appointmentsToday || 0, icon: Calendar, color: "text-emerald-600", bg: "bg-emerald-50", trend: "6 slots remaining" },
     { label: "Pending Labs", value: stats?.pendingLabs || 0, icon: FlaskConical, color: "text-amber-600", bg: "bg-amber-50", trend: "Awaiting results" },
-    { label: "Daily Revenue", value: `$${stats?.revenueToday?.toLocaleString() || 0}`, icon: DollarSign, color: "text-indigo-600", bg: "bg-indigo-50", trend: "Verified by Finance" },
+    { label: "Daily Revenue", value: `₦${stats?.revenueToday?.toLocaleString() || 0}`, icon: DollarSign, color: "text-indigo-600", bg: "bg-indigo-50", trend: "Verified by Finance" },
   ];
 
   return (

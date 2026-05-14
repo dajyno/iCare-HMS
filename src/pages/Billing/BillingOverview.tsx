@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { 
@@ -14,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 
 const BillingOverview = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+
   const { data: invoices, isLoading } = useQuery({
     queryKey: ["invoices"],
     queryFn: async () => {
@@ -25,6 +28,16 @@ const BillingOverview = () => {
       return toCamel(data);
     },
   });
+
+  const filteredInvoices = useMemo(() => {
+    if (!Array.isArray(invoices)) return invoices;
+    if (!searchTerm.trim()) return invoices;
+    const q = searchTerm.toLowerCase();
+    return invoices.filter((inv: any) =>
+      inv.invoiceNumber?.toLowerCase().includes(q) ||
+      `${inv.patient?.firstName} ${inv.patient?.lastName}`.toLowerCase().includes(q)
+    );
+  }, [invoices, searchTerm]);
 
   if (isLoading) return <div className="p-12 text-center text-slate-400">Loading billing data...</div>;
 
@@ -43,10 +56,10 @@ const BillingOverview = () => {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Total Outstanding", value: "$12,450", color: "text-rose-600" },
-          { label: "Collected Today", value: "$4,250", color: "text-emerald-600" },
+          { label: "Total Outstanding", value: "₦12,450", color: "text-rose-600" },
+          { label: "Collected Today", value: "₦4,250", color: "text-emerald-600" },
           { label: "Pending Claims", value: "24", color: "text-blue-600" },
-          { label: "Refunds Issued", value: "$320", color: "text-amber-600" },
+          { label: "Refunds Issued", value: "₦320", color: "text-amber-600" },
         ].map((stat, i) => (
           <Card key={i} className="border-none shadow-sm ring-1 ring-slate-200">
             <CardHeader className="pb-2">
@@ -63,7 +76,7 @@ const BillingOverview = () => {
         <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
            <div className="relative w-80">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input placeholder="Search invoice or patient..." className="pl-9 bg-white h-9" />
+               <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search invoice or patient..." className="pl-9 bg-white h-9" />
            </div>
            <div className="flex gap-2">
               <Button size="sm" variant="ghost" className="h-9">Filter by Status</Button>
@@ -84,19 +97,19 @@ const BillingOverview = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {!Array.isArray(invoices) || invoices.length === 0 ? (
+              {!Array.isArray(filteredInvoices) || filteredInvoices.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">
-                    {!Array.isArray(invoices) ? "Error loading invoices." : "No invoices found for the current period."}
+                    {!Array.isArray(filteredInvoices) ? "Error loading invoices." : searchTerm ? "No invoices match your search." : "No invoices found for the current period."}
                   </td>
                 </tr>
               ) : (
-                invoices.map((inv: any) => (
+                filteredInvoices.map((inv: any) => (
                   <tr key={inv.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 font-mono text-xs font-bold text-blue-600">{inv.invoiceNumber}</td>
                     <td className="px-6 py-4 font-semibold text-slate-900">{inv.patient.firstName} {inv.patient.lastName}</td>
                     <td className="px-6 py-4 text-slate-500">{new Date(inv.createdAt).toLocaleDateString()}</td>
-                    <td className="px-6 py-4 font-bold text-slate-900">${inv.totalAmount.toLocaleString()}</td>
+                    <td className="px-6 py-4 font-bold text-slate-900">₦{inv.totalAmount.toLocaleString()}</td>
                     <td className="px-6 py-4">
                       <Badge className={inv.status === 'Paid' ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}>
                         {inv.status}

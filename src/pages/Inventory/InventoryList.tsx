@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { 
@@ -14,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 
 const InventoryList = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+
   const { data: items, isLoading } = useQuery({
     queryKey: ["inventory"],
     queryFn: async () => {
@@ -25,6 +28,17 @@ const InventoryList = () => {
       return toCamel(data);
     },
   });
+
+  const filteredItems = useMemo(() => {
+    if (!Array.isArray(items)) return items;
+    if (!searchTerm.trim()) return items;
+    const q = searchTerm.toLowerCase();
+    return items.filter((item: any) =>
+      item.name?.toLowerCase().includes(q) ||
+      item.sku?.toLowerCase().includes(q) ||
+      item.category?.toLowerCase().includes(q)
+    );
+  }, [items, searchTerm]);
 
   if (isLoading) return <div className="p-12 text-center text-slate-400">Loading inventory...</div>;
 
@@ -56,7 +70,7 @@ const InventoryList = () => {
             <CardTitle className="text-sm text-slate-500">Inventory Value</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center justify-between">
-            <div className="text-2xl font-bold text-slate-900">$42,500</div>
+            <div className="text-2xl font-bold text-slate-900">₦42,500</div>
             <ArrowUpRight className="w-5 h-5 text-emerald-500" />
           </CardContent>
         </Card>
@@ -75,7 +89,7 @@ const InventoryList = () => {
         <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
           <div className="relative w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <Input placeholder="Search items, SKU, category..." className="pl-9 bg-white h-9" />
+            <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search items, SKU, category..." className="pl-9 bg-white h-9" />
           </div>
         </div>
 
@@ -92,14 +106,14 @@ const InventoryList = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {!Array.isArray(items) || items.length === 0 ? (
+              {!Array.isArray(filteredItems) || filteredItems.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">
-                    {!Array.isArray(items) ? "Error loading inventory items." : "No inventory items found."}
+                    {!Array.isArray(filteredItems) ? "Error loading inventory items." : searchTerm ? "No items match your search." : "No inventory items found."}
                   </td>
                 </tr>
               ) : (
-                items.map((item: any) => {
+                filteredItems.map((item: any) => {
                   const isLow = item.quantity <= item.reorderLevel;
                   return (
                     <tr key={item.id} className="hover:bg-slate-50 transition-colors">
