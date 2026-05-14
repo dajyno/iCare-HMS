@@ -246,7 +246,7 @@ const ConsultationWorkspace = () => {
         {selectedPatient && (
           <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-8">
             <Tabs defaultValue="clinical" className="w-full">
-              <TabsList className="bg-white border p-1 h-auto mb-6">
+              <TabsList className="bg-white border p-1 h-auto mb-6 overflow-x-auto flex-nowrap">
                 <TabsTrigger value="clinical" className="gap-2 px-4 py-2">
                   <ClipboardList className="w-4 h-4" />
                   Clinical Notes

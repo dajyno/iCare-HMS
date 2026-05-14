@@ -396,13 +396,13 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
 
       {/* New Patient Modal */}
       <Dialog open={showNewModal} onOpenChange={setShowNewModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Register New Patient</DialogTitle>
             <DialogDescription>Fill in the patient details to create a new record.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleNewSubmit} className="space-y-5">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <Label>First Name <span className="text-red-500">*</span></Label>
                 <Input required value={newForm.firstName || ""} onChange={(e) => setNewForm({ ...newForm, firstName: e.target.value })} />
@@ -450,17 +450,17 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
                 <Label>Blood Group</Label>
                 <SearchableSelect value={newForm.bloodGroup || ""} onValueChange={(v) => setNewForm({ ...newForm, bloodGroup: v })} placeholder="Select" options={["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(b => ({value:b,label:b}))} />
               </div>
-              <div className="col-span-3 space-y-1.5">
+              <div className="col-span-1 sm:col-span-2 md:col-span-3 space-y-1.5">
                 <Label>Address</Label>
                 <Input value={newForm.address || ""} onChange={(e) => setNewForm({ ...newForm, address: e.target.value })} />
               </div>
-              <div className="col-span-2 space-y-1.5">
+              <div className="col-span-1 sm:col-span-2 space-y-1.5">
                 <Label>Allergies / Medical History</Label>
                 <Textarea value={newForm.allergies || ""} onChange={(e) => setNewForm({ ...newForm, allergies: e.target.value })} placeholder="List any allergies or relevant history" />
               </div>
 
               {newForm.category === "Family" && newForm.role === "dependant" && (
-                <div className="col-span-3 border-t pt-4">
+                <div className="col-span-1 sm:col-span-2 md:col-span-3 border-t pt-4">
                   <h4 className="text-sm font-bold text-slate-700 mb-3">Family Head</h4>
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-1.5">
@@ -471,9 +471,9 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
                 </div>
               )}
 
-              <div className="col-span-3 border-t pt-4">
+              <div className="col-span-1 sm:col-span-2 md:col-span-3 border-t pt-4">
                 <h4 className="text-sm font-bold text-slate-700 mb-3">Next of Kin / Emergency Contact</h4>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
                     <Label>Name</Label>
                     <Input value={newForm.nextOfKinName || ""} onChange={(e) => setNewForm({ ...newForm, nextOfKinName: e.target.value })} />
@@ -490,21 +490,12 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
               </div>
 
               {newForm.category === "Corporate" && (
-                <div className="col-span-3 border-t pt-4">
+                <div className="col-span-1 sm:col-span-2 md:col-span-3 border-t pt-4">
                   <h4 className="text-sm font-bold text-slate-700 mb-3">Company Information</h4>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-1.5">
                       <Label>Company Name</Label>
-                      <input
-                        list="company-list"
-                        value={newForm.companyName || ""}
-                        onChange={(e) => setNewForm({ ...newForm, companyName: e.target.value })}
-                        className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        placeholder="Search or type company name..."
-                      />
-                      <datalist id="company-list">
-                        {companySuggestions.map((name) => <option key={name} value={name} />)}
-                      </datalist>
+                      <SearchableSelect value={newForm.companyName || ""} onValueChange={(v) => setNewForm({ ...newForm, companyName: v })} placeholder="Search or type company name..." options={companySuggestions.map((name) => ({value: name, label: name}))} />
                     </div>
                     <div className="space-y-1.5">
                       <Label>Company Phone</Label>
@@ -519,21 +510,12 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
               )}
 
               {newForm.category === "HMO" && (
-                <div className="col-span-3 border-t pt-4">
+                <div className="col-span-1 sm:col-span-2 md:col-span-3 border-t pt-4">
                   <h4 className="text-sm font-bold text-slate-700 mb-3">Insurance / HMO Details</h4>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-1.5">
                       <Label>HMO Provider</Label>
-                      <input
-                        list="hmo-list"
-                        value={newForm.insuranceProvider || ""}
-                        onChange={(e) => setNewForm({ ...newForm, insuranceProvider: e.target.value })}
-                        className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        placeholder="Search or type HMO provider..."
-                      />
-                      <datalist id="hmo-list">
-                        {hmoSuggestions.map((name) => <option key={name} value={name} />)}
-                      </datalist>
+                      <SearchableSelect value={newForm.insuranceProvider || ""} onValueChange={(v) => setNewForm({ ...newForm, insuranceProvider: v })} placeholder="Search or type HMO provider..." options={hmoSuggestions.map((name) => ({value: name, label: name}))} />
                     </div>
                     <div className="space-y-1.5">
                       <Label>Insurance ID / Registration Number</Label>
@@ -556,14 +538,14 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
 
       {/* Edit Patient Modal */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Patient</DialogTitle>
             <DialogDescription>Update patient information. Folder number cannot be changed.</DialogDescription>
           </DialogHeader>
           {editPatient && (
             <form onSubmit={handleEditSubmit} className="space-y-5">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Folder No.</Label>
                   <Input value={editForm.patientId || ""} disabled className="bg-slate-100" />
@@ -617,11 +599,10 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
               {editForm.category === "Corporate" && (
                 <div className="border-t pt-4">
                   <h4 className="text-sm font-bold text-slate-700 mb-3">Company Information</h4>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-1.5">
                       <Label>Company Name</Label>
-                      <input list="company-list" value={editForm.companyName || ""} onChange={(e) => setEditForm({ ...editForm, companyName: e.target.value })}
-                        className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" />
+                      <SearchableSelect value={editForm.companyName || ""} onValueChange={(v) => setEditForm({ ...editForm, companyName: v })} placeholder="Search or type company name..." options={companySuggestions.map((name) => ({value: name, label: name}))} />
                     </div>
                     <div className="space-y-1.5">
                       <Label>Company Phone</Label>
@@ -638,11 +619,10 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
               {editForm.category === "HMO" && (
                 <div className="border-t pt-4">
                   <h4 className="text-sm font-bold text-slate-700 mb-3">Insurance / HMO Details</h4>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label>HMO Provider</Label>
-                      <input list="hmo-list" value={editForm.insuranceProvider || ""} onChange={(e) => setEditForm({ ...editForm, insuranceProvider: e.target.value })}
-                        className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" />
+                      <SearchableSelect value={editForm.insuranceProvider || ""} onValueChange={(v) => setEditForm({ ...editForm, insuranceProvider: v })} placeholder="Search or type HMO provider..." options={hmoSuggestions.map((name) => ({value: name, label: name}))} />
                     </div>
                     <div className="space-y-1.5">
                       <Label>Insurance ID / Registration Number</Label>
@@ -665,7 +645,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
 
       {/* Book Appointment Modal */}
       <Dialog open={showApptModal} onOpenChange={setShowApptModal}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[95vw] max-w-md">
           <DialogHeader>
             <DialogTitle>Book Appointment</DialogTitle>
             <DialogDescription>

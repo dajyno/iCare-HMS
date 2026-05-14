@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "@/src/lib/supabase";
@@ -20,6 +20,7 @@ import {
   Bell,
   ChevronDown,
   Menu,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -89,6 +90,17 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSearchResults([]);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -200,7 +212,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Top Header */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
+        <header className="h-auto min-h-16 bg-white border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 px-4 sm:px-8 py-2 sm:py-0 shrink-0">
           <div className="flex items-center gap-2 text-slate-500 text-sm">
             <span>Modules</span>
             <span className="text-slate-300">/</span>
@@ -209,18 +221,27 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
             </span>
           </div>
 
-          <div className="flex items-center gap-6">
-            <div className="relative">
+          <div className="flex items-center gap-3 sm:gap-6">
+            <div className="relative" ref={searchRef}>
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Escape") { setSearchQuery(""); setSearchResults([]); (e.target as HTMLInputElement).blur(); } }}
                 placeholder="Search patients, reports..."
-                className="w-64 pl-9 pr-4 py-1.5 text-sm bg-slate-100 border-none rounded-full focus:ring-2 focus:ring-sky-500 transition-all outline-none"
+                className="w-40 sm:w-64 pl-9 pr-10 py-1.5 text-sm bg-slate-100 border-none rounded-full focus:ring-2 focus:ring-sky-500 transition-all outline-none"
               />
               {searchQuery.trim() && (
-                <div className="absolute top-full mt-2 right-0 w-80 bg-white rounded-xl border border-slate-200 shadow-lg z-50 overflow-hidden">
+                <button
+                  onClick={() => { setSearchQuery(""); setSearchResults([]); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 z-10"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+              {searchQuery.trim() && (
+                <div className="absolute top-full mt-2 right-0 w-80 bg-white rounded-xl border border-slate-200 shadow-lg z-50 overflow-hidden" onClick={(e) => e.stopPropagation()}>
                   {searching ? (
                     <div className="p-4 text-center text-sm text-slate-400">Searching...</div>
                   ) : searchResults.length === 0 ? (
@@ -252,7 +273,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-8 focus:outline-none">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 focus:outline-none">
           <div className="max-w-full mx-auto space-y-6 pb-12">
             {children}
           </div>

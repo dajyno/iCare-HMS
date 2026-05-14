@@ -3,15 +3,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { useAuth } from "@/src/context/AuthContext";
 import {
-  HeartPulse, Plus, Loader2, AlertCircle, Search, Thermometer,
-  Activity, Scale, Droplets, Weight, Ruler, Clock, User
+  HeartPulse, Plus, Loader2, AlertCircle, Thermometer,
+  Activity, Scale, Droplets, Weight, Ruler, Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import SearchableSelect from "@/components/ui/searchable-select";
 
@@ -19,6 +16,7 @@ const VitalSigns = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState<any>(null);
   const [form, setForm] = useState<any>({});
 
   const { data: vitals, isLoading, isError, error } = useQuery({
@@ -108,7 +106,7 @@ const VitalSigns = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
             <HeartPulse className="w-7 h-7 text-rose-500" />
@@ -128,22 +126,20 @@ const VitalSigns = () => {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
               <tr>
-                <th className="px-4 py-3 text-left">Patient</th>
-                <th className="px-4 py-3 text-left">Date</th>
-                <th className="px-4 py-3 text-center">Temp (°C)</th>
-                <th className="px-4 py-3 text-center">BP (mmHg)</th>
-                <th className="px-4 py-3 text-center">Pulse (bpm)</th>
-                <th className="px-4 py-3 text-center">RR (/min)</th>
-                <th className="px-4 py-3 text-center">SpO2 (%)</th>
-                <th className="px-4 py-3 text-center">Weight (kg)</th>
-                <th className="px-4 py-3 text-center">Height (cm)</th>
-                <th className="px-4 py-3 text-center">BMI</th>
+                <th className="px-4 py-3 text-left min-w-[180px]">Patient</th>
+                <th className="px-4 py-3 text-left whitespace-nowrap">Date</th>
+                <th className="px-4 py-3 text-center whitespace-nowrap">Temp (°C)</th>
+                <th className="px-4 py-3 text-center whitespace-nowrap">BP (mmHg)</th>
+                <th className="px-4 py-3 text-center whitespace-nowrap">Pulse (bpm)</th>
+                <th className="px-4 py-3 text-center whitespace-nowrap">Weight (kg)</th>
+                <th className="px-4 py-3 text-center whitespace-nowrap">Height (cm)</th>
+                <th className="px-4 py-3 text-center"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {!Array.isArray(vitals) || vitals.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center text-slate-400">No vital signs recorded yet.</td>
+                  <td colSpan={8} className="px-4 py-12 text-center text-slate-400">No vital signs recorded yet.</td>
                 </tr>
               ) : (
                 vitals.map((v: any) => {
@@ -153,24 +149,26 @@ const VitalSigns = () => {
                     <tr key={v.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                          <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs shrink-0">
                             {patient?.firstName?.[0]}{patient?.lastName?.[0]}
                           </div>
-                          <div>
-                            <div className="font-semibold text-slate-900 text-xs">{patient?.firstName} {patient?.lastName}</div>
-                            <div className="text-[10px] font-mono text-slate-400">{patient?.patientId}</div>
+                          <div className="min-w-0">
+                            <div className="font-semibold text-slate-900 text-xs truncate">{patient?.firstName} {patient?.lastName}</div>
+                            <div className="text-[10px] font-mono text-slate-400 truncate">{patient?.patientId}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-xs text-slate-500">{new Date(v.createdAt).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{new Date(v.createdAt).toLocaleString()}</td>
                       <td className="px-4 py-3 text-center font-mono text-sm">{vs?.temperature ?? "-"}</td>
                       <td className="px-4 py-3 text-center font-mono text-sm">{vs?.bloodPressure ?? "-"}</td>
                       <td className="px-4 py-3 text-center font-mono text-sm">{vs?.pulseRate ?? "-"}</td>
-                      <td className="px-4 py-3 text-center font-mono text-sm">{vs?.respiratoryRate ?? "-"}</td>
-                      <td className="px-4 py-3 text-center font-mono text-sm">{vs?.oxygenSaturation ?? "-"}</td>
                       <td className="px-4 py-3 text-center font-mono text-sm">{vs?.weight ?? "-"}</td>
                       <td className="px-4 py-3 text-center font-mono text-sm">{vs?.height ?? "-"}</td>
-                      <td className="px-4 py-3 text-center font-mono text-sm">{vs?.bmi ?? "-"}</td>
+                      <td className="px-4 py-3 text-center">
+                        <Button variant="ghost" size="sm" className="h-8 text-blue-600" onClick={() => setShowDetailModal(v)}>
+                          <Eye className="w-4 h-4 mr-1" /> View
+                        </Button>
+                      </td>
                     </tr>
                   );
                 })
@@ -180,9 +178,49 @@ const VitalSigns = () => {
         </div>
       </div>
 
+      {/* View Detail Modal */}
+      <Dialog open={!!showDetailModal} onOpenChange={(o) => { if (!o) setShowDetailModal(null); }}>
+        <DialogContent className="w-[95vw] max-w-md">
+          <DialogHeader>
+            <DialogTitle>Vital Signs Details</DialogTitle>
+            <DialogDescription>
+              {showDetailModal?.patients?.firstName} {showDetailModal?.patients?.lastName} — {showDetailModal ? new Date(showDetailModal.createdAt).toLocaleString() : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {showDetailModal && (() => {
+            const vs = showDetailModal.vitalSigns;
+            const items = [
+              { label: "Temperature", value: vs?.temperature != null ? `${vs.temperature} °C` : "-", icon: Thermometer },
+              { label: "Blood Pressure", value: vs?.bloodPressure ?? "-", icon: Activity },
+              { label: "Pulse Rate", value: vs?.pulseRate != null ? `${vs.pulseRate} bpm` : "-", icon: HeartPulse },
+              { label: "Respiratory Rate", value: vs?.respiratoryRate != null ? `${vs.respiratoryRate} /min` : "-", icon: Activity },
+              { label: "Oxygen Saturation", value: vs?.oxygenSaturation != null ? `${vs.oxygenSaturation} %` : "-", icon: Droplets },
+              { label: "Weight", value: vs?.weight != null ? `${vs.weight} kg` : "-", icon: Scale },
+              { label: "Height", value: vs?.height != null ? `${vs.height} cm` : "-", icon: Ruler },
+              { label: "BMI", value: vs?.bmi ?? "-", icon: Weight },
+            ];
+            return (
+              <div className="grid grid-cols-2 gap-4 py-4">
+                {items.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <div key={item.label} className="bg-slate-50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                        <Icon className="w-3 h-3" /> {item.label}
+                      </div>
+                      <div className="font-semibold text-slate-900">{item.value}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
       {/* Add Vital Signs Modal */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[95vw] max-w-lg">
           <DialogHeader>
             <DialogTitle>Record Vital Signs</DialogTitle>
             <DialogDescription>Search for a patient and record their vital signs.</DialogDescription>
@@ -192,7 +230,7 @@ const VitalSigns = () => {
               <Label>Patient <span className="text-red-500">*</span></Label>
               <SearchableSelect value={form.patientId || ""} onValueChange={(v) => setForm({ ...form, patientId: v })} placeholder="Search patient..." options={(Array.isArray(patients) ? patients : []).map((p: any) => ({value: p.id, label: `${p.firstName} ${p.lastName} (${p.patientId})`}))} />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <Label className="flex items-center gap-1"><Thermometer className="w-3 h-3" /> Temp (°C)</Label>
                 <Input type="number" step="0.1" value={form.temperature || ""} onChange={(e) => setForm({ ...form, temperature: e.target.value })} />

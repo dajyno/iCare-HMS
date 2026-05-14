@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
@@ -45,6 +45,19 @@ const PatientProfile = () => {
   const [rxForm, setRxForm] = useState<any>({});
   const [showBillModal, setShowBillModal] = useState(false);
   const [billForm, setBillForm] = useState<any>({});
+  const [companySuggestions, setCompanySuggestions] = useState<string[]>([]);
+  const [hmoSuggestions, setHmoSuggestions] = useState<string[]>([]);
+
+  useEffect(() => {
+    supabase.from("patients").select("company_name").not("company_name", "is", null).then(({ data }) => {
+      const names = [...new Set((data || []).map((r: any) => r.company_name).filter(Boolean))];
+      setCompanySuggestions(names);
+    });
+    supabase.from("patients").select("insurance_provider").not("insurance_provider", "is", null).then(({ data }) => {
+      const names = [...new Set((data || []).map((r: any) => r.insurance_provider).filter(Boolean))];
+      setHmoSuggestions(names);
+    });
+  }, []);
 
   const { data: patient, isLoading, isError } = useQuery({
     queryKey: ["patient", id],
@@ -806,7 +819,7 @@ const PatientProfile = () => {
 
       {/* ======== EDIT MODAL ======== */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Patient</DialogTitle>
             <DialogDescription>Folder number cannot be changed. Fields from other categories will be cleared on save.</DialogDescription>
@@ -842,7 +855,7 @@ const PatientProfile = () => {
               <div className="border-t pt-4">
                 <h4 className="text-sm font-bold text-slate-700 mb-3">Company Information</h4>
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-1.5"><Label>Company Name</Label><Input value={editForm.companyName || ""} onChange={(e) => setEditForm({ ...editForm, companyName: e.target.value })} /></div>
+                  <div className="space-y-1.5"><Label>Company Name</Label><SearchableSelect value={editForm.companyName || ""} onValueChange={(v) => setEditForm({ ...editForm, companyName: v })} placeholder="Search or type company name..." options={companySuggestions.map((name) => ({value: name, label: name}))} /></div>
                   <div className="space-y-1.5"><Label>Company Phone</Label><Input value={editForm.companyPhone || ""} onChange={(e) => setEditForm({ ...editForm, companyPhone: e.target.value })} /></div>
                   <div className="space-y-1.5"><Label>Company Address</Label><Input value={editForm.companyAddress || ""} onChange={(e) => setEditForm({ ...editForm, companyAddress: e.target.value })} /></div>
                 </div>
@@ -853,7 +866,7 @@ const PatientProfile = () => {
               <div className="border-t pt-4">
                 <h4 className="text-sm font-bold text-slate-700 mb-3">Insurance / HMO Details</h4>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5"><Label>HMO Provider</Label><Input value={editForm.insuranceProvider || ""} onChange={(e) => setEditForm({ ...editForm, insuranceProvider: e.target.value })} /></div>
+                  <div className="space-y-1.5"><Label>HMO Provider</Label><SearchableSelect value={editForm.insuranceProvider || ""} onValueChange={(v) => setEditForm({ ...editForm, insuranceProvider: v })} placeholder="Search or type HMO provider..." options={hmoSuggestions.map((name) => ({value: name, label: name}))} /></div>
                   <div className="space-y-1.5"><Label>Insurance ID / Registration Number</Label><Input value={editForm.insuranceId || ""} onChange={(e) => setEditForm({ ...editForm, insuranceId: e.target.value })} /></div>
                 </div>
               </div>
@@ -871,7 +884,7 @@ const PatientProfile = () => {
 
       {/* ======== VITAL SIGNS MODAL ======== */}
       <Dialog open={showVitalsModal} onOpenChange={setShowVitalsModal}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[95vw] max-w-lg">
           <DialogHeader>
             <DialogTitle>Record Vital Signs</DialogTitle>
             <DialogDescription>Enter the patient's vital signs measurements.</DialogDescription>
@@ -898,7 +911,7 @@ const PatientProfile = () => {
 
       {/* ======== CONSULTATION MODAL ======== */}
       <Dialog open={showConsultModal} onOpenChange={setShowConsultModal}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="w-[95vw] max-w-2xl">
           <DialogHeader>
             <DialogTitle>New Consultation</DialogTitle>
             <DialogDescription>Record a new consultation for this patient.</DialogDescription>
@@ -926,7 +939,7 @@ const PatientProfile = () => {
 
       {/* ======== LAB REQUEST MODAL ======== */}
       <Dialog open={showLabModal} onOpenChange={setShowLabModal}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[95vw] max-w-lg">
           <DialogHeader>
             <DialogTitle>New Lab Request</DialogTitle>
             <DialogDescription>Select a lab test to request.</DialogDescription>
@@ -948,7 +961,7 @@ const PatientProfile = () => {
 
       {/* ======== RADIOLOGY REQUEST MODAL ======== */}
       <Dialog open={showRadModal} onOpenChange={setShowRadModal}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[95vw] max-w-lg">
           <DialogHeader>
             <DialogTitle>New Radiology Request</DialogTitle>
             <DialogDescription>Select an imaging test to request.</DialogDescription>
@@ -970,7 +983,7 @@ const PatientProfile = () => {
 
       {/* ======== PRESCRIPTION MODAL ======== */}
       <Dialog open={showRxModal} onOpenChange={setShowRxModal}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[95vw] max-w-lg">
           <DialogHeader>
             <DialogTitle>New Prescription</DialogTitle>
             <DialogDescription>Add a medication prescription.</DialogDescription>
@@ -998,7 +1011,7 @@ const PatientProfile = () => {
 
       {/* ======== BILLING MODAL ======== */}
       <Dialog open={showBillModal} onOpenChange={setShowBillModal}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[95vw] max-w-lg">
           <DialogHeader>
             <DialogTitle>New Invoice</DialogTitle>
             <DialogDescription>Create a new invoice for this patient.</DialogDescription>

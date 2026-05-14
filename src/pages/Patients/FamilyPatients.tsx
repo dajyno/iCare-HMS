@@ -232,7 +232,7 @@ const FamilyPatients = () => {
 
       {/* New Patient Modal */}
       <Dialog open={showNewModal} onOpenChange={setShowNewModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Family Patient</DialogTitle>
             <DialogDescription>Create a new family patient record.</DialogDescription>

@@ -76,7 +76,7 @@ const SearchableSelect = ({
             className="h-9"
           />
         </div>
-        <ScrollArea className="max-h-[220px]">
+        <ScrollArea className="max-h-[190px]">
           <div className="p-1">
             {filtered.length === 0 ? (
               <div className="py-6 text-center text-sm text-slate-400">No options found</div>
@@ -97,7 +97,7 @@ const SearchableSelect = ({
                   }}
                 >
                   <Check className={cn("h-4 w-4 shrink-0", opt.value === value ? "opacity-100" : "opacity-0")} />
-                  <span>{opt.label}</span>
+                  <span className="truncate">{opt.label}</span>
                 </button>
               ))
             )}
