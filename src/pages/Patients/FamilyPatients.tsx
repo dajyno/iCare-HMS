@@ -22,18 +22,34 @@ const FamilyPatients = () => {
   const [showNewModal, setShowNewModal] = useState(false);
   const [newForm, setNewForm] = useState<any>({});
 
-  const { data: patients, isLoading, isError, error } = useQuery({
-    queryKey: ["patients-family"],
+  const { data: families, isLoading, isError, error } = useQuery({
+    queryKey: ["patients-family-groups"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("patients")
         .select("*")
         .eq("category", "Family")
-        .order("last_name", { ascending: true })
-        .order("is_primary", { ascending: false })
-        .order("registration_date", { ascending: true });
+        .eq("is_primary", true)
+        .order("last_name", { ascending: true });
       if (error) throw error;
       return toCamel(data);
+    },
+  });
+
+  const { data: dependantCounts } = useQuery({
+    queryKey: ["patients-dependant-counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("patients")
+        .select("family_id")
+        .eq("category", "Family")
+        .eq("is_primary", false);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const row of data) {
+        if (row.family_id) counts[row.family_id] = (counts[row.family_id] || 0) + 1;
+      }
+      return counts;
     },
   });
 
@@ -51,17 +67,18 @@ const FamilyPatients = () => {
     },
   });
 
-  const filteredPatients = useMemo(() => {
-    if (!Array.isArray(patients)) return [];
-    if (!searchTerm.trim()) return patients;
+  const filteredFamilies = useMemo(() => {
+    if (!Array.isArray(families)) return [];
+    if (!searchTerm.trim()) return families;
     const q = searchTerm.toLowerCase();
-    return patients.filter((p: any) =>
-      p.patientId?.toLowerCase().includes(q) ||
-      p.firstName?.toLowerCase().includes(q) ||
-      p.lastName?.toLowerCase().includes(q) ||
-      p.phone?.includes(q)
+    return families.filter((f: any) =>
+      f.lastName?.toLowerCase().includes(q) ||
+      f.firstName?.toLowerCase().includes(q) ||
+      `${f.firstName} ${f.lastName}`.toLowerCase().includes(q) ||
+      f.patientId?.toLowerCase().includes(q) ||
+      f.phone?.includes(q)
     );
-  }, [patients, searchTerm]);
+  }, [families, searchTerm]);
 
   const createMutation = useMutation({
     mutationFn: async (formData: any) => {
@@ -70,7 +87,8 @@ const FamilyPatients = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["patients-family"] });
+      queryClient.invalidateQueries({ queryKey: ["patients-family-groups"] });
+      queryClient.invalidateQueries({ queryKey: ["patients-dependant-counts"] });
       queryClient.invalidateQueries({ queryKey: ["patients-family-primaries"] });
       setShowNewModal(false);
       setNewForm({});
@@ -103,7 +121,7 @@ const FamilyPatients = () => {
 
   const suggestFamilyId = () => {
     const base = (newForm.lastName || "FAM").toUpperCase().replace(/[^A-Z]/g, "").substring(0, 6);
-    const existing = Array.isArray(patients) ? patients.filter((p: any) => p.patientId?.startsWith(base)) : [];
+    const existing = Array.isArray(families) ? families.filter((p: any) => p.patientId?.startsWith(base)) : [];
     const next = (existing.length + 1).toString().padStart(3, "0");
     return `${base}-${next}`;
   };
@@ -117,7 +135,7 @@ const FamilyPatients = () => {
   if (isError) return (
     <div className="p-12 text-center text-slate-400">
       <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-40" />
-      <p>{error instanceof Error ? error.message : "Error loading family patients"}</p>
+      <p>{error instanceof Error ? error.message : "Error loading family groups"}</p>
     </div>
   );
 
@@ -126,8 +144,8 @@ const FamilyPatients = () => {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">Family Patients</h1>
-          <p className="text-sm text-slate-500">{Array.isArray(patients) ? patients.length : 0} total members</p>
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">Family Groups</h1>
+          <p className="text-sm text-slate-500">{Array.isArray(families) ? families.length : 0} families</p>
         </div>
         <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => { setNewForm({}); setShowNewModal(true); }}>
           <Plus className="w-4 h-4 mr-2" /> New Patient
@@ -141,7 +159,7 @@ const FamilyPatients = () => {
             <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by ID, name, or phone..."
+              placeholder="Search by family name, ID, or phone..."
               className="pl-9 bg-white max-w-md h-9"
             />
           </div>
@@ -151,62 +169,61 @@ const FamilyPatients = () => {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
               <tr>
-                <th className="px-6 py-3 text-left">Patient</th>
+                <th className="px-6 py-3 text-left">Family Name</th>
+                <th className="px-6 py-3 text-left">Primary Member</th>
                 <th className="px-6 py-3 text-left">Folder No.</th>
                 <th className="px-6 py-3 text-left">Contact</th>
-                <th className="px-6 py-3 text-left">Role</th>
+                <th className="px-6 py-3 text-center">Dependants</th>
                 <th className="px-6 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredPatients.length === 0 ? (
+              {filteredFamilies.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
-                    {searchTerm ? "No patients match your search." : "No family patients yet."}
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                    {searchTerm ? "No families match your search." : "No family groups yet."}
                   </td>
                 </tr>
               ) : (
-                filteredPatients.map((p: any) => {
-                  const isPrimary = p.isPrimary;
-                  return (
-                    <tr key={p.id} className={`hover:bg-slate-50/80 transition-colors group ${isPrimary ? "bg-amber-50/30" : ""}`}>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${isPrimary ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
-                            {p.firstName?.[0]}{p.lastName?.[0]}
+                filteredFamilies.map((f: any) => (
+                  <tr key={f.id} className="hover:bg-slate-50/80 transition-colors group">
+                    <td className="px-6 py-4">
+                      <div className="font-semibold text-slate-900">{f.lastName}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm">
+                          {f.firstName?.[0]}{f.lastName?.[0]}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-slate-900">
+                            {f.firstName} {f.lastName}
                           </div>
-                          <div>
-                            <div className="font-semibold text-slate-900">
-                              {p.firstName} {p.lastName}
-                            </div>
-                            <div className="text-xs font-mono text-slate-500 uppercase tracking-tighter">
-                              {p.gender}
-                            </div>
+                          <div className="text-xs text-slate-500 uppercase tracking-tighter">
+                            {f.gender}
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 font-mono text-xs text-slate-500">{p.patientId}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col gap-1 text-slate-600">
-                          <div className="flex items-center gap-2"><Phone className="w-3 h-3 opacity-40" /><span className="text-xs">{p.phone}</span></div>
-                          <div className="flex items-center gap-2"><Mail className="w-3 h-3 opacity-40" /><span className="text-xs">{p.email || "N/A"}</span></div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {isPrimary ? (
-                          <Badge className="bg-amber-100 text-amber-700 border-none font-bold"><Shield className="w-3 h-3 mr-1" />Primary</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-slate-500"><Users className="w-3 h-3 mr-1" />Dependant</Badge>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <Button variant="ghost" size="sm" className="h-8 text-blue-600 font-bold" onClick={() => navigate(`/patients/${p.id}`)}>
-                          View Profile
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 font-mono text-xs text-slate-500">{f.patientId}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1 text-slate-600">
+                        <div className="flex items-center gap-2"><Phone className="w-3 h-3 opacity-40" /><span className="text-xs">{f.phone}</span></div>
+                        <div className="flex items-center gap-2"><Mail className="w-3 h-3 opacity-40" /><span className="text-xs">{f.email || "N/A"}</span></div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-100 font-bold gap-1">
+                        <Users className="w-3 h-3" /> {dependantCounts?.[f.id] ?? 0}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <Button variant="ghost" size="sm" className="h-8 text-blue-600 font-bold" onClick={() => navigate(`/patients/${f.id}`)}>
+                        View Profile
+                      </Button>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
@@ -233,7 +250,7 @@ const FamilyPatients = () => {
                 <Input required value={newForm.lastName || ""} onChange={(e) => {
                   const lastName = e.target.value;
                   const base = lastName.toUpperCase().replace(/[^A-Z]/g, "").substring(0, 6);
-                  const existing = Array.isArray(patients) ? patients.filter((p: any) => p.patientId?.startsWith(base)) : [];
+                  const existing = Array.isArray(families) ? families.filter((p: any) => p.patientId?.startsWith(base)) : [];
                   const next = (existing.length + 1).toString().padStart(3, "0");
                   const suggestedId = `${base}-${next}`;
                   setNewForm({ ...newForm, lastName, patientId: newForm.patientId || suggestedId });

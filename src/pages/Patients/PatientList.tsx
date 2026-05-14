@@ -68,40 +68,19 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
     },
   });
 
-  const { data: doctors } = useQuery({
-    queryKey: ["doctors"],
+  const { data: primaryPatients } = useQuery({
+    queryKey: ["patients-family-primaries-list"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("users")
-        .select("id, full_name")
-        .eq("role", "Doctor")
-        .eq("status", "active");
+        .from("patients")
+        .select("id, patient_id, first_name, last_name")
+        .eq("category", "Family")
+        .eq("is_primary", true)
+        .order("last_name");
       if (error) throw error;
       return toCamel(data);
     },
   });
-
-  const filteredPatients = useMemo(() => {
-    if (!Array.isArray(patients)) return patients;
-    let list = patients;
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase();
-      list = list.filter((p: any) =>
-        p.patientId?.toLowerCase().includes(q) ||
-        p.firstName?.toLowerCase().includes(q) ||
-        p.lastName?.toLowerCase().includes(q) ||
-        `${p.firstName} ${p.lastName}`.toLowerCase().includes(q) ||
-        p.phone?.includes(q)
-      );
-    }
-    if (categoryFilter !== "All") {
-      list = list.filter((p: any) => p.category === categoryFilter);
-    }
-    if (statusFilter !== "All") {
-      list = list.filter((p: any) => p.status === statusFilter);
-    }
-    return list;
-  }, [patients, searchTerm, categoryFilter, statusFilter]);
 
   const createMutation = useMutation({
     mutationFn: async (formData: any) => {
@@ -165,6 +144,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
 
   const handleNewSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const isFamilyPrimary = newForm.category === "Family" && newForm.role !== "dependant";
     const payload = {
       patient_id: newForm.patientId,
       first_name: newForm.firstName,
@@ -176,10 +156,11 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
       address: newForm.address || null,
       category: newForm.category || "Individual",
       status: "active",
+      is_primary: newForm.category === "Family" ? isFamilyPrimary : null,
+      family_id: newForm.category === "Family" && newForm.role === "dependant" ? newForm.familyId || null : null,
       blood_group: newForm.bloodGroup || null,
       allergies: newForm.allergies || null,
       medical_history: newForm.medicalHistory || null,
-      emergency_contact: newForm.emergencyContact || null,
       next_of_kin_name: newForm.nextOfKinName || null,
       next_of_kin_phone: newForm.nextOfKinPhone || null,
       next_of_kin_relation: newForm.nextOfKinRelation || null,
@@ -405,15 +386,15 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
           <form onSubmit={handleNewSubmit} className="space-y-5">
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1.5">
-                <Label>First Name *</Label>
+                <Label>First Name <span className="text-red-500">*</span></Label>
                 <Input required value={newForm.firstName || ""} onChange={(e) => setNewForm({ ...newForm, firstName: e.target.value })} />
               </div>
               <div className="space-y-1.5">
-                <Label>Last Name *</Label>
+                <Label>Last Name <span className="text-red-500">*</span></Label>
                 <Input required value={newForm.lastName || ""} onChange={(e) => setNewForm({ ...newForm, lastName: e.target.value })} />
               </div>
               <div className="space-y-1.5">
-                <Label>Gender *</Label>
+                <Label>Gender <span className="text-red-500">*</span></Label>
                 <Select value={newForm.gender || ""} onValueChange={(v) => setNewForm({ ...newForm, gender: v })}>
                   <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
@@ -423,16 +404,21 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Folder No. *</Label>
+                <Label>Folder No. <span className="text-red-500">*</span></Label>
                 <Input required value={newForm.patientId || ""} onChange={(e) => setNewForm({ ...newForm, patientId: e.target.value })} placeholder={newForm.category === "Family" ? "e.g. DOE-001" : "e.g. PAT003"} />
               </div>
               <div className="space-y-1.5">
-                <Label>Date of Birth *</Label>
+                <Label>Date of Birth <span className="text-red-500">*</span></Label>
                 <Input type="date" required value={newForm.dateOfBirth || ""} onChange={(e) => setNewForm({ ...newForm, dateOfBirth: e.target.value })} />
               </div>
               <div className="space-y-1.5">
-                <Label>Folder Type *</Label>
-                <Select value={newForm.category || "Individual"} onValueChange={(v) => setNewForm({ ...newForm, category: v })}>
+                <Label>Folder Type <span className="text-red-500">*</span></Label>
+                <Select value={newForm.category || "Individual"} onValueChange={(v) => {
+                  const updated = { ...newForm, category: v };
+                  if (v === "Primary") updated.category = "Family";
+                  if (v === "HMO" && !updated.insuranceId) updated.insuranceId = "";
+                  setNewForm(updated);
+                }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Individual">Individual</SelectItem>
@@ -443,9 +429,21 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Phone *</Label>
+                <Label>Phone <span className="text-red-500">*</span></Label>
                 <Input required value={newForm.phone || ""} onChange={(e) => setNewForm({ ...newForm, phone: e.target.value })} />
               </div>
+              {newForm.category === "Family" && (
+                <div className="space-y-1.5">
+                  <Label>Role <span className="text-red-500">*</span></Label>
+                  <Select value={newForm.role || "primary"} onValueChange={(v) => setNewForm({ ...newForm, role: v, familyId: v === "primary" ? null : newForm.familyId })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="primary">Primary Member</SelectItem>
+                      <SelectItem value="dependant">Dependant</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label>Email</Label>
                 <Input type="email" value={newForm.email || ""} onChange={(e) => setNewForm({ ...newForm, email: e.target.value })} />
@@ -463,17 +461,32 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
                 <Label>Address</Label>
                 <Input value={newForm.address || ""} onChange={(e) => setNewForm({ ...newForm, address: e.target.value })} />
               </div>
-              <div className="space-y-1.5">
-                <Label>Emergency Contact</Label>
-                <Input value={newForm.emergencyContact || ""} onChange={(e) => setNewForm({ ...newForm, emergencyContact: e.target.value })} />
-              </div>
               <div className="col-span-2 space-y-1.5">
                 <Label>Allergies / Medical History</Label>
                 <Textarea value={newForm.allergies || ""} onChange={(e) => setNewForm({ ...newForm, allergies: e.target.value })} placeholder="List any allergies or relevant history" />
               </div>
 
+              {newForm.category === "Family" && newForm.role === "dependant" && (
+                <div className="col-span-3 border-t pt-4">
+                  <h4 className="text-sm font-bold text-slate-700 mb-3">Family Head</h4>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-1.5">
+                      <Label>Select Primary Member <span className="text-red-500">*</span></Label>
+                      <Select value={newForm.familyId || ""} onValueChange={(v) => setNewForm({ ...newForm, familyId: v })}>
+                        <SelectTrigger><SelectValue placeholder="Choose the family head" /></SelectTrigger>
+                        <SelectContent>
+                          {(Array.isArray(primaryPatients) ? primaryPatients : []).map((pp: any) => (
+                            <SelectItem key={pp.id} value={pp.id}>{pp.firstName} {pp.lastName} ({pp.patientId})</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="col-span-3 border-t pt-4">
-                <h4 className="text-sm font-bold text-slate-700 mb-3">Next of Kin</h4>
+                <h4 className="text-sm font-bold text-slate-700 mb-3">Next of Kin / Emergency Contact</h4>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-1.5">
                     <Label>Name</Label>
@@ -537,7 +550,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
                       </datalist>
                     </div>
                     <div className="space-y-1.5">
-                      <Label>Insurance ID</Label>
+                      <Label>Insurance ID / Registration Number</Label>
                       <Input value={newForm.insuranceId || ""} onChange={(e) => setNewForm({ ...newForm, insuranceId: e.target.value })} />
                     </div>
                   </div>
@@ -580,11 +593,11 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>First Name *</Label>
+                  <Label>First Name <span className="text-red-500">*</span></Label>
                   <Input required value={editForm.firstName || ""} onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Last Name *</Label>
+                  <Label>Last Name <span className="text-red-500">*</span></Label>
                   <Input required value={editForm.lastName || ""} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} />
                 </div>
                 <div className="space-y-1.5">
@@ -634,15 +647,50 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
-                  <Label>Emergency Contact</Label>
-                  <Input value={editForm.emergencyContact || ""} onChange={(e) => setEditForm({ ...editForm, emergencyContact: e.target.value })} />
-                </div>
                 <div className="col-span-2 space-y-1.5">
                   <Label>Allergies / Medical History</Label>
                   <Textarea value={editForm.allergies || ""} onChange={(e) => setEditForm({ ...editForm, allergies: e.target.value })} />
                 </div>
               </div>
+
+              {editForm.category === "Corporate" && (
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-bold text-slate-700 mb-3">Company Information</h4>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label>Company Name</Label>
+                      <input list="company-list" value={editForm.companyName || ""} onChange={(e) => setEditForm({ ...editForm, companyName: e.target.value })}
+                        className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Company Phone</Label>
+                      <Input value={editForm.companyPhone || ""} onChange={(e) => setEditForm({ ...editForm, companyPhone: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Company Address</Label>
+                      <Input value={editForm.companyAddress || ""} onChange={(e) => setEditForm({ ...editForm, companyAddress: e.target.value })} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {editForm.category === "HMO" && (
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-bold text-slate-700 mb-3">Insurance / HMO Details</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label>HMO Provider</Label>
+                      <input list="hmo-list" value={editForm.insuranceProvider || ""} onChange={(e) => setEditForm({ ...editForm, insuranceProvider: e.target.value })}
+                        className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Insurance ID / Registration Number</Label>
+                      <Input value={editForm.insuranceId || ""} onChange={(e) => setEditForm({ ...editForm, insuranceId: e.target.value })} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setShowEditModal(false)}>Cancel</Button>
                 <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={updateMutation.isPending}>

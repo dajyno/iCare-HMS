@@ -309,8 +309,12 @@ const PatientProfile = () => {
     e.preventDefault();
     const { id: _, patientId, createdAt, registrationDate, ...rest } = editForm;
     const payload: any = {};
+    const category = editForm.category;
     for (const [key, val] of Object.entries(rest)) {
-      payload[key.replace(/([A-Z])/g, "_$1").toLowerCase()] = val || null;
+      const dbKey = key.replace(/([A-Z])/g, "_$1").toLowerCase();
+      if (category !== "Corporate" && ["companyName", "companyPhone", "companyAddress"].includes(key)) continue;
+      if (category !== "HMO" && ["insuranceProvider", "insuranceId"].includes(key)) continue;
+      payload[dbKey] = val || null;
     }
     updateMutation.mutate(payload);
   };
@@ -552,15 +556,8 @@ const PatientProfile = () => {
               </CardContent>
             )}
 
-            {(patient.nextOfKinName || patient.companyName || patient.insuranceProvider) && (
+            {(patient.companyName || patient.insuranceProvider) && (
               <CardContent className="border-t border-slate-100 pt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                {patient.nextOfKinName && (
-                  <div>
-                    <span className="text-[10px] font-bold uppercase text-slate-400">Next of Kin</span>
-                    <p className="font-semibold mt-1">{patient.nextOfKinName} {patient.nextOfKinRelation ? `(${patient.nextOfKinRelation})` : ""}</p>
-                    {patient.nextOfKinPhone && <p className="text-xs text-slate-500">{patient.nextOfKinPhone}</p>}
-                  </div>
-                )}
                 {patient.companyName && (
                   <div>
                     <span className="text-[10px] font-bold uppercase text-slate-400">Company</span>
@@ -809,10 +806,10 @@ const PatientProfile = () => {
 
       {/* ======== EDIT MODAL ======== */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Patient</DialogTitle>
-            <DialogDescription>Folder number cannot be changed.</DialogDescription>
+            <DialogDescription>Folder number cannot be changed. Fields from other categories will be cleared on save.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditSubmit} className="space-y-5">
             <div className="grid grid-cols-2 gap-4">
@@ -827,8 +824,8 @@ const PatientProfile = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5"><Label>First Name</Label><Input value={editForm.firstName || ""} onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} /></div>
-              <div className="space-y-1.5"><Label>Last Name</Label><Input value={editForm.lastName || ""} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>First Name <span className="text-red-500">*</span></Label><Input required value={editForm.firstName || ""} onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>Last Name <span className="text-red-500">*</span></Label><Input required value={editForm.lastName || ""} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} /></div>
               <div className="space-y-1.5">
                 <Label>Gender</Label>
                 <Select value={editForm.gender || ""} onValueChange={(v) => setEditForm({ ...editForm, gender: v })}>
@@ -838,7 +835,7 @@ const PatientProfile = () => {
               </div>
               <div className="space-y-1.5"><Label>Date of Birth</Label><Input type="date" value={editForm.dateOfBirth || ""} onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })} /></div>
               <div className="space-y-1.5">
-                <Label>Category</Label>
+                <Label>Category <span className="text-red-500">*</span></Label>
                 <Select value={editForm.category || "Individual"} onValueChange={(v) => setEditForm({ ...editForm, category: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -858,9 +855,30 @@ const PatientProfile = () => {
                   <SelectContent>{["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5"><Label>Emergency Contact</Label><Input value={editForm.emergencyContact || ""} onChange={(e) => setEditForm({ ...editForm, emergencyContact: e.target.value })} /></div>
               <div className="col-span-2 space-y-1.5"><Label>Allergies / Medical History</Label><Textarea value={editForm.allergies || ""} onChange={(e) => setEditForm({ ...editForm, allergies: e.target.value })} /></div>
             </div>
+
+            {editForm.category === "Corporate" && (
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-bold text-slate-700 mb-3">Company Information</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-1.5"><Label>Company Name</Label><Input value={editForm.companyName || ""} onChange={(e) => setEditForm({ ...editForm, companyName: e.target.value })} /></div>
+                  <div className="space-y-1.5"><Label>Company Phone</Label><Input value={editForm.companyPhone || ""} onChange={(e) => setEditForm({ ...editForm, companyPhone: e.target.value })} /></div>
+                  <div className="space-y-1.5"><Label>Company Address</Label><Input value={editForm.companyAddress || ""} onChange={(e) => setEditForm({ ...editForm, companyAddress: e.target.value })} /></div>
+                </div>
+              </div>
+            )}
+
+            {editForm.category === "HMO" && (
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-bold text-slate-700 mb-3">Insurance / HMO Details</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5"><Label>HMO Provider</Label><Input value={editForm.insuranceProvider || ""} onChange={(e) => setEditForm({ ...editForm, insuranceProvider: e.target.value })} /></div>
+                  <div className="space-y-1.5"><Label>Insurance ID / Registration Number</Label><Input value={editForm.insuranceId || ""} onChange={(e) => setEditForm({ ...editForm, insuranceId: e.target.value })} /></div>
+                </div>
+              </div>
+            )}
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowEditModal(false)}>Cancel</Button>
               <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={updateMutation.isPending}>
