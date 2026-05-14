@@ -100,6 +100,8 @@ create table public.patients (
   company_phone     text,
   company_address   text,
   department_id     uuid references public.departments(id),
+  family_id         uuid references public.patients(id),
+  is_primary        boolean not null default false,
   registration_date timestamptz not null default now()
 );
 
@@ -647,3 +649,25 @@ begin
   where id = med_id;
 end;
 $$;
+
+-- ============================================================
+-- MIGRATION: Add family_id / is_primary (safe to re-run)
+-- ============================================================
+alter table public.patients add column if not exists family_id uuid references public.patients(id);
+alter table public.patients add column if not exists is_primary boolean not null default false;
+
+-- Backfill: set first-registered member of each family lastName group as primary
+update public.patients set is_primary = true
+where id in (
+  select distinct on (last_name) id from public.patients
+  where category = 'Family' and is_primary = false
+  order by last_name, registration_date
+);
+
+-- Backfill: link all family members to their primary by lastName
+update public.patients p set family_id = (
+  select pp.id from public.patients pp
+  where pp.category = 'Family' and pp.is_primary = true and pp.last_name = p.last_name
+  limit 1
+)
+where p.category = 'Family' and p.family_id is null and p.is_primary = false;

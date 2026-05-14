@@ -132,17 +132,31 @@ const PatientProfile = () => {
   });
 
   const { data: familyMembers } = useQuery({
-    queryKey: ["patient-family", patient?.lastName],
+    queryKey: ["patient-family-group", patient?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const fields = "id, patient_id, first_name, last_name, phone, gender, is_primary, family_id";
+      if (patient.isPrimary) {
+        const { data, error } = await supabase
+          .from("patients")
+          .select(fields)
+          .eq("family_id", patient.id)
+          .order("first_name", { ascending: true });
+        if (error) throw error;
+        return toCamel(data);
+      }
+      const { data: primary } = await supabase
         .from("patients")
-        .select("id, patient_id, first_name, last_name, phone, gender")
-        .eq("category", "Family")
-        .eq("last_name", patient.lastName)
+        .select(fields)
+        .eq("id", patient.familyId)
+        .single();
+      const { data: others } = await supabase
+        .from("patients")
+        .select(fields)
+        .eq("family_id", patient.familyId)
         .neq("id", id)
         .order("first_name", { ascending: true });
-      if (error) throw error;
-      return toCamel(data);
+      if (others) others.unshift(toCamel(primary));
+      return toCamel(others || [primary]);
     },
     enabled: !!patient && patient.category === "Family",
   });
@@ -504,30 +518,36 @@ const PatientProfile = () => {
               <div><span className="text-[10px] font-bold uppercase text-slate-400">Registered</span><p className="font-semibold mt-1">{patient.registrationDate ? new Date(patient.registrationDate).toLocaleDateString() : "N/A"}</p></div>
             </CardContent>
 
-            {/* Family Dependants */}
+            {/* Family Members */}
             {patient.category === "Family" && Array.isArray(familyMembers) && familyMembers.length > 0 && (
               <CardContent className="border-t border-slate-100 pt-4">
                 <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1.5 mb-3">
-                  <Users className="w-3.5 h-3.5" /> Dependants
+                  <Users className="w-3.5 h-3.5" /> {patient.isPrimary ? "Dependants" : "Family Members"}
                 </span>
                 <div className="space-y-2">
-                  {familyMembers.map((fm: any) => (
-                    <div key={fm.id} className="flex items-center justify-between py-2 px-3 bg-slate-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs">
-                          {fm.firstName?.[0]}{fm.lastName?.[0]}
+                  {familyMembers.map((fm: any) => {
+                    const isPrimary = fm.isPrimary || fm.id === patient.familyId;
+                    const isSelf = fm.id === patient.id;
+                    return (
+                      <div key={fm.id} className="flex items-center justify-between py-2 px-3 rounded-lg" style={{ backgroundColor: isPrimary ? "#fef3c7" : "#f8fafc" }}>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs" style={{ backgroundColor: isPrimary ? "#f59e0b" : "#10b981", color: "white" }}>
+                            {fm.firstName?.[0]}{fm.lastName?.[0]}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-slate-700">{fm.firstName} {fm.lastName} {isSelf && <span className="text-[10px] text-slate-400 font-normal">(current)</span>}</p>
+                            <p className="text-xs text-slate-400">{fm.patientId} {isPrimary && "• Primary"}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-semibold text-slate-700">{fm.firstName} {fm.lastName}</p>
-                          <p className="text-xs text-slate-400">{fm.patientId}</p>
-                        </div>
+                        {!isSelf && (
+                          <Button variant="ghost" size="sm" className="h-8 text-blue-600 font-bold"
+                            onClick={() => navigate(`/patients/${fm.id}`)}>
+                            View Profile
+                          </Button>
+                        )}
                       </div>
-                      <Button variant="ghost" size="sm" className="h-8 text-blue-600 font-bold"
-                        onClick={() => navigate(`/patients/${fm.id}`)}>
-                        View Profile
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             )}
@@ -572,7 +592,7 @@ const PatientProfile = () => {
 
         {/* ========== VITAL SIGNS ========== */}
         <TabsContent value="vitals" className="mt-6 space-y-4">
-          <div className="flex justify-end">
+          <div className="flex justify-start">
             <Button onClick={() => setShowVitalsModal(true)} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" /> Record Vital Signs
             </Button>
@@ -608,7 +628,7 @@ const PatientProfile = () => {
 
         {/* ========== CONSULTATIONS ========== */}
         <TabsContent value="consultations" className="mt-6 space-y-4">
-          <div className="flex justify-end">
+          <div className="flex justify-start">
             <Button onClick={() => setShowConsultModal(true)} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" /> New Consultation
             </Button>
@@ -640,7 +660,7 @@ const PatientProfile = () => {
 
         {/* ========== LAB RESULTS ========== */}
         <TabsContent value="labs" className="mt-6 space-y-4">
-          <div className="flex justify-end">
+          <div className="flex justify-start">
             <Button onClick={() => setShowLabModal(true)} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" /> New Lab Request
             </Button>
@@ -672,7 +692,7 @@ const PatientProfile = () => {
 
         {/* ========== RADIOLOGY ========== */}
         <TabsContent value="radiology" className="mt-6 space-y-4">
-          <div className="flex justify-end">
+          <div className="flex justify-start">
             <Button onClick={() => setShowRadModal(true)} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" /> New Radiology Request
             </Button>
@@ -704,7 +724,7 @@ const PatientProfile = () => {
 
         {/* ========== PRESCRIPTIONS ========== */}
         <TabsContent value="prescriptions" className="mt-6 space-y-4">
-          <div className="flex justify-end">
+          <div className="flex justify-start">
             <Button onClick={() => setShowRxModal(true)} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" /> New Prescription
             </Button>
@@ -738,7 +758,7 @@ const PatientProfile = () => {
 
         {/* ========== BILLING ========== */}
         <TabsContent value="billing" className="mt-6 space-y-4">
-          <div className="flex justify-end">
+          <div className="flex justify-start">
             <Button onClick={() => setShowBillModal(true)} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" /> New Invoice
             </Button>

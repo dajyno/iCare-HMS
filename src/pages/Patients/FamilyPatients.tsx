@@ -3,22 +3,21 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import {
-  Search, Plus, Users, Phone, Mail, Loader2, AlertCircle, ArrowLeft,
-  ChevronRight, User, Calendar
+  Search, Plus, Users, Phone, Mail, Loader2, AlertCircle,
+  User, Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 const FamilyPatients = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [selectedFamily, setSelectedFamily] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [showNewModal, setShowNewModal] = useState(false);
   const [newForm, setNewForm] = useState<any>({});
@@ -30,38 +29,39 @@ const FamilyPatients = () => {
         .from("patients")
         .select("*")
         .eq("category", "Family")
-        .order("last_name", { ascending: true });
+        .order("last_name", { ascending: true })
+        .order("is_primary", { ascending: false })
+        .order("registration_date", { ascending: true });
       if (error) throw error;
       return toCamel(data);
     },
   });
 
-  const familyGroups = useMemo(() => {
-    if (!Array.isArray(patients)) return [];
-    const groups: Record<string, any[]> = {};
-    for (const p of patients) {
-      const key = p.lastName || "Unknown";
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(p);
-    }
-    return Object.entries(groups)
-      .map(([name, members]) => ({ name, members, count: members.length }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [patients]);
+  const { data: primaryPatients } = useQuery({
+    queryKey: ["patients-family-primaries"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("patients")
+        .select("id, patient_id, first_name, last_name")
+        .eq("category", "Family")
+        .eq("is_primary", true)
+        .order("last_name");
+      if (error) throw error;
+      return toCamel(data);
+    },
+  });
 
-  const filteredMembers = useMemo(() => {
-    if (!selectedFamily || !Array.isArray(patients)) return [];
-    let list = patients.filter((p: any) => p.lastName === selectedFamily);
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase();
-      list = list.filter((p: any) =>
-        p.patientId?.toLowerCase().includes(q) ||
-        p.firstName?.toLowerCase().includes(q) ||
-        p.phone?.includes(q)
-      );
-    }
-    return list;
-  }, [patients, selectedFamily, searchTerm]);
+  const filteredPatients = useMemo(() => {
+    if (!Array.isArray(patients)) return [];
+    if (!searchTerm.trim()) return patients;
+    const q = searchTerm.toLowerCase();
+    return patients.filter((p: any) =>
+      p.patientId?.toLowerCase().includes(q) ||
+      p.firstName?.toLowerCase().includes(q) ||
+      p.lastName?.toLowerCase().includes(q) ||
+      p.phone?.includes(q)
+    );
+  }, [patients, searchTerm]);
 
   const createMutation = useMutation({
     mutationFn: async (formData: any) => {
@@ -71,6 +71,7 @@ const FamilyPatients = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["patients-family"] });
+      queryClient.invalidateQueries({ queryKey: ["patients-family-primaries"] });
       setShowNewModal(false);
       setNewForm({});
     },
@@ -78,7 +79,8 @@ const FamilyPatients = () => {
 
   const handleNewSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const payload = {
+    const isPrimary = newForm.role === "primary";
+    const payload: any = {
       patient_id: newForm.patientId,
       first_name: newForm.firstName,
       last_name: newForm.lastName,
@@ -88,6 +90,8 @@ const FamilyPatients = () => {
       email: newForm.email || null,
       category: "Family",
       status: "active",
+      is_primary: isPrimary,
+      family_id: isPrimary ? null : newForm.familyId || null,
       blood_group: newForm.bloodGroup || null,
       allergies: newForm.allergies || null,
       next_of_kin_name: newForm.nextOfKinName || null,
@@ -119,135 +123,102 @@ const FamilyPatients = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-            {selectedFamily ? (
-              <>
-                <button onClick={() => { setSelectedFamily(null); setSearchTerm(""); }}>
-                  <ArrowLeft className="w-5 h-5 text-slate-400 hover:text-slate-700" />
-                </button>
-                Family: {selectedFamily}
-              </>
-            ) : (
-              "Family Patients"
-            )}
-          </h1>
-          <p className="text-sm text-slate-500">
-            {selectedFamily
-              ? `${filteredMembers.length} member${filteredMembers.length !== 1 ? "s" : ""}`
-              : `${familyGroups.length} family folder${familyGroups.length !== 1 ? "s" : ""}`
-            }
-          </p>
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">Family Patients</h1>
+          <p className="text-sm text-slate-500">{Array.isArray(patients) ? patients.length : 0} total members</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => { setNewForm({ category: "Family" }); setShowNewModal(true); }}>
+        <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => { setNewForm({}); setShowNewModal(true); }}>
           <Plus className="w-4 h-4 mr-2" /> New Patient
         </Button>
       </div>
 
-      {selectedFamily && (
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search within this family..."
-            className="pl-9 bg-white max-w-md h-9"
-          />
+      <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+        <div className="p-4 border-b bg-slate-50/50 flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by ID, name, or phone..."
+              className="pl-9 bg-white max-w-md h-9"
+            />
+          </div>
         </div>
-      )}
 
-      {!selectedFamily ? (
-        /* Family Group Cards */
-        familyGroups.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-xl border border-dashed border-slate-300">
-            <Users className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-900">No family folders yet</h3>
-            <p className="text-slate-500">Create your first family patient to get started.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {familyGroups.map((group) => (
-              <Card
-                key={group.name}
-                className="border-none shadow-sm ring-1 ring-slate-200 hover:ring-emerald-300 transition-all cursor-pointer"
-                onClick={() => setSelectedFamily(group.name)}
-              >
-                <CardContent className="p-5 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg">
-                      {group.name[0]}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-lg">{group.name}</h3>
-                      <p className="text-sm text-slate-500">{group.count} member{group.count !== 1 ? "s" : ""}</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-slate-300" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )
-      ) : (
-        /* Individual Members Table */
-        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-500 font-medium border-b">
+            <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
               <tr>
                 <th className="px-6 py-3 text-left">Patient</th>
                 <th className="px-6 py-3 text-left">Folder No.</th>
                 <th className="px-6 py-3 text-left">Contact</th>
-                <th className="px-6 py-3 text-left">DOB</th>
+                <th className="px-6 py-3 text-left">Role</th>
                 <th className="px-6 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredMembers.length === 0 ? (
+              {filteredPatients.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
-                    {searchTerm ? "No members match your search." : "No members in this family."}
+                    {searchTerm ? "No patients match your search." : "No family patients yet."}
                   </td>
                 </tr>
               ) : (
-                filteredMembers.map((p: any) => (
-                  <tr key={p.id} className="hover:bg-slate-50/80 transition-colors group">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">
-                          {p.firstName?.[0]}{p.lastName?.[0]}
+                filteredPatients.map((p: any) => {
+                  const isPrimary = p.isPrimary;
+                  return (
+                    <tr key={p.id} className={`hover:bg-slate-50/80 transition-colors group ${isPrimary ? "bg-amber-50/30" : ""}`}>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${isPrimary ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
+                            {p.firstName?.[0]}{p.lastName?.[0]}
+                          </div>
+                          <div>
+                            <div className="font-semibold text-slate-900">
+                              {p.firstName} {p.lastName}
+                            </div>
+                            <div className="text-xs font-mono text-slate-500 uppercase tracking-tighter">
+                              {p.gender}
+                            </div>
+                          </div>
                         </div>
-                        <span className="font-semibold text-slate-900">{p.firstName} {p.lastName}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 font-mono text-xs text-slate-500">{p.patientId}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <Phone className="w-3 h-3 opacity-40" />{p.phone}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-xs text-slate-500">
-                      {p.dateOfBirth ? new Date(p.dateOfBirth).toLocaleDateString() : "N/A"}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <Button variant="ghost" size="sm" className="h-8 text-blue-600 font-bold" onClick={() => navigate(`/patients/${p.id}`)}>
-                        View Profile
-                      </Button>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="px-6 py-4 font-mono text-xs text-slate-500">{p.patientId}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1 text-slate-600">
+                          <div className="flex items-center gap-2"><Phone className="w-3 h-3 opacity-40" /><span className="text-xs">{p.phone}</span></div>
+                          <div className="flex items-center gap-2"><Mail className="w-3 h-3 opacity-40" /><span className="text-xs">{p.email || "N/A"}</span></div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {isPrimary ? (
+                          <Badge className="bg-amber-100 text-amber-700 border-none font-bold"><Shield className="w-3 h-3 mr-1" />Primary</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-slate-500"><Users className="w-3 h-3 mr-1" />Dependant</Badge>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <Button variant="ghost" size="sm" className="h-8 text-blue-600 font-bold" onClick={() => navigate(`/patients/${p.id}`)}>
+                          View Profile
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
-      )}
+      </div>
 
       {/* New Patient Modal */}
       <Dialog open={showNewModal} onOpenChange={setShowNewModal}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add Family Member</DialogTitle>
-            <DialogDescription>Create a new patient record linked to this family.</DialogDescription>
+            <DialogTitle>Add Family Patient</DialogTitle>
+            <DialogDescription>Create a new family patient record.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleNewSubmit} className="space-y-5">
             <div className="grid grid-cols-3 gap-4">
@@ -303,6 +274,29 @@ const FamilyPatients = () => {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1.5">
+                <Label>Role *</Label>
+                <Select value={newForm.role || "primary"} onValueChange={(v) => setNewForm({ ...newForm, role: v, familyId: v === "primary" ? null : newForm.familyId })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="primary">Primary Member</SelectItem>
+                    <SelectItem value="dependant">Dependant</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {newForm.role === "dependant" && (
+                <div className="space-y-1.5">
+                  <Label>Family Head *</Label>
+                  <Select value={newForm.familyId || ""} onValueChange={(v) => setNewForm({ ...newForm, familyId: v })}>
+                    <SelectTrigger><SelectValue placeholder="Select primary member" /></SelectTrigger>
+                    <SelectContent>
+                      {(Array.isArray(primaryPatients) ? primaryPatients : []).map((pp: any) => (
+                        <SelectItem key={pp.id} value={pp.id}>{pp.firstName} {pp.lastName} ({pp.patientId})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="col-span-2 space-y-1.5">
                 <Label>Allergies</Label>
                 <Textarea value={newForm.allergies || ""} onChange={(e) => setNewForm({ ...newForm, allergies: e.target.value })} />

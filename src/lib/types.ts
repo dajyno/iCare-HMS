@@ -43,6 +43,8 @@ export interface Patient {
   company_address?: string | null;
   department_id?: string | null;
   registration_date: string;
+  family_id?: string | null;
+  is_primary?: boolean;
 }
 
 export interface Appointment {
