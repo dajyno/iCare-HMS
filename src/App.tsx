@@ -5,6 +5,7 @@ import DashboardLayout from "./layouts/DashboardLayout";
 import Login from "./pages/Auth/Login";
 import Overview from "./pages/Dashboard/Overview";
 import PatientList from "./pages/Patients/PatientList";
+import PatientProfile from "./pages/Patients/PatientProfile";
 import AppointmentList from "./pages/Appointments/AppointmentList";
 import ConsultationWorkspace from "./pages/Consultations/ConsultationWorkspace";
 import LabQueue from "./pages/Laboratory/LabQueue";
@@ -58,6 +59,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <PatientList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/patients/:id"
+              element={
+                <ProtectedRoute>
+                  <PatientProfile />
                 </ProtectedRoute>
               }
             />

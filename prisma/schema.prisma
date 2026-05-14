@@ -64,12 +64,20 @@ model Patient {
   phone             String
   email             String?
   address           String?
+  category          String   @default("Individual") // Individual, Family, Corporate, HMO
+  status            String   @default("active") // active, inactive
   emergencyContact  String?
   bloodGroup        String?
   allergies         String?
   medicalHistory    String?
   insuranceProvider String?
   insuranceId       String?
+  nextOfKinName     String?
+  nextOfKinPhone    String?
+  nextOfKinRelation String?
+  companyName       String?
+  companyPhone      String?
+  companyAddress    String?
   departmentId      String?
   department        Department? @relation(fields: [departmentId], references: [id])
   registrationDate  DateTime @default(now())

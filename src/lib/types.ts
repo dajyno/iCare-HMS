@@ -27,12 +27,20 @@ export interface Patient {
   phone: string;
   email?: string | null;
   address?: string | null;
+  category: "Individual" | "Family" | "Corporate" | "HMO";
+  status: "active" | "inactive";
   emergency_contact?: string | null;
   blood_group?: string | null;
   allergies?: string | null;
   medical_history?: string | null;
   insurance_provider?: string | null;
   insurance_id?: string | null;
+  next_of_kin_name?: string | null;
+  next_of_kin_phone?: string | null;
+  next_of_kin_relation?: string | null;
+  company_name?: string | null;
+  company_phone?: string | null;
+  company_address?: string | null;
   department_id?: string | null;
   registration_date: string;
 }

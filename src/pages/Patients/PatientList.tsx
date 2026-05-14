@@ -1,30 +1,43 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
-import { 
-  Search, 
-  Plus, 
-  Filter, 
-  MoreVertical,
-  User,
-  Phone,
-  Mail,
-  Calendar,
-  Loader2,
-  AlertCircle
+import {
+  Search, Plus, Filter, MoreVertical, User, Phone, Mail,
+  Loader2, AlertCircle, X, Save, Edit, Archive, CalendarDays,
+  Stethoscope, FlaskConical, Pill, FileText, Activity, MapPin, Clock,
+  Users, Building, Briefcase, Shield, ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+const categoryBadge: Record<string, string> = {
+  Individual: "bg-blue-50 text-blue-700 border-blue-100",
+  Family: "bg-emerald-50 text-emerald-700 border-emerald-100",
+  Corporate: "bg-purple-50 text-purple-700 border-purple-100",
+  HMO: "bg-amber-50 text-amber-700 border-amber-100",
+};
+
 const PatientList = () => {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
+  const [showNewModal, setShowNewModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showApptModal, setShowApptModal] = useState(false);
+  const [editPatient, setEditPatient] = useState<any>(null);
+  const [apptPatient, setApptPatient] = useState<any>(null);
+  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [showFilters, setShowFilters] = useState(false);
 
   const { data: patients, isLoading, isError, error } = useQuery({
     queryKey: ["patients"],
@@ -38,18 +51,153 @@ const PatientList = () => {
     },
   });
 
+  const { data: doctors } = useQuery({
+    queryKey: ["doctors"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("users")
+        .select("id, full_name")
+        .eq("role", "Doctor")
+        .eq("status", "active");
+      if (error) throw error;
+      return toCamel(data);
+    },
+  });
+
   const filteredPatients = useMemo(() => {
     if (!Array.isArray(patients)) return patients;
-    if (!searchTerm.trim()) return patients;
-    const q = searchTerm.toLowerCase();
-    return patients.filter((p: any) =>
-      p.patientId?.toLowerCase().includes(q) ||
-      p.firstName?.toLowerCase().includes(q) ||
-      p.lastName?.toLowerCase().includes(q) ||
-      `${p.firstName} ${p.lastName}`.toLowerCase().includes(q) ||
-      p.phone?.includes(q)
-    );
-  }, [patients, searchTerm]);
+    let list = patients;
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      list = list.filter((p: any) =>
+        p.patientId?.toLowerCase().includes(q) ||
+        p.firstName?.toLowerCase().includes(q) ||
+        p.lastName?.toLowerCase().includes(q) ||
+        `${p.firstName} ${p.lastName}`.toLowerCase().includes(q) ||
+        p.phone?.includes(q)
+      );
+    }
+    if (categoryFilter !== "All") {
+      list = list.filter((p: any) => p.category === categoryFilter);
+    }
+    if (statusFilter !== "All") {
+      list = list.filter((p: any) => p.status === statusFilter);
+    }
+    return list;
+  }, [patients, searchTerm, categoryFilter, statusFilter]);
+
+  const createMutation = useMutation({
+    mutationFn: async (formData: any) => {
+      const { data, error } = await supabase.from("patients").insert(formData).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      setShowNewModal(false);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, ...data }: any) => {
+      const { error } = await supabase.from("patients").update(data).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      setShowEditModal(false);
+      setEditPatient(null);
+    },
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("patients").update({ status: "inactive" }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["patients"] }),
+  });
+
+  const apptMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const { error } = await supabase.from("appointments").insert(data);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      setShowApptModal(false);
+      setApptPatient(null);
+    },
+  });
+
+  const [newForm, setNewForm] = useState<any>({});
+  const [editForm, setEditForm] = useState<any>({});
+  const [apptForm, setApptForm] = useState<any>({});
+
+  const openEdit = (p: any) => {
+    setEditPatient(p);
+    setEditForm({ ...p });
+    setShowEditModal(true);
+  };
+
+  const openAppt = (p: any) => {
+    setApptPatient(p);
+    setApptForm({ patient_id: p.id, date: "", time: "", doctor_id: "", reason: "" });
+    setShowApptModal(true);
+  };
+
+  const handleNewSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const payload = {
+      patient_id: newForm.patientId,
+      first_name: newForm.firstName,
+      last_name: newForm.lastName,
+      gender: newForm.gender,
+      date_of_birth: newForm.dateOfBirth,
+      phone: newForm.phone,
+      email: newForm.email || null,
+      address: newForm.address || null,
+      category: newForm.category || "Individual",
+      status: "active",
+      blood_group: newForm.bloodGroup || null,
+      allergies: newForm.allergies || null,
+      medical_history: newForm.medicalHistory || null,
+      emergency_contact: newForm.emergencyContact || null,
+      next_of_kin_name: newForm.nextOfKinName || null,
+      next_of_kin_phone: newForm.nextOfKinPhone || null,
+      next_of_kin_relation: newForm.nextOfKinRelation || null,
+      company_name: newForm.companyName || null,
+      company_phone: newForm.companyPhone || null,
+      company_address: newForm.companyAddress || null,
+      insurance_provider: newForm.insuranceProvider || null,
+      insurance_id: newForm.insuranceId || null,
+    };
+    createMutation.mutate(payload);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const { id, patientId, createdAt, registrationDate, ...rest } = editForm;
+    const payload: any = {};
+    for (const [key, val] of Object.entries(rest)) {
+      const dbKey = key.replace(/([A-Z])/g, "_$1").toLowerCase();
+      payload[dbKey] = val || null;
+    }
+    payload.status = editForm.status || "active";
+    updateMutation.mutate({ id: editPatient.id, ...payload });
+  };
+
+  const handleApptSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    apptMutation.mutate({
+      patient_id: apptForm.patient_id,
+      doctor_id: apptForm.doctor_id,
+      date: apptForm.date,
+      time: apptForm.time,
+      reason: apptForm.reason || null,
+      status: "Scheduled",
+    });
+  };
 
   if (isLoading) {
     return (
@@ -68,9 +216,7 @@ const PatientList = () => {
         <p className="text-slate-500 text-sm mt-1 mb-6">
           {error instanceof Error ? error.message : "The server encountered an error while fetching the patient list."}
         </p>
-        <Button onClick={() => window.location.reload()} className="bg-blue-600">
-          Refresh Page
-        </Button>
+        <Button onClick={() => window.location.reload()} className="bg-blue-600">Refresh Page</Button>
       </div>
     );
   }
@@ -83,25 +229,58 @@ const PatientList = () => {
           <p className="text-slate-500 text-sm">Manage and register hospital patients</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" className="h-9">
+          <Button variant="outline" size="sm" className="h-9" onClick={() => setShowFilters(!showFilters)}>
             <Filter className="w-4 h-4 mr-2" />
             Filters
+            {showFilters && <ChevronDown className="w-3 h-3 ml-1" />}
           </Button>
-          <Button size="sm" className="h-9 bg-blue-600 hover:bg-blue-700">
+          <Button size="sm" className="h-9 bg-blue-600 hover:bg-blue-700" onClick={() => { setNewForm({}); setShowNewModal(true); }}>
             <Plus className="w-4 h-4 mr-2" />
             New Patient
           </Button>
         </div>
       </div>
 
+      {showFilters && (
+        <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-wrap gap-4 items-end">
+          <div className="space-y-1">
+            <Label className="text-[10px] font-bold uppercase text-slate-400">Category</Label>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All</SelectItem>
+                <SelectItem value="Individual">Individual</SelectItem>
+                <SelectItem value="Family">Family</SelectItem>
+                <SelectItem value="Corporate">Corporate</SelectItem>
+                <SelectItem value="HMO">HMO</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] font-bold uppercase text-slate-400">Status</Label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-32 h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button variant="ghost" size="sm" className="h-9 text-slate-400" onClick={() => { setCategoryFilter("All"); setStatusFilter("All"); setSearchTerm(""); }}>
+            Clear Filters
+          </Button>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
         <div className="p-4 border-b bg-slate-50/50 flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <Input 
+            <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by ID, name, or phone..." 
+              placeholder="Search by ID, name, or phone..."
               className="pl-9 bg-white max-w-md h-9"
             />
           </div>
@@ -114,13 +293,13 @@ const PatientList = () => {
                 <th className="px-6 py-3 text-left">Patient Details</th>
                 <th className="px-6 py-3 text-left">Contact Info</th>
                 <th className="px-6 py-3 text-left">Blood Group</th>
+                <th className="px-6 py-3 text-left">Category</th>
                 <th className="px-6 py-3 text-left">Registration</th>
-                <th className="px-6 py-3 text-left">Status</th>
                 <th className="px-6 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {Array.isArray(filteredPatients) ? (
+              {Array.isArray(filteredPatients) && filteredPatients.length > 0 ? (
                 filteredPatients.map((patient: any) => (
                   <tr key={patient.id} className="hover:bg-slate-50/80 transition-colors group">
                     <td className="px-6 py-4">
@@ -140,28 +319,20 @@ const PatientList = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-1 text-slate-600">
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-3 h-3 opacity-40" />
-                          <span className="text-xs">{patient.phone}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Mail className="w-3 h-3 opacity-40" />
-                          <span className="text-xs">{patient.email || "N/A"}</span>
-                        </div>
+                        <div className="flex items-center gap-2"><Phone className="w-3 h-3 opacity-40" /><span className="text-xs">{patient.phone}</span></div>
+                        <div className="flex items-center gap-2"><Mail className="w-3 h-3 opacity-40" /><span className="text-xs">{patient.email || "N/A"}</span></div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-100 font-bold">
-                        {patient.bloodGroup || "UKN"}
+                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-100 font-bold">{patient.bloodGroup || "UKN"}</Badge>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge variant="outline" className={`font-bold ${categoryBadge[patient.category] || "bg-slate-50 text-slate-700"}`}>
+                        {patient.category || "Individual"}
                       </Badge>
                     </td>
                     <td className="px-6 py-4 text-slate-500 text-xs">
                       {patient.registrationDate ? new Date(patient.registrationDate).toLocaleDateString() : "N/A"}
-                    </td>
-                    <td className="px-6 py-4">
-                      <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50 border-none px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
-                        Active
-                      </Badge>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <DropdownMenu>
@@ -170,11 +341,26 @@ const PatientList = () => {
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40 font-sans">
-                          <DropdownMenuItem className="cursor-pointer">View Profile</DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer">Edit Details</DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer">Book Appointment</DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer text-red-600">Archive</DropdownMenuItem>
+                        <DropdownMenuContent align="end" className="w-44 font-sans">
+                          <DropdownMenuItem className="cursor-pointer" onClick={() => navigate(`/patients/${patient.id}`)}>
+                            <FileText className="w-3.5 h-3.5 mr-2 text-blue-500" /> View Profile
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="cursor-pointer" onClick={() => openEdit(patient)}>
+                            <Edit className="w-3.5 h-3.5 mr-2 text-slate-500" /> Edit Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="cursor-pointer" onClick={() => openAppt(patient)}>
+                            <CalendarDays className="w-3.5 h-3.5 mr-2 text-emerald-500" /> Book Appointment
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="cursor-pointer text-red-600"
+                            onClick={() => {
+                              if (window.confirm(`Archive ${patient.firstName} ${patient.lastName}?`)) {
+                                archiveMutation.mutate(patient.id);
+                              }
+                            }}
+                          >
+                            <Archive className="w-3.5 h-3.5 mr-2" /> Archive
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </td>
@@ -183,7 +369,7 @@ const PatientList = () => {
               ) : (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
-                    {patients ? "Unexpected data format received from server." : "No patients found."}
+                    {!Array.isArray(filteredPatients) ? "Unexpected data format received." : "No patients found."}
                   </td>
                 </tr>
               )}
@@ -191,6 +377,290 @@ const PatientList = () => {
           </table>
         </div>
       </div>
+
+      {/* New Patient Modal */}
+      <Dialog open={showNewModal} onOpenChange={setShowNewModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Register New Patient</DialogTitle>
+            <DialogDescription>Fill in the patient details to create a new record.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleNewSubmit} className="space-y-5">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>First Name *</Label>
+                <Input required value={newForm.firstName || ""} onChange={(e) => setNewForm({ ...newForm, firstName: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Last Name *</Label>
+                <Input required value={newForm.lastName || ""} onChange={(e) => setNewForm({ ...newForm, lastName: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Folder No. *</Label>
+                <Input required value={newForm.patientId || ""} onChange={(e) => setNewForm({ ...newForm, patientId: e.target.value })} placeholder="e.g. PAT003" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Gender *</Label>
+                <Select value={newForm.gender || ""} onValueChange={(v) => setNewForm({ ...newForm, gender: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Male">Male</SelectItem>
+                    <SelectItem value="Female">Female</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Date of Birth *</Label>
+                <Input type="date" required value={newForm.dateOfBirth || ""} onChange={(e) => setNewForm({ ...newForm, dateOfBirth: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Folder Type *</Label>
+                <Select value={newForm.category || "Individual"} onValueChange={(v) => setNewForm({ ...newForm, category: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Individual">Individual</SelectItem>
+                    <SelectItem value="Family">Family</SelectItem>
+                    <SelectItem value="Corporate">Corporate</SelectItem>
+                    <SelectItem value="HMO">HMO</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Phone *</Label>
+                <Input required value={newForm.phone || ""} onChange={(e) => setNewForm({ ...newForm, phone: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Email</Label>
+                <Input type="email" value={newForm.email || ""} onChange={(e) => setNewForm({ ...newForm, email: e.target.value })} />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label>Address</Label>
+                <Input value={newForm.address || ""} onChange={(e) => setNewForm({ ...newForm, address: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Emergency Contact</Label>
+                <Input value={newForm.emergencyContact || ""} onChange={(e) => setNewForm({ ...newForm, emergencyContact: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Blood Group</Label>
+                <Select value={newForm.bloodGroup || ""} onValueChange={(v) => setNewForm({ ...newForm, bloodGroup: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>
+                    {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label>Allergies / Medical History</Label>
+                <Textarea value={newForm.allergies || ""} onChange={(e) => setNewForm({ ...newForm, allergies: e.target.value })} placeholder="List any allergies or relevant history" />
+              </div>
+
+              <div className="col-span-2 border-t pt-4">
+                <h4 className="text-sm font-bold text-slate-700 mb-3">Next of Kin</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Name</Label>
+                    <Input value={newForm.nextOfKinName || ""} onChange={(e) => setNewForm({ ...newForm, nextOfKinName: e.target.value })} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Phone</Label>
+                    <Input value={newForm.nextOfKinPhone || ""} onChange={(e) => setNewForm({ ...newForm, nextOfKinPhone: e.target.value })} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Relation</Label>
+                    <Input value={newForm.nextOfKinRelation || ""} onChange={(e) => setNewForm({ ...newForm, nextOfKinRelation: e.target.value })} placeholder="Spouse, Parent..." />
+                  </div>
+                </div>
+              </div>
+
+              {newForm.category === "Corporate" && (
+                <div className="col-span-2 border-t pt-4">
+                  <h4 className="text-sm font-bold text-slate-700 mb-3">Company Information</h4>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label>Company Name</Label>
+                      <Input value={newForm.companyName || ""} onChange={(e) => setNewForm({ ...newForm, companyName: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Company Phone</Label>
+                      <Input value={newForm.companyPhone || ""} onChange={(e) => setNewForm({ ...newForm, companyPhone: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Company Address</Label>
+                      <Input value={newForm.companyAddress || ""} onChange={(e) => setNewForm({ ...newForm, companyAddress: e.target.value })} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {newForm.category === "HMO" && (
+                <div className="col-span-2 border-t pt-4">
+                  <h4 className="text-sm font-bold text-slate-700 mb-3">Insurance / HMO Details</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label>Insurance Provider</Label>
+                      <Input value={newForm.insuranceProvider || ""} onChange={(e) => setNewForm({ ...newForm, insuranceProvider: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Insurance ID</Label>
+                      <Input value={newForm.insuranceId || ""} onChange={(e) => setNewForm({ ...newForm, insuranceId: e.target.value })} />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowNewModal(false)}>Cancel</Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={createMutation.isPending}>
+                {createMutation.isPending ? "Saving..." : "Save Patient"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Patient Modal */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Patient</DialogTitle>
+            <DialogDescription>Update patient information. Folder number cannot be changed.</DialogDescription>
+          </DialogHeader>
+          {editPatient && (
+            <form onSubmit={handleEditSubmit} className="space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Folder No.</Label>
+                  <Input value={editForm.patientId || ""} disabled className="bg-slate-100" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Status</Label>
+                  <Select value={editForm.status || "active"} onValueChange={(v) => setEditForm({ ...editForm, status: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>First Name *</Label>
+                  <Input required value={editForm.firstName || ""} onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Last Name *</Label>
+                  <Input required value={editForm.lastName || ""} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Gender</Label>
+                  <Select value={editForm.gender || ""} onValueChange={(v) => setEditForm({ ...editForm, gender: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Date of Birth</Label>
+                  <Input type="date" value={editForm.dateOfBirth ? editForm.dateOfBirth.substring(0, 10) : ""} onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Category</Label>
+                  <Select value={editForm.category || "Individual"} onValueChange={(v) => setEditForm({ ...editForm, category: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Individual">Individual</SelectItem>
+                      <SelectItem value="Family">Family</SelectItem>
+                      <SelectItem value="Corporate">Corporate</SelectItem>
+                      <SelectItem value="HMO">HMO</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Phone</Label>
+                  <Input value={editForm.phone || ""} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Email</Label>
+                  <Input type="email" value={editForm.email || ""} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+                </div>
+                <div className="col-span-2 space-y-1.5">
+                  <Label>Address</Label>
+                  <Input value={editForm.address || ""} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Blood Group</Label>
+                  <Select value={editForm.bloodGroup || ""} onValueChange={(v) => setEditForm({ ...editForm, bloodGroup: v })}>
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Emergency Contact</Label>
+                  <Input value={editForm.emergencyContact || ""} onChange={(e) => setEditForm({ ...editForm, emergencyContact: e.target.value })} />
+                </div>
+                <div className="col-span-2 space-y-1.5">
+                  <Label>Allergies / Medical History</Label>
+                  <Textarea value={editForm.allergies || ""} onChange={(e) => setEditForm({ ...editForm, allergies: e.target.value })} />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setShowEditModal(false)}>Cancel</Button>
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={updateMutation.isPending}>
+                  {updateMutation.isPending ? "Saving..." : "Update Patient"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Book Appointment Modal */}
+      <Dialog open={showApptModal} onOpenChange={setShowApptModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Book Appointment</DialogTitle>
+            <DialogDescription>
+              {apptPatient ? `Schedule for ${apptPatient.firstName} ${apptPatient.lastName}` : "Select a patient first"}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleApptSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Date *</Label>
+              <Input type="date" required value={apptForm.date || ""} onChange={(e) => setApptForm({ ...apptForm, date: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Time *</Label>
+              <Input type="time" required value={apptForm.time || ""} onChange={(e) => setApptForm({ ...apptForm, time: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Doctor *</Label>
+              <Select value={apptForm.doctor_id || ""} onValueChange={(v) => setApptForm({ ...apptForm, doctor_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Select doctor" /></SelectTrigger>
+                <SelectContent>
+                  {Array.isArray(doctors) && doctors.map((d: any) => (
+                    <SelectItem key={d.id} value={d.id}>{d.fullName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Reason / Notes</Label>
+              <Textarea value={apptForm.reason || ""} onChange={(e) => setApptForm({ ...apptForm, reason: e.target.value })} placeholder="Reason for visit..." />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowApptModal(false)}>Cancel</Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={apptMutation.isPending}>
+                {apptMutation.isPending ? "Booking..." : "Book Appointment"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
