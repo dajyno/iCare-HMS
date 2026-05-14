@@ -6,15 +6,12 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { 
-  Stethoscope, 
   Thermometer, 
   Activity, 
   Scale, 
   ClipboardList, 
   Pill, 
-  FlaskConical,
   Save,
-  CheckCircle2,
   Trash2,
   Plus
 } from "lucide-react";
@@ -216,8 +213,7 @@ const ConsultationWorkspace = () => {
     <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl mx-auto pb-20">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
-            <Stethoscope className="w-8 h-8 text-blue-600" />
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
             Clinical Workspace
           </h1>
           <p className="text-slate-500 mt-1">Start a new patient encounter</p>

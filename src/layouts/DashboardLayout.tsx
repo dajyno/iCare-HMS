@@ -10,7 +10,6 @@ import {
   CreditCard,
   FlaskConical,
   Pill,
-  Package,
   Bed,
   UserPlus,
   BarChart3,
@@ -19,12 +18,12 @@ import {
   Search,
   Bell,
   ChevronDown,
-  Menu,
   X,
+  Scan,
+  Calculator,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 const SidebarItem = ({ icon: Icon, label, href, active }: any) => (
@@ -42,20 +41,15 @@ const SidebarItem = ({ icon: Icon, label, href, active }: any) => (
   </Link>
 );
 
-const SidebarGroup = ({ icon: Icon, label, children, currentPath, defaultOpen }: any) => {
-  const [open, setOpen] = useState(defaultOpen ?? false);
+const SidebarGroup = ({ icon: Icon, label, children, currentPath, isOpen, onToggle }: any) => {
   const hasActiveChild = children?.some((c: any) =>
     c.href === "/" ? currentPath === "/" : currentPath.startsWith(c.href)
   );
 
-  useEffect(() => {
-    if (hasActiveChild) setOpen(true);
-  }, [hasActiveChild]);
-
   return (
     <div>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={onToggle}
         className={cn(
           "flex items-center gap-3 px-3 py-2 rounded-md transition-all text-sm font-medium w-full text-left",
           hasActiveChild
@@ -63,11 +57,11 @@ const SidebarGroup = ({ icon: Icon, label, children, currentPath, defaultOpen }:
             : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
         )}
       >
-        <Icon className="w-5 h-5 shrink-0" strokeWidth={2} />
+        {Icon && <Icon className="w-5 h-5 shrink-0" strokeWidth={2} />}
         <span className="flex-1">{label}</span>
-        <ChevronDown className={cn("w-4 h-4 transition-transform shrink-0", open && "rotate-180")} />
+        <ChevronDown className={cn("w-4 h-4 transition-transform shrink-0", isOpen && "rotate-180")} />
       </button>
-      {open && (
+      {isOpen && (
         <div className="ml-3 mt-0.5 space-y-0.5 border-l border-slate-200 pl-3">
           {children.map((child: any) => (
             <SidebarItem
@@ -127,6 +121,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
+    { icon: Calendar, label: "Appointments", href: "/appointments" },
     { icon: Users, label: "Patients", children: [
       { label: "All Patients", href: "/patients" },
       { label: "Individual", href: "/patients/individual" },
@@ -134,20 +129,29 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       { label: "Corporate", href: "/patients/corporate" },
       { label: "HMO", href: "/patients/hmo" },
     ]},
-    { icon: Calendar, label: "Appointments", href: "/appointments" },
     { icon: ClipboardList, label: "Consultations", children: [
       { label: "Clinical Workspace", href: "/consultations" },
       { label: "Vital Signs", href: "/consultations/vitals" },
     ]},
-    { icon: CreditCard, label: "Billing", href: "/billing" },
     { icon: FlaskConical, label: "Laboratory", href: "/laboratory" },
+    { icon: Scan, label: "Radiology", href: "/radiology" },
     { icon: Pill, label: "Pharmacy", href: "/pharmacy" },
-    { icon: Package, label: "Inventory", href: "/inventory" },
     { icon: Bed, label: "Inpatient", href: "/inpatient" },
+    { icon: CreditCard, label: "Billing", href: "/billing" },
+    { icon: Calculator, label: "Accounting", href: "/accounting" },
     { icon: UserPlus, label: "Staff", href: "/staff" },
     { icon: BarChart3, label: "Reports", href: "/reports" },
     { icon: Settings, label: "System Settings", href: "/settings" },
   ];
+
+  const [expandedGroup, setExpandedGroup] = useState<string | null>(() => {
+    const activeGroup = navItems.find((item: any) =>
+      item.children?.some((c: any) =>
+        c.href === "/" ? location.pathname === "/" : location.pathname.startsWith(c.href)
+      )
+    );
+    return activeGroup?.label || null;
+  });
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
@@ -164,7 +168,15 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           <nav className="space-y-1">
             {navItems.map((item: any) =>
               item.children ? (
-                <SidebarGroup key={item.label} {...item} currentPath={location.pathname} />
+                <SidebarGroup
+                  key={item.label}
+                  icon={item.icon}
+                  label={item.label}
+                  children={item.children}
+                  currentPath={location.pathname}
+                  isOpen={expandedGroup === item.label}
+                  onToggle={() => setExpandedGroup(expandedGroup === item.label ? null : item.label)}
+                />
               ) : (
                 <SidebarItem
                   key={item.href}
@@ -189,23 +201,15 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
             </div>
           </Link>
           
-          <div className="grid grid-cols-2 gap-2 mt-4">
-            <Link to="/settings">
-              <Button variant="ghost" size="sm" className="w-full justify-center gap-2 text-slate-500 text-[10px] h-8 hover:bg-white hover:text-sky-600">
-                <Settings className="w-3 h-3" />
-                Settings
-              </Button>
-            </Link>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="w-full justify-center gap-2 text-slate-500 text-[10px] h-8 hover:bg-red-50 hover:text-red-600"
-              onClick={logout}
-            >
-              <LogOut className="w-3 h-3" />
-              Logout
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start gap-2 text-red-500 hover:text-red-600 hover:bg-red-50 text-xs h-8 mt-4"
+            onClick={logout}
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Logout
+          </Button>
         </div>
       </aside>
 

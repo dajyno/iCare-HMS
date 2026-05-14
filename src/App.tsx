@@ -15,6 +15,8 @@ import PharmacyQueue from "./pages/Pharmacy/PharmacyQueue";
 import BillingOverview from "./pages/Billing/BillingOverview";
 import InpatientOverview from "./pages/Inpatient/InpatientOverview";
 import InventoryList from "./pages/Inventory/InventoryList";
+import RadiologyPage from "./pages/Radiology/RadiologyPage";
+import AccountingPage from "./pages/Accounting/AccountingPage";
 import Settings from "./pages/Dashboard/Settings";
 import Profile from "./pages/Dashboard/Profile";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -139,6 +141,14 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/radiology"
+              element={
+                <ProtectedRoute>
+                  <RadiologyPage />
+                </ProtectedRoute>
+              }
+            />
              <Route
               path="/pharmacy"
               element={
@@ -152,6 +162,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <BillingOverview />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/accounting"
+              element={
+                <ProtectedRoute>
+                  <AccountingPage />
                 </ProtectedRoute>
               }
             />

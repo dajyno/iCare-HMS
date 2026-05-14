@@ -73,16 +73,16 @@ const VitalSigns = () => {
           height: formData.height ? parseFloat(formData.height) : null,
           bmi: bmi ? parseFloat(bmi) : null,
           oxygen_saturation: formData.oxygenSaturation ? parseInt(formData.oxygenSaturation) : null,
-        })
-        .select()
-        .single();
+        });
       if (vitalError) throw vitalError;
-      return vitalError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["all-vitals"] });
       setShowAddModal(false);
       setForm({});
+    },
+    onError: (err: Error) => {
+      alert(`Failed to save vital signs: ${err.message}`);
     },
   });
 
@@ -108,8 +108,7 @@ const VitalSigns = () => {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-            <HeartPulse className="w-7 h-7 text-rose-500" />
+          <h1 className="text-2xl font-bold text-slate-900">
             Vital Signs
           </h1>
           <p className="text-sm text-slate-500">

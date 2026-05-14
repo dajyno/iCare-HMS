@@ -244,6 +244,9 @@ const PatientProfile = () => {
       setShowVitalsModal(false);
       setVitalsForm({});
     },
+    onError: (err: Error) => {
+      alert(`Failed to save vital signs: ${err.message}`);
+    },
   });
 
   const createLabRequest = useMutation({
