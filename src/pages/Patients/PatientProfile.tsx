@@ -2,10 +2,12 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
+import { useAuth } from "@/src/context/AuthContext";
 import {
   ArrowLeft, User, Phone, Mail, MapPin, Calendar, Edit, Save,
   Stethoscope, FlaskConical, Pill, Activity, AlertCircle, Loader2,
-  BadgeCheck, FolderOpen, Users, Building, Shield, Clock
+  BadgeCheck, FolderOpen, Users, Building, Shield, Clock, Plus,
+  HeartPulse, Microscope, Receipt, Bone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,8 +28,23 @@ const PatientProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
   const [showEditModal, setShowEditModal] = useState(false);
   const [editForm, setEditForm] = useState<any>({});
+
+  // Overlay states
+  const [showVitalsModal, setShowVitalsModal] = useState(false);
+  const [vitalsForm, setVitalsForm] = useState<any>({});
+  const [showConsultModal, setShowConsultModal] = useState(false);
+  const [consultForm, setConsultForm] = useState<any>({});
+  const [showLabModal, setShowLabModal] = useState(false);
+  const [labForm, setLabForm] = useState<any>({});
+  const [showRadModal, setShowRadModal] = useState(false);
+  const [radForm, setRadForm] = useState<any>({});
+  const [showRxModal, setShowRxModal] = useState(false);
+  const [rxForm, setRxForm] = useState<any>({});
+  const [showBillModal, setShowBillModal] = useState(false);
+  const [billForm, setBillForm] = useState<any>({});
 
   const { data: patient, isLoading, isError } = useQuery({
     queryKey: ["patient", id],
@@ -48,7 +65,7 @@ const PatientProfile = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("consultations")
-        .select("*, doctor:users(full_name), vital_signs(*)")
+        .select("*, doctor:users(full_name)")
         .eq("patient_id", id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -62,7 +79,7 @@ const PatientProfile = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lab_requests")
-        .select("*, test:lab_tests(name), results:lab_results(*)")
+        .select("*, test:lab_tests(name, category), results:lab_results(*)")
         .eq("patient_id", id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -85,6 +102,77 @@ const PatientProfile = () => {
     enabled: !!id,
   });
 
+  const { data: vitals } = useQuery({
+    queryKey: ["patient-vitals", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("consultations")
+        .select("id, created_at, vital_signs(*)")
+        .eq("patient_id", id)
+        .not("vital_signs", "is", null)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return toCamel(data);
+    },
+    enabled: !!id,
+  });
+
+  const { data: invoices } = useQuery({
+    queryKey: ["patient-invoices", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("invoices")
+        .select("*, items:invoice_items(*)")
+        .eq("patient_id", id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return toCamel(data);
+    },
+    enabled: !!id,
+  });
+
+  const { data: familyMembers } = useQuery({
+    queryKey: ["patient-family", patient?.lastName],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("patients")
+        .select("id, patient_id, first_name, last_name, phone, gender")
+        .eq("category", "Family")
+        .eq("last_name", patient.lastName)
+        .neq("id", id)
+        .order("first_name", { ascending: true });
+      if (error) throw error;
+      return toCamel(data);
+    },
+    enabled: !!patient && patient.category === "Family",
+  });
+
+  const { data: labTests } = useQuery({
+    queryKey: ["lab-tests"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("lab_tests")
+        .select("*")
+        .order("name");
+      if (error) throw error;
+      return toCamel(data);
+    },
+    enabled: showLabModal || showRadModal,
+  });
+
+  const { data: medications } = useQuery({
+    queryKey: ["medications"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("medications")
+        .select("*")
+        .order("name");
+      if (error) throw error;
+      return toCamel(data);
+    },
+    enabled: showRxModal,
+  });
+
   const updateMutation = useMutation({
     mutationFn: async (payload: any) => {
       const { error } = await supabase.from("patients").update(payload).eq("id", id);
@@ -94,6 +182,112 @@ const PatientProfile = () => {
       queryClient.invalidateQueries({ queryKey: ["patient", id] });
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       setShowEditModal(false);
+    },
+  });
+
+  const createConsultation = useMutation({
+    mutationFn: async (payload: any) => {
+      const { data, error } = await supabase.from("consultations").insert(payload).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patient-consultations", id] });
+      setShowConsultModal(false);
+      setConsultForm({});
+    },
+  });
+
+  const createVitals = useMutation({
+    mutationFn: async (payload: any) => {
+      const { data: consult, error: consultError } = await supabase
+        .from("consultations")
+        .insert({ patient_id: id, doctor_id: currentUser?.id, chief_complaint: "Vitals Check" })
+        .select()
+        .single();
+      if (consultError) throw consultError;
+      const { error: vitalsError } = await supabase
+        .from("vital_signs")
+        .insert({ ...payload, consultation_id: consult.id });
+      if (vitalsError) throw vitalsError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patient-vitals", id] });
+      queryClient.invalidateQueries({ queryKey: ["patient-consultations", id] });
+      setShowVitalsModal(false);
+      setVitalsForm({});
+    },
+  });
+
+  const createLabRequest = useMutation({
+    mutationFn: async (payload: any) => {
+      const { data, error } = await supabase.from("lab_requests").insert(payload).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patient-labs", id] });
+      setShowLabModal(false);
+      setLabForm({});
+    },
+  });
+
+  const createRadRequest = useMutation({
+    mutationFn: async (payload: any) => {
+      const { data, error } = await supabase.from("lab_requests").insert(payload).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patient-labs", id] });
+      setShowRadModal(false);
+      setRadForm({});
+    },
+  });
+
+  const createPrescription = useMutation({
+    mutationFn: async (payload: any) => {
+      const { items, ...prescription } = payload;
+      const { data: rx, error: rxError } = await supabase
+        .from("prescriptions")
+        .insert(prescription)
+        .select()
+        .single();
+      if (rxError) throw rxError;
+      if (items && items.length > 0) {
+        const { error: itemError } = await supabase
+          .from("prescription_items")
+          .insert(items.map((i: any) => ({ ...i, prescription_id: rx.id })));
+        if (itemError) throw itemError;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patient-rx", id] });
+      setShowRxModal(false);
+      setRxForm({});
+    },
+  });
+
+  const createInvoice = useMutation({
+    mutationFn: async (payload: any) => {
+      const { items, ...invoice } = payload;
+      const { data: inv, error: invError } = await supabase
+        .from("invoices")
+        .insert(invoice)
+        .select()
+        .single();
+      if (invError) throw invError;
+      if (items && items.length > 0) {
+        const { error: itemError } = await supabase
+          .from("invoice_items")
+          .insert(items.map((i: any) => ({ ...i, invoice_id: inv.id })));
+        if (itemError) throw itemError;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patient-invoices", id] });
+      setShowBillModal(false);
+      setBillForm({});
     },
   });
 
@@ -114,6 +308,88 @@ const PatientProfile = () => {
     }
   };
 
+  const handleVitalsSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const heightM = (vitalsForm.height || 0) / 100;
+    const bmi = vitalsForm.weight && heightM ? (vitalsForm.weight / (heightM * heightM)).toFixed(1) : null;
+    createVitals.mutate({
+      temperature: vitalsForm.temperature ? parseFloat(vitalsForm.temperature) : null,
+      blood_pressure: vitalsForm.bloodPressure || null,
+      pulse_rate: vitalsForm.pulseRate ? parseInt(vitalsForm.pulseRate) : null,
+      respiratory_rate: vitalsForm.respiratoryRate ? parseInt(vitalsForm.respiratoryRate) : null,
+      weight: vitalsForm.weight ? parseFloat(vitalsForm.weight) : null,
+      height: vitalsForm.height ? parseFloat(vitalsForm.height) : null,
+      bmi: bmi ? parseFloat(bmi) : null,
+      oxygen_saturation: vitalsForm.oxygenSaturation ? parseInt(vitalsForm.oxygenSaturation) : null,
+    });
+  };
+
+  const handleConsultSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createConsultation.mutate({
+      patient_id: id,
+      doctor_id: currentUser?.id,
+      chief_complaint: consultForm.chiefComplaint,
+      symptoms: consultForm.symptoms || null,
+      diagnosis: consultForm.diagnosis || null,
+      clinical_notes: consultForm.clinicalNotes || null,
+      treatment_plan: consultForm.treatmentPlan || null,
+      follow_up_date: consultForm.followUpDate || null,
+    });
+  };
+
+  const handleLabSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createLabRequest.mutate({
+      patient_id: id,
+      test_id: labForm.testId,
+      status: "Requested",
+    });
+  };
+
+  const handleRadSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createRadRequest.mutate({
+      patient_id: id,
+      test_id: radForm.testId,
+      status: "Requested",
+    });
+  };
+
+  const handleRxSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createPrescription.mutate({
+      patient_id: id,
+      doctor_id: currentUser?.id,
+      status: "Pending",
+      items: [{
+        medication_id: rxForm.medicationId,
+        dosage: rxForm.dosage,
+        frequency: rxForm.frequency,
+        duration: rxForm.duration,
+        instructions: rxForm.instructions || null,
+      }],
+    });
+  };
+
+  const handleBillSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const qty = parseInt(billForm.quantity) || 1;
+    const unitPrice = parseFloat(billForm.unitPrice) || 0;
+    const total = qty * unitPrice;
+    const invNum = `INV-${Date.now()}`;
+    createInvoice.mutate({
+      patient_id: id,
+      invoice_number: invNum,
+      total_amount: total,
+      amount_paid: 0,
+      balance: total,
+      status: "Unpaid",
+      created_by: currentUser?.id,
+      items: [{ description: billForm.description, quantity: qty, unit_price: unitPrice, total }],
+    });
+  };
+
   if (isLoading) return (
     <div className="h-[60vh] flex items-center justify-center">
       <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
@@ -127,6 +403,14 @@ const PatientProfile = () => {
       <Button variant="outline" className="mt-4" onClick={() => navigate("/patients")}>Back to Patients</Button>
     </div>
   );
+
+  const radiologyRequests = Array.isArray(labRequests)
+    ? labRequests.filter((lr: any) => lr.test?.category === "Radiology")
+    : [];
+
+  const regularLabs = Array.isArray(labRequests)
+    ? labRequests.filter((lr: any) => lr.test?.category !== "Radiology")
+    : [];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-5xl mx-auto">
@@ -194,13 +478,17 @@ const PatientProfile = () => {
 
       {/* Tabs */}
       <Tabs defaultValue="overview">
-        <TabsList className="bg-white border p-1 h-auto">
+        <TabsList className="bg-white border p-1 h-auto flex-wrap">
           <TabsTrigger value="overview" className="gap-2 px-4 py-2"><Activity className="w-4 h-4" /> Overview</TabsTrigger>
+          <TabsTrigger value="vitals" className="gap-2 px-4 py-2"><HeartPulse className="w-4 h-4" /> Vital Signs</TabsTrigger>
           <TabsTrigger value="consultations" className="gap-2 px-4 py-2"><Stethoscope className="w-4 h-4" /> Consultations</TabsTrigger>
           <TabsTrigger value="labs" className="gap-2 px-4 py-2"><FlaskConical className="w-4 h-4" /> Lab Results</TabsTrigger>
+          <TabsTrigger value="radiology" className="gap-2 px-4 py-2"><Bone className="w-4 h-4" /> Radiology</TabsTrigger>
           <TabsTrigger value="prescriptions" className="gap-2 px-4 py-2"><Pill className="w-4 h-4" /> Prescriptions</TabsTrigger>
+          <TabsTrigger value="billing" className="gap-2 px-4 py-2"><Receipt className="w-4 h-4" /> Billing</TabsTrigger>
         </TabsList>
 
+        {/* ========== OVERVIEW ========== */}
         <TabsContent value="overview" className="space-y-6 mt-6">
           <Card className="border-none shadow-sm ring-1 ring-slate-200">
             <CardHeader><CardTitle className="text-sm font-bold flex items-center gap-2"><FolderOpen className="w-4 h-4 text-blue-500" /> Folder Information</CardTitle></CardHeader>
@@ -215,6 +503,35 @@ const PatientProfile = () => {
               <div><span className="text-[10px] font-bold uppercase text-slate-400">Status</span><p className="mt-1"><Badge className={patient.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}>{patient.status === "active" ? "Active" : "Inactive"}</Badge></p></div>
               <div><span className="text-[10px] font-bold uppercase text-slate-400">Registered</span><p className="font-semibold mt-1">{patient.registrationDate ? new Date(patient.registrationDate).toLocaleDateString() : "N/A"}</p></div>
             </CardContent>
+
+            {/* Family Dependants */}
+            {patient.category === "Family" && Array.isArray(familyMembers) && familyMembers.length > 0 && (
+              <CardContent className="border-t border-slate-100 pt-4">
+                <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1.5 mb-3">
+                  <Users className="w-3.5 h-3.5" /> Dependants
+                </span>
+                <div className="space-y-2">
+                  {familyMembers.map((fm: any) => (
+                    <div key={fm.id} className="flex items-center justify-between py-2 px-3 bg-slate-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs">
+                          {fm.firstName?.[0]}{fm.lastName?.[0]}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-700">{fm.firstName} {fm.lastName}</p>
+                          <p className="text-xs text-slate-400">{fm.patientId}</p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" className="h-8 text-blue-600 font-bold"
+                        onClick={() => navigate(`/patients/${fm.id}`)}>
+                        View Profile
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            )}
+
             {(patient.nextOfKinName || patient.companyName || patient.insuranceProvider) && (
               <CardContent className="border-t border-slate-100 pt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                 {patient.nextOfKinName && (
@@ -253,7 +570,49 @@ const PatientProfile = () => {
           </Card>
         </TabsContent>
 
+        {/* ========== VITAL SIGNS ========== */}
+        <TabsContent value="vitals" className="mt-6 space-y-4">
+          <div className="flex justify-end">
+            <Button onClick={() => setShowVitalsModal(true)} className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="w-4 h-4 mr-2" /> Record Vital Signs
+            </Button>
+          </div>
+          {!Array.isArray(vitals) || vitals.length === 0 ? (
+            <div className="text-center py-12 text-slate-400">No vital signs recorded.</div>
+          ) : (
+            vitals.map((v: any) => {
+              const vs = v.vitalSigns;
+              return (
+                <Card key={v.id} className="border-none shadow-sm ring-1 ring-slate-200">
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2"><HeartPulse className="w-4 h-4 text-rose-500" /><span className="font-bold text-slate-900">Vital Signs</span></div>
+                      <span className="text-xs text-slate-400">{v.createdAt ? new Date(v.createdAt).toLocaleDateString() : ""}</span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                      {vs?.temperature && <div><span className="text-[10px] font-bold uppercase text-slate-400">Temp</span><p className="font-semibold mt-0.5">{vs.temperature} °C</p></div>}
+                      {vs?.bloodPressure && <div><span className="text-[10px] font-bold uppercase text-slate-400">BP</span><p className="font-semibold mt-0.5">{vs.bloodPressure} mmHg</p></div>}
+                      {vs?.pulseRate && <div><span className="text-[10px] font-bold uppercase text-slate-400">Pulse</span><p className="font-semibold mt-0.5">{vs.pulseRate} bpm</p></div>}
+                      {vs?.respiratoryRate && <div><span className="text-[10px] font-bold uppercase text-slate-400">RR</span><p className="font-semibold mt-0.5">{vs.respiratoryRate} /min</p></div>}
+                      {vs?.weight && <div><span className="text-[10px] font-bold uppercase text-slate-400">Weight</span><p className="font-semibold mt-0.5">{vs.weight} kg</p></div>}
+                      {vs?.height && <div><span className="text-[10px] font-bold uppercase text-slate-400">Height</span><p className="font-semibold mt-0.5">{vs.height} cm</p></div>}
+                      {vs?.bmi && <div><span className="text-[10px] font-bold uppercase text-slate-400">BMI</span><p className="font-semibold mt-0.5">{vs.bmi}</p></div>}
+                      {vs?.oxygenSaturation && <div><span className="text-[10px] font-bold uppercase text-slate-400">SpO₂</span><p className="font-semibold mt-0.5">{vs.oxygenSaturation}%</p></div>}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </TabsContent>
+
+        {/* ========== CONSULTATIONS ========== */}
         <TabsContent value="consultations" className="mt-6 space-y-4">
+          <div className="flex justify-end">
+            <Button onClick={() => setShowConsultModal(true)} className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="w-4 h-4 mr-2" /> New Consultation
+            </Button>
+          </div>
           {!Array.isArray(consultations) || consultations.length === 0 ? (
             <div className="text-center py-12 text-slate-400">No consultation records found.</div>
           ) : (
@@ -279,11 +638,17 @@ const PatientProfile = () => {
           )}
         </TabsContent>
 
+        {/* ========== LAB RESULTS ========== */}
         <TabsContent value="labs" className="mt-6 space-y-4">
-          {!Array.isArray(labRequests) || labRequests.length === 0 ? (
+          <div className="flex justify-end">
+            <Button onClick={() => setShowLabModal(true)} className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="w-4 h-4 mr-2" /> New Lab Request
+            </Button>
+          </div>
+          {regularLabs.length === 0 ? (
             <div className="text-center py-12 text-slate-400">No lab records found.</div>
           ) : (
-            labRequests.map((lr: any) => (
+            regularLabs.map((lr: any) => (
               <Card key={lr.id} className="border-none shadow-sm ring-1 ring-slate-200">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
@@ -305,7 +670,45 @@ const PatientProfile = () => {
           )}
         </TabsContent>
 
+        {/* ========== RADIOLOGY ========== */}
+        <TabsContent value="radiology" className="mt-6 space-y-4">
+          <div className="flex justify-end">
+            <Button onClick={() => setShowRadModal(true)} className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="w-4 h-4 mr-2" /> New Radiology Request
+            </Button>
+          </div>
+          {radiologyRequests.length === 0 ? (
+            <div className="text-center py-12 text-slate-400">No radiology records found.</div>
+          ) : (
+            radiologyRequests.map((lr: any) => (
+              <Card key={lr.id} className="border-none shadow-sm ring-1 ring-slate-200">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-2"><Bone className="w-4 h-4 text-indigo-500" /><span className="font-bold text-slate-900">{lr.test?.name || "Unknown"}</span></div>
+                      <Badge variant="outline" className="mt-2 text-[10px]">{lr.status}</Badge>
+                    </div>
+                    <span className="text-xs text-slate-400">{lr.createdAt ? new Date(lr.createdAt).toLocaleDateString() : ""}</span>
+                  </div>
+                  {lr.results && (
+                    <div className="mt-3 p-3 bg-slate-50 rounded-lg text-sm">
+                      <span className="font-semibold text-slate-700">Result: </span>{lr.results.resultValue} {lr.results.unit || ""}
+                      {lr.results.interpretation && <p className="text-xs text-slate-500 mt-1">{lr.results.interpretation}</p>}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </TabsContent>
+
+        {/* ========== PRESCRIPTIONS ========== */}
         <TabsContent value="prescriptions" className="mt-6 space-y-4">
+          <div className="flex justify-end">
+            <Button onClick={() => setShowRxModal(true)} className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="w-4 h-4 mr-2" /> New Prescription
+            </Button>
+          </div>
           {!Array.isArray(prescriptions) || prescriptions.length === 0 ? (
             <div className="text-center py-12 text-slate-400">No prescriptions found.</div>
           ) : (
@@ -332,9 +735,59 @@ const PatientProfile = () => {
             ))
           )}
         </TabsContent>
+
+        {/* ========== BILLING ========== */}
+        <TabsContent value="billing" className="mt-6 space-y-4">
+          <div className="flex justify-end">
+            <Button onClick={() => setShowBillModal(true)} className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="w-4 h-4 mr-2" /> New Invoice
+            </Button>
+          </div>
+          {!Array.isArray(invoices) || invoices.length === 0 ? (
+            <div className="text-center py-12 text-slate-400">No billing records found.</div>
+          ) : (
+            invoices.map((inv: any) => (
+              <Card key={inv.id} className="border-none shadow-sm ring-1 ring-slate-200">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-2"><Receipt className="w-4 h-4 text-blue-500" /><span className="font-bold text-slate-900">{inv.invoiceNumber}</span></div>
+                      <Badge variant="outline" className={`mt-2 text-[10px] ${
+                        inv.status === "Paid" ? "bg-emerald-50 text-emerald-700" :
+                        inv.status === "PartiallyPaid" ? "bg-amber-50 text-amber-700" :
+                        "bg-red-50 text-red-700"
+                      }`}>{inv.status}</Badge>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-slate-900">₦{inv.totalAmount?.toLocaleString()}</p>
+                      <p className="text-xs text-slate-400">{inv.createdAt ? new Date(inv.createdAt).toLocaleDateString() : ""}</p>
+                    </div>
+                  </div>
+                  {Array.isArray(inv.items) && inv.items.length > 0 && (
+                    <div className="mt-3 border-t border-slate-100 pt-3 space-y-1">
+                      {inv.items.map((item: any, i: number) => (
+                        <div key={i} className="flex justify-between text-sm text-slate-600">
+                          <span>{item.description} x{item.quantity}</span>
+                          <span>₦{item.total?.toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {inv.status !== "Paid" && (
+                    <div className="mt-3 flex items-center gap-2 text-sm">
+                      <span className="text-slate-400">Paid: ₦{inv.amountPaid?.toLocaleString() || 0}</span>
+                      <span className="text-slate-300">|</span>
+                      <span className="text-red-600 font-semibold">Balance: ₦{inv.balance?.toLocaleString()}</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </TabsContent>
       </Tabs>
 
-      {/* Edit Modal */}
+      {/* ======== EDIT MODAL ======== */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -392,6 +845,183 @@ const PatientProfile = () => {
               <Button type="button" variant="outline" onClick={() => setShowEditModal(false)}>Cancel</Button>
               <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={updateMutation.isPending}>
                 {updateMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ======== VITAL SIGNS MODAL ======== */}
+      <Dialog open={showVitalsModal} onOpenChange={setShowVitalsModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Record Vital Signs</DialogTitle>
+            <DialogDescription>Enter the patient's vital signs measurements.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleVitalsSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5"><Label>Temperature (°C)</Label><Input type="number" step="0.1" value={vitalsForm.temperature || ""} onChange={(e) => setVitalsForm({ ...vitalsForm, temperature: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>Blood Pressure (mmHg)</Label><Input placeholder="120/80" value={vitalsForm.bloodPressure || ""} onChange={(e) => setVitalsForm({ ...vitalsForm, bloodPressure: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>Pulse Rate (bpm)</Label><Input type="number" value={vitalsForm.pulseRate || ""} onChange={(e) => setVitalsForm({ ...vitalsForm, pulseRate: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>Respiratory Rate (/min)</Label><Input type="number" value={vitalsForm.respiratoryRate || ""} onChange={(e) => setVitalsForm({ ...vitalsForm, respiratoryRate: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>Weight (kg)</Label><Input type="number" step="0.1" value={vitalsForm.weight || ""} onChange={(e) => setVitalsForm({ ...vitalsForm, weight: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>Height (cm)</Label><Input type="number" step="0.1" value={vitalsForm.height || ""} onChange={(e) => setVitalsForm({ ...vitalsForm, height: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>Oxygen Saturation (%)</Label><Input type="number" value={vitalsForm.oxygenSaturation || ""} onChange={(e) => setVitalsForm({ ...vitalsForm, oxygenSaturation: e.target.value })} /></div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowVitalsModal(false)}>Cancel</Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={createVitals.isPending}>
+                {createVitals.isPending ? "Saving..." : "Save"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ======== CONSULTATION MODAL ======== */}
+      <Dialog open={showConsultModal} onOpenChange={setShowConsultModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>New Consultation</DialogTitle>
+            <DialogDescription>Record a new consultation for this patient.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleConsultSubmit} className="space-y-4">
+            <div className="space-y-1.5"><Label>Chief Complaint *</Label><Textarea required value={consultForm.chiefComplaint || ""} onChange={(e) => setConsultForm({ ...consultForm, chiefComplaint: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5"><Label>Symptoms</Label><Textarea value={consultForm.symptoms || ""} onChange={(e) => setConsultForm({ ...consultForm, symptoms: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>Diagnosis</Label><Textarea value={consultForm.diagnosis || ""} onChange={(e) => setConsultForm({ ...consultForm, diagnosis: e.target.value })} /></div>
+            </div>
+            <div className="space-y-1.5"><Label>Clinical Notes</Label><Textarea value={consultForm.clinicalNotes || ""} onChange={(e) => setConsultForm({ ...consultForm, clinicalNotes: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5"><Label>Treatment Plan</Label><Textarea value={consultForm.treatmentPlan || ""} onChange={(e) => setConsultForm({ ...consultForm, treatmentPlan: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>Follow-up Date</Label><Input type="date" value={consultForm.followUpDate || ""} onChange={(e) => setConsultForm({ ...consultForm, followUpDate: e.target.value })} /></div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowConsultModal(false)}>Cancel</Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={createConsultation.isPending}>
+                {createConsultation.isPending ? "Saving..." : "Save"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ======== LAB REQUEST MODAL ======== */}
+      <Dialog open={showLabModal} onOpenChange={setShowLabModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>New Lab Request</DialogTitle>
+            <DialogDescription>Select a lab test to request.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleLabSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Lab Test *</Label>
+              <Select value={labForm.testId || ""} onValueChange={(v) => setLabForm({ ...labForm, testId: v })}>
+                <SelectTrigger><SelectValue placeholder="Select test" /></SelectTrigger>
+                <SelectContent>
+                  {(Array.isArray(labTests) ? labTests.filter((t: any) => t.category !== "Radiology") : []).map((t: any) => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowLabModal(false)}>Cancel</Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={createLabRequest.isPending}>
+                {createLabRequest.isPending ? "Saving..." : "Request"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ======== RADIOLOGY REQUEST MODAL ======== */}
+      <Dialog open={showRadModal} onOpenChange={setShowRadModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>New Radiology Request</DialogTitle>
+            <DialogDescription>Select an imaging test to request.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleRadSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Radiology Test *</Label>
+              <Select value={radForm.testId || ""} onValueChange={(v) => setRadForm({ ...radForm, testId: v })}>
+                <SelectTrigger><SelectValue placeholder="Select test" /></SelectTrigger>
+                <SelectContent>
+                  {(Array.isArray(labTests) ? labTests.filter((t: any) => t.category === "Radiology") : []).map((t: any) => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowRadModal(false)}>Cancel</Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={createRadRequest.isPending}>
+                {createRadRequest.isPending ? "Saving..." : "Request"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ======== PRESCRIPTION MODAL ======== */}
+      <Dialog open={showRxModal} onOpenChange={setShowRxModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>New Prescription</DialogTitle>
+            <DialogDescription>Add a medication prescription.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleRxSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Medication *</Label>
+              <Select value={rxForm.medicationId || ""} onValueChange={(v) => setRxForm({ ...rxForm, medicationId: v })}>
+                <SelectTrigger><SelectValue placeholder="Select medication" /></SelectTrigger>
+                <SelectContent>
+                  {(Array.isArray(medications) ? medications : []).map((m: any) => (
+                    <SelectItem key={m.id} value={m.id}>{m.name} {m.strength || ""}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-1.5"><Label>Dosage *</Label><Input required placeholder="e.g. 500mg" value={rxForm.dosage || ""} onChange={(e) => setRxForm({ ...rxForm, dosage: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>Frequency *</Label><Input required placeholder="e.g. 3x/day" value={rxForm.frequency || ""} onChange={(e) => setRxForm({ ...rxForm, frequency: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>Duration *</Label><Input required placeholder="e.g. 7 days" value={rxForm.duration || ""} onChange={(e) => setRxForm({ ...rxForm, duration: e.target.value })} /></div>
+            </div>
+            <div className="space-y-1.5"><Label>Instructions</Label><Textarea value={rxForm.instructions || ""} onChange={(e) => setRxForm({ ...rxForm, instructions: e.target.value })} /></div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowRxModal(false)}>Cancel</Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={createPrescription.isPending}>
+                {createPrescription.isPending ? "Saving..." : "Prescribe"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ======== BILLING MODAL ======== */}
+      <Dialog open={showBillModal} onOpenChange={setShowBillModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>New Invoice</DialogTitle>
+            <DialogDescription>Create a new invoice for this patient.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleBillSubmit} className="space-y-4">
+            <div className="space-y-1.5"><Label>Description *</Label><Input required placeholder="e.g. Consultation fee" value={billForm.description || ""} onChange={(e) => setBillForm({ ...billForm, description: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5"><Label>Quantity</Label><Input type="number" min="1" value={billForm.quantity || "1"} onChange={(e) => setBillForm({ ...billForm, quantity: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>Unit Price (₦) *</Label><Input required type="number" step="0.01" min="0" value={billForm.unitPrice || ""} onChange={(e) => setBillForm({ ...billForm, unitPrice: e.target.value })} /></div>
+            </div>
+            {billForm.description && billForm.unitPrice && (
+              <div className="text-right text-sm">
+                <span className="text-slate-400">Total: </span>
+                <span className="font-bold text-slate-900">₦{(parseInt(billForm.quantity || "1") * parseFloat(billForm.unitPrice || "0")).toLocaleString()}</span>
+              </div>
+            )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowBillModal(false)}>Cancel</Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={createInvoice.isPending}>
+                {createInvoice.isPending ? "Saving..." : "Create Invoice"}
               </Button>
             </DialogFooter>
           </form>
