@@ -27,7 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user.id, session.user);
       } else {
         setLoading(false);
       }
@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user.id, session.user);
       } else {
         setUser(null);
         setLoading(false);
@@ -45,14 +45,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, authUser?: { email?: string; user_metadata?: { full_name?: string; role?: string } }) => {
     const { data, error } = await supabase
       .from("users")
       .select("*")
       .eq("id", userId)
       .single();
-    if (!error && data) {
+
+    if (data && !error) {
       setUser(toCamel(data) as unknown as User);
+    } else if (authUser) {
+      // Profile row missing (trigger wasn't set up in time) — use auth metadata
+      const role = (authUser.user_metadata?.role || "Doctor") as User["role"];
+      setUser({
+        id: userId,
+        email: authUser.email || "",
+        full_name: authUser.user_metadata?.full_name || authUser.email?.split("@")[0] || "User",
+        role,
+        status: "active",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
     }
     setLoading(false);
   };
@@ -89,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const { data } = await supabase.auth.getSession();
     if (data.session?.user) {
-      await fetchProfile(data.session.user.id);
+      await fetchProfile(data.session.user.id, data.session.user);
     }
   };
 
