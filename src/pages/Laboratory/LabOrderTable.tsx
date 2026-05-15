@@ -62,10 +62,12 @@ const columnHelper = createColumnHelper<LabOrder>();
 const LabOrderTable = ({
   orders,
   onSelectOrder,
+  onViewResult,
   onMarkCollected,
 }: {
   orders: any[];
   onSelectOrder: (order: any) => void;
+  onViewResult: (order: any) => void;
   onMarkCollected: (order: any) => void;
 }) => {
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -255,7 +257,13 @@ const LabOrderTable = ({
                 rows.map((row) => (
                   <TableRow
                     key={row.original.id}
-                    onClick={() => onSelectOrder(row.original.raw)}
+                    onClick={() => {
+                      if (row.original.dbStatus === "Completed") {
+                        onViewResult(row.original.raw);
+                      } else {
+                        onSelectOrder(row.original.raw);
+                      }
+                    }}
                     className="cursor-pointer hover:bg-slate-50 transition-colors"
                   >
                     {row.getVisibleCells().map((cell) => (

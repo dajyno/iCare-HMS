@@ -9,11 +9,12 @@ import ContextHeader from "./ContextHeader";
 import LabOrderTable from "./LabOrderTable";
 import LabDetailView from "./LabDetailView";
 import LabTestGrid from "./LabTestGrid";
+import LabResultDialog from "./LabResultDialog";
 
 const LabModule = () => {
-  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [viewingResult, setViewingResult] = useState<any>(null);
 
   const { data: requests, isLoading, error } = useQuery({
     queryKey: ["lab-requests"],
@@ -58,6 +59,17 @@ const LabModule = () => {
 
   const handleSelectOrder = (order: any) => {
     setSelectedOrder(order);
+  };
+
+  const handleViewResult = (order: any) => {
+    setViewingResult(order);
+  };
+
+  const handleEditResult = () => {
+    if (viewingResult) {
+      setSelectedOrder(viewingResult);
+      setViewingResult(null);
+    }
   };
 
   const handleBack = () => {
@@ -144,6 +156,7 @@ const LabModule = () => {
               <LabOrderTable
                 orders={Array.isArray(requests) ? requests : []}
                 onSelectOrder={handleSelectOrder}
+                onViewResult={handleViewResult}
                 onMarkCollected={handleMarkCollected}
               />
             </motion.div>
@@ -164,6 +177,13 @@ const LabModule = () => {
           )}
         </AnimatePresence>
       </div>
+
+      <LabResultDialog
+        order={viewingResult}
+        open={!!viewingResult}
+        onClose={() => setViewingResult(null)}
+        onEdit={handleEditResult}
+      />
     </div>
   );
 };

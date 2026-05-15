@@ -476,6 +476,11 @@ create policy "Users can read all lab requests"
   to authenticated
   using (true);
 
+create policy "Users can read all lab results"
+  on public.lab_results for select
+  to authenticated
+  using (true);
+
 create policy "Users can read all inventory"
   on public.inventory_items for select
   to authenticated
@@ -659,7 +664,15 @@ end $$;
 -- ============================================================
 -- ENSURE UNIQUE LAB TEST NAMES (safe to re-run)
 -- ============================================================
-alter table public.lab_tests add constraint if not exists lab_tests_name_key unique (name);
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'lab_tests_name_key'
+  ) then
+    alter table public.lab_tests add constraint lab_tests_name_key unique (name);
+  end if;
+end;
+$$;
 
 -- ============================================================
 -- DECREMENT STOCK RPC (used by Pharmacy dispensing)
