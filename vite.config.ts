@@ -14,6 +14,7 @@ export default defineConfig(({mode}) => {
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
+      conditions: ['module', 'node', 'require', 'import', 'default'],
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.

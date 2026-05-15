@@ -394,6 +394,7 @@ model RadiologyRequest {
   requestedById   String?
   requestedBy     User?     @relation("RadiologyRequests", fields: [requestedById], references: [id])
   radiologistId   String?
+  radiologist     User?     @relation("Radiologist", fields: [radiologistId], references: [id])
   notes           String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
