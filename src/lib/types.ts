@@ -251,6 +251,7 @@ export interface RadiologyRequest {
   id: string;
   patient_id: string;
   exam_id: string;
+  batch_id?: string | null;
   folder_no?: string | null;
   status: "Requested" | "InProgress" | "Completed" | "Cancelled";
   requested_by_id?: string | null;

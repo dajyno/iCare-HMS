@@ -5,12 +5,14 @@ import { supabase, toCamel } from "@/src/lib/supabase";
 import RadiologyLedger from "./RadiologyLedger";
 import RadiologyDiagnosticView from "./RadiologyDiagnosticView";
 import RadiologyNewExam from "./RadiologyNewExam";
+import ManageCategoriesDialog from "./ManageCategoriesDialog";
 
 const RadiologyModule = () => {
   const queryClient = useQueryClient();
-  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [selectedBatch, setSelectedBatch] = useState<any[] | null>(null);
   const [showNewExam, setShowNewExam] = useState(false);
   const [diagnosticOpen, setDiagnosticOpen] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
 
   const { data: requests, isLoading, error } = useQuery({
     queryKey: ["radiology-requests"],
@@ -24,8 +26,8 @@ const RadiologyModule = () => {
     },
   });
 
-  const handleSelectRequest = (req: any) => {
-    setSelectedRequest(req);
+  const handleSelectBatch = (batch: any[]) => {
+    setSelectedBatch(batch);
     setDiagnosticOpen(true);
   };
 
@@ -35,13 +37,12 @@ const RadiologyModule = () => {
 
   const handleBack = () => {
     setShowNewExam(false);
-    setSelectedRequest(null);
     queryClient.invalidateQueries({ queryKey: ["radiology-requests"] });
   };
 
   const handleCloseDiagnostic = () => {
     setDiagnosticOpen(false);
-    setSelectedRequest(null);
+    setSelectedBatch(null);
     queryClient.invalidateQueries({ queryKey: ["radiology-requests"] });
   };
 
@@ -92,9 +93,9 @@ const RadiologyModule = () => {
             >
               <RadiologyLedger
                 requests={Array.isArray(requests) ? requests : []}
-                onSelectRequest={handleSelectRequest}
+                onSelectBatch={handleSelectBatch}
                 onNewExam={handleNewExam}
-                onManageCategories={() => {}}
+                onManageCategories={() => setCategoriesOpen(true)}
               />
             </motion.div>
           )}
@@ -102,9 +103,17 @@ const RadiologyModule = () => {
       </div>
 
       <RadiologyDiagnosticView
-        request={selectedRequest}
+        requests={selectedBatch ?? []}
         open={diagnosticOpen}
         onClose={handleCloseDiagnostic}
+      />
+
+      <ManageCategoriesDialog
+        open={categoriesOpen}
+        onClose={() => {
+          setCategoriesOpen(false);
+          queryClient.invalidateQueries({ queryKey: ["radiology-requests"] });
+        }}
       />
     </div>
   );

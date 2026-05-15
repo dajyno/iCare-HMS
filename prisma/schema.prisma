@@ -390,6 +390,7 @@ model RadiologyRequest {
   examId          String
   exam            RadiologyExam @relation(fields: [examId], references: [id])
   folderNo        String?
+  batchId         String?
   status          String    @default("Requested") // Requested, InProgress, Completed, Cancelled
   requestedById   String?
   requestedBy     User?     @relation("RadiologyRequests", fields: [requestedById], references: [id])

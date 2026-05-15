@@ -769,6 +769,7 @@ create table if not exists public.radiology_requests (
   patient_id uuid not null references public.patients(id) on delete cascade,
   exam_id uuid not null references public.radiology_exams(id) on delete cascade,
   folder_no text,
+  batch_id text,
   status text not null default 'Requested' check (status in ('Requested','InProgress','Completed','Cancelled')),
   requested_by_id uuid,
   radiologist_id uuid,

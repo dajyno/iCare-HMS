@@ -47,64 +47,82 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
-interface LedgerRow {
-  id: string;
+const computeBatchStatus = (requests: any[]): string => {
+  if (!requests.length) return "Requested";
+  const allCompleted = requests.every((r: any) => r.status === "Completed");
+  if (allCompleted) return "Completed";
+  const allCancelled = requests.every((r: any) => r.status === "Cancelled");
+  if (allCancelled) return "Cancelled";
+  return "In Progress";
+};
+
+interface BatchRow {
+  batchId: string;
   dateTime: string;
   folderNo: string;
   patientName: string;
-  testType: string;
+  testTypes: string;
   status: string;
-  raw: any;
+  requests: any[];
 }
 
-const columnHelper = createColumnHelper<LedgerRow>();
+const columnHelper = createColumnHelper<BatchRow>();
 
 const RadiologyLedger = ({
   requests,
-  onSelectRequest,
+  onSelectBatch,
   onNewExam,
   onManageCategories,
 }: {
   requests: any[];
-  onSelectRequest: (req: any) => void;
+  onSelectBatch: (batch: any[]) => void;
   onNewExam: () => void;
   onManageCategories: () => void;
 }) => {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
 
-  const data = useMemo<LedgerRow[]>(() => {
+  const batches = useMemo<BatchRow[]>(() => {
     if (!Array.isArray(requests)) return [];
-    return requests.map((r: any) => ({
-      id: r.id,
-      dateTime: r.createdAt
-        ? new Date(r.createdAt).toLocaleString("en-GB", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })
-        : "—",
-      folderNo: r.folderNo ?? r.patient?.patientId ?? "—",
-      patientName: `${r.patient?.firstName ?? ""} ${r.patient?.lastName ?? ""}`.trim() || "—",
-      testType: r.exam?.name ?? "—",
-      status: r.status,
-      raw: r,
-    }));
+    const groups: Record<string, any[]> = {};
+    for (const r of requests) {
+      const key = r.batchId ?? r.id;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(r);
+    }
+    return Object.entries(groups).map(([batchId, batchReqs]) => {
+      const first = batchReqs[0];
+      return {
+        batchId,
+        dateTime: first.createdAt
+          ? new Date(first.createdAt).toLocaleString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "—",
+        folderNo: first.folderNo ?? first.patient?.patientId ?? "—",
+        patientName: `${first.patient?.firstName ?? ""} ${first.patient?.lastName ?? ""}`.trim() || "—",
+        testTypes: batchReqs.map((r: any) => r.exam?.name ?? "—").join(", "),
+        status: computeBatchStatus(batchReqs),
+        requests: batchReqs,
+      };
+    }).sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
   }, [requests]);
 
   const filteredData = useMemo(() => {
-    if (!globalFilter.trim()) return data;
+    if (!globalFilter.trim()) return batches;
     const q = globalFilter.toLowerCase();
-    return data.filter(
+    return batches.filter(
       (r) =>
         r.folderNo.toLowerCase().includes(q) ||
         r.patientName.toLowerCase().includes(q) ||
-        r.testType.toLowerCase().includes(q) ||
+        r.testTypes.toLowerCase().includes(q) ||
         r.status.toLowerCase().includes(q)
     );
-  }, [data, globalFilter]);
+  }, [batches, globalFilter]);
 
   const columns = useMemo(
     () => [
@@ -126,7 +144,7 @@ const RadiologyLedger = ({
           <span className="text-sm font-medium text-slate-900">{info.getValue()}</span>
         ),
       }),
-      columnHelper.accessor("testType", {
+      columnHelper.accessor("testTypes", {
         header: "Test Type",
         cell: (info) => (
           <span className="text-sm text-slate-700">{info.getValue()}</span>
@@ -245,8 +263,8 @@ const RadiologyLedger = ({
               ) : (
                 rows.map((row) => (
                   <TableRow
-                    key={row.original.id}
-                    onClick={() => onSelectRequest(row.original.raw)}
+                    key={row.original.batchId}
+                    onClick={() => onSelectBatch(row.original.requests)}
                     className="cursor-pointer hover:bg-slate-50 transition-colors"
                   >
                     {row.getVisibleCells().map((cell) => (

@@ -115,6 +115,12 @@ const RadiologyNewExam = ({ onBack }: { onBack: () => void }) => {
     });
   };
 
+  const generateBatchId = () => {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substring(2, 8);
+    return `BATCH-${timestamp}-${random}`.toUpperCase();
+  };
+
   const submitMutation = useMutation({
     mutationFn: async () => {
       const { data: allExams } = await supabase
@@ -132,14 +138,13 @@ const RadiologyNewExam = ({ onBack }: { onBack: () => void }) => {
           examIdMap.set(name, existingMap.get(name)!);
           continue;
         }
-        const catId = radiologyCategories[0].id;
         const { data: catData } = await supabase
           .from("radiology_categories")
           .select("id")
           .limit(1);
         const fallbackCatId = catData?.[0]?.id;
         if (fallbackCatId) {
-          const { data: newExam, error } = await supabase
+          const { error } = await supabase
             .from("radiology_exams")
             .insert({
               name,
@@ -147,11 +152,17 @@ const RadiologyNewExam = ({ onBack }: { onBack: () => void }) => {
               price: 0,
               status: "active",
             })
+            .select("id");
+          const { data: newExam } = await supabase
+            .from("radiology_exams")
             .select("id")
+            .eq("name", name)
             .single();
           if (newExam) examIdMap.set(name, newExam.id);
         }
       }
+
+      const batchId = generateBatchId();
 
       const validRequests = allSelectedExamNames
         .filter((name) => examIdMap.has(name))
@@ -159,6 +170,7 @@ const RadiologyNewExam = ({ onBack }: { onBack: () => void }) => {
           patient_id: patientId,
           exam_id: examIdMap.get(name),
           folder_no: folderNo || null,
+          batch_id: batchId,
           status: "Requested" as const,
         }));
 
