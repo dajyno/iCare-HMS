@@ -122,7 +122,7 @@ const PatientProfile = () => {
         .from("vital_signs")
         .select("*, consultation:consultations!consultation_id(id, created_at)")
         .eq("consultations.patient_id", id)
-        .order("consultations.created_at", { ascending: false });
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return toCamel(data);
     },
@@ -623,7 +623,7 @@ const PatientProfile = () => {
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2"><HeartPulse className="w-4 h-4 text-rose-500" /><span className="font-bold text-slate-900">Vital Signs</span></div>
-                      <span className="text-xs text-slate-400">{v.consultation?.createdAt ? new Date(v.consultation.createdAt).toLocaleDateString() : ""}</span>
+                      <span className="text-xs text-slate-400">{v.createdAt ? new Date(v.createdAt).toLocaleDateString() : ""}</span>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                       {v.temperature != null && <div><span className="text-[10px] font-bold uppercase text-slate-400">Temp</span><p className="font-semibold mt-0.5">{v.temperature} °C</p></div>}
