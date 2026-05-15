@@ -10,7 +10,7 @@ import FamilyPatients from "./pages/Patients/FamilyPatients";
 import AppointmentList from "./pages/Appointments/AppointmentList";
 import ConsultationWorkspace from "./pages/Consultations/ConsultationWorkspace";
 import VitalSigns from "./pages/Consultations/VitalSigns";
-import LabQueue from "./pages/Laboratory/LabQueue";
+import LabModule from "./pages/Laboratory/LabModule";
 import PharmacyQueue from "./pages/Pharmacy/PharmacyQueue";
 import BillingOverview from "./pages/Billing/BillingOverview";
 import InpatientOverview from "./pages/Inpatient/InpatientOverview";
@@ -145,7 +145,7 @@ export default function App() {
               path="/laboratory"
               element={
                 <ProtectedRoute>
-                  <LabQueue />
+                  <LabModule />
                 </ProtectedRoute>
               }
             />
