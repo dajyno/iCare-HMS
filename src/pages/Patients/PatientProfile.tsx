@@ -119,11 +119,10 @@ const PatientProfile = () => {
     queryKey: ["patient-vitals", id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("consultations")
-        .select("id, created_at, vital_signs(*)")
-        .eq("patient_id", id)
-        .not("vital_signs", "is", null)
-        .order("created_at", { ascending: false });
+        .from("vital_signs")
+        .select("*, consultation:consultations!consultation_id(id, created_at)")
+        .eq("consultations.patient_id", id)
+        .order("consultations.created_at", { ascending: false });
       if (error) throw error;
       return toCamel(data);
     },
@@ -619,29 +618,26 @@ const PatientProfile = () => {
           {!Array.isArray(vitals) || vitals.length === 0 ? (
             <div className="text-center py-12 text-slate-400">No vital signs recorded.</div>
           ) : (
-            vitals.map((v: any) => {
-              const vs = v.vitalSigns;
-              return (
+            vitals.map((v: any) => (
                 <Card key={v.id} className="border-none shadow-sm ring-1 ring-slate-200">
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2"><HeartPulse className="w-4 h-4 text-rose-500" /><span className="font-bold text-slate-900">Vital Signs</span></div>
-                      <span className="text-xs text-slate-400">{v.createdAt ? new Date(v.createdAt).toLocaleDateString() : ""}</span>
+                      <span className="text-xs text-slate-400">{v.consultation?.createdAt ? new Date(v.consultation.createdAt).toLocaleDateString() : ""}</span>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                      {vs?.temperature && <div><span className="text-[10px] font-bold uppercase text-slate-400">Temp</span><p className="font-semibold mt-0.5">{vs.temperature} °C</p></div>}
-                      {vs?.bloodPressure && <div><span className="text-[10px] font-bold uppercase text-slate-400">BP</span><p className="font-semibold mt-0.5">{vs.bloodPressure} mmHg</p></div>}
-                      {vs?.pulseRate && <div><span className="text-[10px] font-bold uppercase text-slate-400">Pulse</span><p className="font-semibold mt-0.5">{vs.pulseRate} bpm</p></div>}
-                      {vs?.respiratoryRate && <div><span className="text-[10px] font-bold uppercase text-slate-400">RR</span><p className="font-semibold mt-0.5">{vs.respiratoryRate} /min</p></div>}
-                      {vs?.weight && <div><span className="text-[10px] font-bold uppercase text-slate-400">Weight</span><p className="font-semibold mt-0.5">{vs.weight} kg</p></div>}
-                      {vs?.height && <div><span className="text-[10px] font-bold uppercase text-slate-400">Height</span><p className="font-semibold mt-0.5">{vs.height} cm</p></div>}
-                      {vs?.bmi && <div><span className="text-[10px] font-bold uppercase text-slate-400">BMI</span><p className="font-semibold mt-0.5">{vs.bmi}</p></div>}
-                      {vs?.oxygenSaturation && <div><span className="text-[10px] font-bold uppercase text-slate-400">SpO₂</span><p className="font-semibold mt-0.5">{vs.oxygenSaturation}%</p></div>}
+                      {v.temperature != null && <div><span className="text-[10px] font-bold uppercase text-slate-400">Temp</span><p className="font-semibold mt-0.5">{v.temperature} °C</p></div>}
+                      {v.bloodPressure && <div><span className="text-[10px] font-bold uppercase text-slate-400">BP</span><p className="font-semibold mt-0.5">{v.bloodPressure} mmHg</p></div>}
+                      {v.pulseRate != null && <div><span className="text-[10px] font-bold uppercase text-slate-400">Pulse</span><p className="font-semibold mt-0.5">{v.pulseRate} bpm</p></div>}
+                      {v.respiratoryRate != null && <div><span className="text-[10px] font-bold uppercase text-slate-400">RR</span><p className="font-semibold mt-0.5">{v.respiratoryRate} /min</p></div>}
+                      {v.weight != null && <div><span className="text-[10px] font-bold uppercase text-slate-400">Weight</span><p className="font-semibold mt-0.5">{v.weight} kg</p></div>}
+                      {v.height != null && <div><span className="text-[10px] font-bold uppercase text-slate-400">Height</span><p className="font-semibold mt-0.5">{v.height} cm</p></div>}
+                      {v.bmi != null && <div><span className="text-[10px] font-bold uppercase text-slate-400">BMI</span><p className="font-semibold mt-0.5">{v.bmi}</p></div>}
+                      {v.oxygenSaturation != null && <div><span className="text-[10px] font-bold uppercase text-slate-400">SpO₂</span><p className="font-semibold mt-0.5">{v.oxygenSaturation}%</p></div>}
                     </div>
                   </CardContent>
                 </Card>
-              );
-            })
+              ))
           )}
         </TabsContent>
 

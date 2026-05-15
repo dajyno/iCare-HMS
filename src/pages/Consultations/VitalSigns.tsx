@@ -26,9 +26,8 @@ const VitalSigns = () => {
     queryKey: ["all-vitals"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("consultations")
-        .select("id, created_at, doctor_id, patient_id, vital_signs(*), patients(id, patient_id, first_name, last_name)")
-        .not("vital_signs", "is", null)
+        .from("vital_signs")
+        .select("*, consultation:consultations!consultation_id(id, created_at, patient:patients!patient_id(id, patient_id, first_name, last_name))")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return toCamel(data);
@@ -161,8 +160,7 @@ const VitalSigns = () => {
                 </tr>
               ) : (
                 paginatedVitals.map((v: any) => {
-                  const vs = v.vitalSigns;
-                  const patient = v.patients;
+                  const patient = v.consultation?.patient;
                   return (
                     <tr key={v.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="px-4 py-3">
@@ -177,11 +175,11 @@ const VitalSigns = () => {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{new Date(v.createdAt).toLocaleString()}</td>
-                      <td className="px-4 py-3 text-center font-mono text-sm">{vs?.temperature ?? "-"}</td>
-                      <td className="px-4 py-3 text-center font-mono text-sm">{vs?.bloodPressure ?? "-"}</td>
-                      <td className="px-4 py-3 text-center font-mono text-sm">{vs?.pulseRate ?? "-"}</td>
-                      <td className="px-4 py-3 text-center font-mono text-sm">{vs?.weight ?? "-"}</td>
-                      <td className="px-4 py-3 text-center font-mono text-sm">{vs?.height ?? "-"}</td>
+                      <td className="px-4 py-3 text-center font-mono text-sm">{v.temperature ?? "-"}</td>
+                      <td className="px-4 py-3 text-center font-mono text-sm">{v.bloodPressure ?? "-"}</td>
+                      <td className="px-4 py-3 text-center font-mono text-sm">{v.pulseRate ?? "-"}</td>
+                      <td className="px-4 py-3 text-center font-mono text-sm">{v.weight ?? "-"}</td>
+                      <td className="px-4 py-3 text-center font-mono text-sm">{v.height ?? "-"}</td>
                       <td className="px-4 py-3 text-center">
                         <Button variant="ghost" size="sm" className="h-8 text-blue-600" onClick={() => setShowDetailModal(v)}>
                           <Eye className="w-4 h-4 mr-1" /> View
@@ -204,21 +202,21 @@ const VitalSigns = () => {
           <DialogHeader>
             <DialogTitle>Vital Signs Details</DialogTitle>
             <DialogDescription>
-              {showDetailModal?.patients?.firstName} {showDetailModal?.patients?.lastName} — {showDetailModal ? new Date(showDetailModal.createdAt).toLocaleString() : ""}
-            </DialogDescription>
-          </DialogHeader>
-          {showDetailModal && (() => {
-            const vs = showDetailModal.vitalSigns;
-            const items = [
-              { label: "Temperature", value: vs?.temperature != null ? `${vs.temperature} °C` : "-", icon: Thermometer },
-              { label: "Blood Pressure", value: vs?.bloodPressure ?? "-", icon: Activity },
-              { label: "Pulse Rate", value: vs?.pulseRate != null ? `${vs.pulseRate} bpm` : "-", icon: HeartPulse },
-              { label: "Respiratory Rate", value: vs?.respiratoryRate != null ? `${vs.respiratoryRate} /min` : "-", icon: Activity },
-              { label: "Oxygen Saturation", value: vs?.oxygenSaturation != null ? `${vs.oxygenSaturation} %` : "-", icon: Droplets },
-              { label: "Weight", value: vs?.weight != null ? `${vs.weight} kg` : "-", icon: Scale },
-              { label: "Height", value: vs?.height != null ? `${vs.height} cm` : "-", icon: Ruler },
-              { label: "BMI", value: vs?.bmi ?? "-", icon: Weight },
-            ];
+                {showDetailModal?.consultation?.patient?.firstName} {showDetailModal?.consultation?.patient?.lastName} — {showDetailModal?.consultation ? new Date(showDetailModal.consultation.createdAt).toLocaleString() : ""}
+              </DialogDescription>
+            </DialogHeader>
+            {showDetailModal && (() => {
+              const vs = showDetailModal;
+              const items = [
+                { label: "Temperature", value: vs.temperature != null ? `${vs.temperature} °C` : "-", icon: Thermometer },
+                { label: "Blood Pressure", value: vs.bloodPressure ?? "-", icon: Activity },
+                { label: "Pulse Rate", value: vs.pulseRate != null ? `${vs.pulseRate} bpm` : "-", icon: HeartPulse },
+                { label: "Respiratory Rate", value: vs.respiratoryRate != null ? `${vs.respiratoryRate} /min` : "-", icon: Activity },
+                { label: "Oxygen Saturation", value: vs.oxygenSaturation != null ? `${vs.oxygenSaturation} %` : "-", icon: Droplets },
+                { label: "Weight", value: vs.weight != null ? `${vs.weight} kg` : "-", icon: Scale },
+                { label: "Height", value: vs.height != null ? `${vs.height} cm` : "-", icon: Ruler },
+                { label: "BMI", value: vs.bmi ?? "-", icon: Weight },
+              ];
             return (
               <div className="grid grid-cols-2 gap-4 py-4">
                 {items.map((item) => {
