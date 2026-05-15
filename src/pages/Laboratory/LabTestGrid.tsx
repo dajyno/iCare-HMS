@@ -132,34 +132,16 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
       }
 
       const testIdMap = new Map<string, string>();
-      const toCreate: string[] = [];
 
       for (const name of allSelectedTestNames) {
         if (existingMap.has(name)) {
           testIdMap.set(name, existingMap.get(name)!);
-        } else {
-          toCreate.push(name);
+          continue;
         }
-      }
-
-      if (toCreate.length > 0) {
-        const inserts = toCreate.map((name) => ({ name, status: "active" }));
-        const { data: created, error } = await supabase
-          .from("lab_tests")
-          .insert(inserts)
-          .select("id, name");
-        if (!error && created) {
-          for (const t of created) testIdMap.set(t.name, t.id);
-        }
-        for (const name of toCreate) {
-          if (!testIdMap.has(name)) {
-            const { data: fallback } = await supabase
-              .from("lab_tests")
-              .select("id")
-              .eq("name", name)
-              .maybeSingle();
-            if (fallback) testIdMap.set(name, fallback.id);
-          }
+        const { data: rpcId } = await supabase
+          .rpc("ensure_lab_test", { test_name: name });
+        if (rpcId) {
+          testIdMap.set(name, rpcId as string);
         }
       }
 

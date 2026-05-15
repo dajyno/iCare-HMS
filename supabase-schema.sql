@@ -190,7 +190,7 @@ create table public.prescription_items (
 -- 11. Lab Tests
 create table public.lab_tests (
   id              uuid primary key default gen_random_uuid(),
-  name            text not null,
+  name            text not null unique,
   category        text,
   price           double precision not null default 0,
   sample_type     text,
@@ -657,6 +657,11 @@ begin
 end $$;
 
 -- ============================================================
+-- ENSURE UNIQUE LAB TEST NAMES (safe to re-run)
+-- ============================================================
+alter table public.lab_tests add constraint if not exists lab_tests_name_key unique (name);
+
+-- ============================================================
 -- DECREMENT STOCK RPC (used by Pharmacy dispensing)
 -- ============================================================
 create or replace function public.decrement_stock(med_id uuid, qty int)
@@ -703,4 +708,24 @@ alter table public.appointments   drop constraint if exists appointments_doctor_
 alter table public.consultations  drop constraint if exists consultations_doctor_id_fkey;
 alter table public.prescriptions  drop constraint if exists prescriptions_doctor_id_fkey;
 alter table public.admissions     drop constraint if exists admissions_admitting_doctor_id_fkey;
+
+-- ============================================================
+-- ENSURE LAB TEST (bypasses RLS for test creation)
+-- ============================================================
+create or replace function public.ensure_lab_test(test_name text)
+returns uuid
+language plpgsql
+security definer
+as $$
+declare
+  v_id uuid;
+begin
+  select id into v_id from public.lab_tests where name = test_name;
+  if v_id is null then
+    insert into public.lab_tests (name, status) values (test_name, 'active')
+    returning id into v_id;
+  end if;
+  return v_id;
+end;
+$$;
 
