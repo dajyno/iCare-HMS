@@ -28,6 +28,8 @@ model User {
   prescriptions Prescription[] @relation("DoctorPrescriptions")
   admissions    Admission[] @relation("AdmittingDoctor")
   labResults    LabResult[] @relation("ValidatedBy")
+  radiologyRequestsRequested RadiologyRequest[] @relation("RadiologyRequests")
+  radiologyRequestsRadiologist RadiologyRequest[] @relation("Radiologist")
 }
 
 model Department {
@@ -88,6 +90,8 @@ model Patient {
   labRequests       LabRequest[]
   labResults        LabResult[]
   prescriptions     Prescription[]
+  radiologyRequests RadiologyRequest[]
+  radiologyResults  RadiologyResult[]
 }
 
 model Appointment {
@@ -357,6 +361,56 @@ model Discharge {
   dischargeDate DateTime  @default(now())
   summary       String?
   status        String    @default("Completed")
+}
+
+model RadiologyCategory {
+  id          String          @id @default(cuid())
+  name        String          @unique
+  description String?
+  icon        String?
+  exams       RadiologyExam[]
+}
+
+model RadiologyExam {
+  id               String   @id @default(cuid())
+  name             String
+  categoryId       String
+  category         RadiologyCategory @relation(fields: [categoryId], references: [id])
+  price            Float
+  description      String?
+  preparationNotes String?
+  status           String   @default("active")
+  requests         RadiologyRequest[]
+}
+
+model RadiologyRequest {
+  id              String    @id @default(cuid())
+  patientId       String
+  patient         Patient   @relation(fields: [patientId], references: [id])
+  examId          String
+  exam            RadiologyExam @relation(fields: [examId], references: [id])
+  folderNo        String?
+  status          String    @default("Requested") // Requested, InProgress, Completed, Cancelled
+  requestedById   String?
+  requestedBy     User?     @relation("RadiologyRequests", fields: [requestedById], references: [id])
+  radiologistId   String?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  result          RadiologyResult?
+}
+
+model RadiologyResult {
+  id              String    @id @default(cuid())
+  requestId       String    @unique
+  request         RadiologyRequest @relation(fields: [requestId], references: [id])
+  patientId       String
+  patient         Patient   @relation(fields: [patientId], references: [id])
+  findings        String    // Observation/Findings
+  conclusion      String    // Conclusion/Recommendations
+  technicianId    String?
+  reportDate      DateTime  @default(now())
+  createdAt       DateTime  @default(now())
 }
 
 model AuditLog {

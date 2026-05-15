@@ -742,3 +742,96 @@ begin
 end;
 $$;
 
+-- ============================================================
+-- RADIOLOGY TABLES
+-- ============================================================
+
+create table if not exists public.radiology_categories (
+  id uuid not null default gen_random_uuid() primary key,
+  name text not null unique,
+  description text,
+  icon text
+);
+
+create table if not exists public.radiology_exams (
+  id uuid not null default gen_random_uuid() primary key,
+  name text not null,
+  category_id uuid not null references public.radiology_categories(id) on delete cascade,
+  price numeric(10,2) not null default 0,
+  description text,
+  preparation_notes text,
+  status text not null default 'active',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.radiology_requests (
+  id uuid not null default gen_random_uuid() primary key,
+  patient_id uuid not null references public.patients(id) on delete cascade,
+  exam_id uuid not null references public.radiology_exams(id) on delete cascade,
+  folder_no text,
+  status text not null default 'Requested' check (status in ('Requested','InProgress','Completed','Cancelled')),
+  requested_by_id uuid,
+  radiologist_id uuid,
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.radiology_results (
+  id uuid not null default gen_random_uuid() primary key,
+  request_id uuid not null unique references public.radiology_requests(id) on delete cascade,
+  patient_id uuid not null references public.patients(id) on delete cascade,
+  findings text not null default '',
+  conclusion text not null default '',
+  technician_id uuid,
+  radiologist_id uuid,
+  report_date timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
+-- RLS
+alter table public.radiology_categories enable row level security;
+alter table public.radiology_exams enable row level security;
+alter table public.radiology_requests enable row level security;
+alter table public.radiology_results enable row level security;
+
+create policy "Authenticated users can read radiology_categories"
+  on public.radiology_categories for select to authenticated using (true);
+create policy "Authenticated users can read radiology_exams"
+  on public.radiology_exams for select to authenticated using (true);
+create policy "Authenticated users can insert radiology_requests"
+  on public.radiology_requests for insert to authenticated with check (true);
+create policy "Authenticated users can read radiology_requests"
+  on public.radiology_requests for select to authenticated using (true);
+create policy "Authenticated users can update radiology_requests"
+  on public.radiology_requests for update to authenticated using (true);
+create policy "Authenticated users can insert radiology_results"
+  on public.radiology_results for insert to authenticated with check (true);
+create policy "Authenticated users can read radiology_results"
+  on public.radiology_results for select to authenticated using (true);
+create policy "Authenticated users can update radiology_results"
+  on public.radiology_results for update to authenticated using (true);
+
+-- Radiology seed data
+insert into public.radiology_categories (name, description, icon) values
+  ('X-Ray', 'Radiography examinations', 'Scan'),
+  ('Ultrasound', 'Ultrasonography examinations', 'Radio'),
+  ('CT-Scan', 'Computed Tomography scans', 'Scan'),
+  ('MRI', 'Magnetic Resonance Imaging', 'Scan')
+on conflict (name) do nothing;
+
+insert into public.radiology_exams (name, category_id, price, description, preparation_notes) values
+  ('Chest X-Ray', (select id from public.radiology_categories where name = 'X-Ray'), 60.0, 'Standard chest radiograph', 'Remove metal objects from chest area'),
+  ('Spine X-Ray', (select id from public.radiology_categories where name = 'X-Ray'), 80.0, 'Spine radiograph series', 'Wear comfortable clothing without metal'),
+  ('Limb X-Ray', (select id from public.radiology_categories where name = 'X-Ray'), 50.0, 'Extremity radiograph', 'Remove jewelry from the area being imaged'),
+  ('Abdominal Ultrasound', (select id from public.radiology_categories where name = 'Ultrasound'), 100.0, 'Abdominal sonography', 'Fast for 6-8 hours before exam'),
+  ('Pelvic Ultrasound', (select id from public.radiology_categories where name = 'Ultrasound'), 90.0, 'Pelvic sonography', 'Drink 1L water 1 hour before exam'),
+  ('Obstetric Ultrasound', (select id from public.radiology_categories where name = 'Ultrasound'), 120.0, 'Obstetric sonography', 'Drink 1L water 1 hour before exam'),
+  ('Head CT-Scan', (select id from public.radiology_categories where name = 'CT-Scan'), 250.0, 'Cranial CT with contrast', 'Remove all metal objects, inform if pregnant'),
+  ('Chest CT-Scan', (select id from public.radiology_categories where name = 'CT-Scan'), 300.0, 'Thoracic CT scan', 'No food 4 hours prior if contrast needed'),
+  ('Abdomen CT-Scan', (select id from public.radiology_categories where name = 'CT-Scan'), 350.0, 'Abdominal CT with contrast', 'Fast 6 hours before, drink oral contrast as directed'),
+  ('Brain MRI', (select id from public.radiology_categories where name = 'MRI'), 400.0, 'Brain MRI with and without contrast', 'Remove all metal, inform if claustrophobic or have pacemaker'),
+  ('Spine MRI', (select id from public.radiology_categories where name = 'MRI'), 450.0, 'Spine MRI series', 'Remove all metal, inform if claustrophobic'),
+  ('Knee MRI', (select id from public.radiology_categories where name = 'MRI'), 380.0, 'Knee MRI', 'Remove all metal, wear loose clothing')
+on conflict do nothing;
+

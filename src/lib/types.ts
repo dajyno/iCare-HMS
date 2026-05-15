@@ -229,6 +229,52 @@ export interface InventoryItem {
   supplier?: Supplier | null;
 }
 
+export interface RadiologyCategory {
+  id: string;
+  name: string;
+  description?: string | null;
+  icon?: string | null;
+}
+
+export interface RadiologyExam {
+  id: string;
+  name: string;
+  category_id: string;
+  price: number;
+  description?: string | null;
+  preparation_notes?: string | null;
+  status: string;
+  category?: RadiologyCategory;
+}
+
+export interface RadiologyRequest {
+  id: string;
+  patient_id: string;
+  exam_id: string;
+  folder_no?: string | null;
+  status: "Requested" | "InProgress" | "Completed" | "Cancelled";
+  requested_by_id?: string | null;
+  radiologist_id?: string | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+  patient?: Patient;
+  exam?: RadiologyExam;
+  result?: RadiologyResult;
+}
+
+export interface RadiologyResult {
+  id: string;
+  request_id: string;
+  patient_id: string;
+  findings: string;
+  conclusion: string;
+  technician_id?: string | null;
+  radiologist_id?: string | null;
+  report_date: string;
+  created_at: string;
+}
+
 export interface Supplier {
   id: string;
   name: string;
@@ -259,6 +305,10 @@ export type Database = {
       admissions: { Row: Admission };
       inventory_items: { Row: InventoryItem };
       suppliers: { Row: Supplier };
+      radiology_categories: { Row: RadiologyCategory };
+      radiology_exams: { Row: RadiologyExam };
+      radiology_requests: { Row: RadiologyRequest };
+      radiology_results: { Row: RadiologyResult };
     };
   };
 };

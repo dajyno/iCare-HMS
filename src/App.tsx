@@ -15,7 +15,7 @@ import PharmacyQueue from "./pages/Pharmacy/PharmacyQueue";
 import BillingOverview from "./pages/Billing/BillingOverview";
 import InpatientOverview from "./pages/Inpatient/InpatientOverview";
 import InventoryList from "./pages/Inventory/InventoryList";
-import RadiologyPage from "./pages/Radiology/RadiologyPage";
+import RadiologyModule from "./pages/Radiology/RadiologyModule";
 import AccountingPage from "./pages/Accounting/AccountingPage";
 import Settings from "./pages/Dashboard/Settings";
 import Profile from "./pages/Dashboard/Profile";
@@ -153,7 +153,7 @@ export default function App() {
               path="/radiology"
               element={
                 <ProtectedRoute>
-                  <RadiologyPage />
+                  <RadiologyModule />
                 </ProtectedRoute>
               }
             />
