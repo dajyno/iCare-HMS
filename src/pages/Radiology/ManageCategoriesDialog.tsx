@@ -84,7 +84,8 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
       setEditingId(null);
     },
     onError: (err: Error) => {
-      setErrorMsg(err.message);
+      console.error("Update exam failed:", err);
+      setErrorMsg("Update failed: " + err.message);
     },
   });
 
@@ -229,30 +230,16 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
           )}
         </div>
 
-        <DialogFooter className="flex items-center justify-between sm:justify-between border-t border-slate-200 pt-4">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-9 px-4 gap-1.5 text-xs font-semibold"
-            onClick={() => setShowAdd(!showAdd)}
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Add New Exam
-          </Button>
-          <DialogClose render={<Button variant="outline" size="sm" />}>
-            Close
-          </DialogClose>
-        </DialogFooter>
-
-        {/* Add Exam Modal */}
-        <Dialog open={showAdd} onOpenChange={setShowAdd}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-sm">Add New Examination</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</Label>
+        {/* Add Exam Inline Form */}
+        {showAdd && (
+          <div className="border-t border-slate-200 pt-4 mt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#005EB8]" />
+              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Add New Examination</span>
+            </div>
+            <div className="flex items-end gap-3 flex-wrap">
+              <div className="flex-1 min-w-[180px]">
+                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Name</Label>
                 <Input
                   value={addName}
                   onChange={(e) => setAddName(e.target.value)}
@@ -260,20 +247,20 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
                   className="h-9 text-sm"
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Category</Label>
+              <div className="min-w-[150px]">
+                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Category</Label>
                 <SearchableSelect
                   value={addCategory}
                   onValueChange={setAddCategory}
-                  placeholder="Select category..."
+                  placeholder="Select..."
                   options={(Array.isArray(categories) ? categories : []).map((c: any) => ({
                     value: c.id,
                     label: c.name,
                   }))}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Price (₦)</Label>
+              <div className="w-24">
+                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Price (₦)</Label>
                 <Input
                   value={addPrice}
                   onChange={(e) => setAddPrice(e.target.value)}
@@ -283,22 +270,50 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
                   className="h-9 text-sm"
                 />
               </div>
+              <div className="flex gap-1.5 pb-0.5">
+                <Button
+                  size="sm"
+                  className="bg-[#005EB8] hover:bg-[#004d9a] text-white h-9 px-4 text-xs font-semibold"
+                  disabled={!addName.trim() || !addPrice || !addCategory || addMutation.isPending}
+                  onClick={handleAdd}
+                >
+                  {addMutation.isPending ? "Adding..." : "Save"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-9 px-3 text-xs text-slate-500"
+                  onClick={() => {
+                    setShowAdd(false);
+                    setAddName("");
+                    setAddPrice("");
+                    setAddCategory("");
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
-            <DialogFooter>
-              <DialogClose render={<Button variant="outline" size="sm" />}>
-                Cancel
-              </DialogClose>
-              <Button
-                size="sm"
-                className="bg-[#005EB8] hover:bg-[#004d9a] text-white"
-                disabled={!addName.trim() || !addPrice || !addCategory || addMutation.isPending}
-                onClick={handleAdd}
-              >
-                {addMutation.isPending ? "Adding..." : "Add Exam"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          </div>
+        )}
+
+        <DialogFooter className="flex items-center justify-between sm:justify-between border-t border-slate-200 pt-4">
+          {!showAdd && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 px-4 gap-1.5 text-xs font-semibold"
+              onClick={() => setShowAdd(true)}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add New Exam
+            </Button>
+          )}
+          <div className="flex-1" />
+          <DialogClose render={<Button variant="outline" size="sm" />}>
+            Close
+          </DialogClose>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

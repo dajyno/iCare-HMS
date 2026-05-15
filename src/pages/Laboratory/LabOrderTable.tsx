@@ -305,7 +305,7 @@ const LabOrderTable = ({
                     key={row.original.id}
                     onClick={() => {
                       const clicked = row.original;
-                      const target = clicked.isBatch ? clicked.raw[0] : clicked.raw;
+                      const target = clicked.isBatch ? clicked.raw : clicked.raw;
                       if (clicked.dbStatus === "Completed" && !clicked.isBatch) {
                         onViewResult(target);
                       } else {

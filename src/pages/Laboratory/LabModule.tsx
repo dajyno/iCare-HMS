@@ -14,6 +14,7 @@ import LabResultDialog from "./LabResultDialog";
 const LabModule = () => {
   const queryClient = useQueryClient();
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedBatch, setSelectedBatch] = useState<any[] | null>(null);
   const [viewingResult, setViewingResult] = useState<any>(null);
 
   const { data: requests, isLoading, error } = useQuery({
@@ -58,7 +59,13 @@ const LabModule = () => {
     : null;
 
   const handleSelectOrder = (order: any) => {
-    setSelectedOrder(order);
+    if (Array.isArray(order) && order.length > 1) {
+      setSelectedBatch(order);
+      setSelectedOrder(order[0]);
+    } else {
+      setSelectedBatch(null);
+      setSelectedOrder(Array.isArray(order) ? order[0] : order);
+    }
   };
 
   const handleViewResult = (order: any) => {
@@ -171,6 +178,7 @@ const LabModule = () => {
             >
               <LabDetailView
                 order={selectedOrder}
+                batch={selectedBatch}
                 onBack={handleBack}
               />
             </motion.div>

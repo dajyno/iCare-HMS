@@ -33,9 +33,11 @@ const mapStatus = (dbStatus: string) => {
 
 const LabDetailView = ({
   order,
+  batch,
   onBack,
 }: {
   order: any;
+  batch?: any[] | null;
   onBack: () => void;
 }) => {
   const [resultValues, setResultValues] = useState<Record<string, string>>({});
@@ -48,13 +50,15 @@ const LabDetailView = ({
   const queryClient = useQueryClient();
 
   const { data: siblingOrders } = useQuery({
-    queryKey: ["batch-orders", order?.consultationId],
+    queryKey: ["batch-orders", order?.consultationId ?? order?.batchId],
     queryFn: async () => {
-      if (!order?.consultationId) return [order];
+      const groupKey = order?.consultationId ?? order?.batchId;
+      if (!groupKey) return [order];
+      const field = order?.consultationId ? "consultation_id" : "batch_id";
       const { data, error } = await supabase
         .from("lab_requests")
         .select("*, patient:patients(*), test:lab_tests(*)")
-        .eq("consultation_id", order.consultationId)
+        .eq(field, groupKey)
         .order("created_at", { ascending: true });
       if (error) throw error;
       return toCamel(data);
