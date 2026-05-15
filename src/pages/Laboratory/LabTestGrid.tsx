@@ -182,10 +182,13 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
         if (consult) batchConsultationId = consult.id;
       }
 
+      const batchId = `BATCH-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`.toUpperCase();
+
       const validRequests = validNames.map((name) => ({
         patient_id: patientId,
         test_id: testIdMap.get(name),
         consultation_id: batchConsultationId,
+        batch_id: batchId,
         status: "Requested" as const,
       }));
 

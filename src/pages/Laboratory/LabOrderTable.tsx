@@ -76,13 +76,17 @@ const LabOrderTable = ({
   const [collectingIds, setCollectingIds] = useState<Set<string>>(new Set());
   const scrollRef = useSmoothScroll<HTMLDivElement>();
 
+  const getGroupKey = (o: any): string | null => {
+    return o.batchId || o.consultationId || null;
+  };
+
   const data = useMemo<LabOrder[]>(() => {
     if (!Array.isArray(orders)) return [];
 
     const groups = new Map<string, any[]>();
     for (const o of orders) {
-      if (o.consultationId) {
-        const key = o.consultationId;
+      const key = getGroupKey(o);
+      if (key) {
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key)!.push(o);
       }
@@ -92,15 +96,17 @@ const LabOrderTable = ({
     const result: LabOrder[] = [];
 
     for (const o of orders) {
-      if (o.consultationId) {
-        if (seen.has(o.consultationId)) continue;
-        seen.add(o.consultationId);
-        const batch = groups.get(o.consultationId)!;
+      const key = getGroupKey(o);
+      if (key) {
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const batch = groups.get(key)!;
         const anyAvail = batch.some((b: any) => b.status === "Requested");
+        const testNames = batch.map((b: any) => b.test?.name ?? "").filter(Boolean);
         result.push({
-          id: o.consultationId,
-          orderCode: `BATCH-${o.consultationId.slice(-4).toUpperCase()}`,
-          testName: `${batch.length} Tests`,
+          id: key,
+          orderCode: `BATCH-${key.slice(-4).toUpperCase()}`,
+          testName: testNames.length > 1 ? `${testNames.length} Tests` : (testNames[0] ?? "Unknown"),
           patientName: `${o.patient?.firstName ?? ""} ${o.patient?.lastName ?? ""}`.trim(),
           patientId: o.patient?.id ?? "",
           gender: o.patient?.gender ?? "",
@@ -108,8 +114,8 @@ const LabOrderTable = ({
           prescribedBy: o.consultation?.doctor?.fullName ?? "—",
           status: anyAvail ? "To Do" : mapStatus(batch[0]?.status),
           dbStatus: anyAvail ? "Requested" : batch[0]?.status,
-          raw: batch,
-          isBatch: true,
+          raw: batch.length > 1 ? batch : batch[0],
+          isBatch: batch.length > 1,
         });
       } else {
         result.push({

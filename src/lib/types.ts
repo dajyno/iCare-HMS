@@ -146,6 +146,7 @@ export interface LabRequest {
   id: string;
   patient_id: string;
   test_id: string;
+  batch_id?: string | null;
   consultation_id?: string | null;
   status: "Requested" | "SampleCollected" | "InProgress" | "AwaitingValidation" | "Completed" | "Cancelled";
   created_at: string;

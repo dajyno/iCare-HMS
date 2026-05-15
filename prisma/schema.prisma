@@ -207,6 +207,7 @@ model LabRequest {
   test           LabTest      @relation(fields: [testId], references: [id])
   consultationId String?
   consultation   Consultation? @relation(fields: [consultationId], references: [id])
+  batchId        String?
   status         String       @default("Requested") // Requested, SampleCollected, InProgress, AwaitingValidation, Completed, Cancelled
   createdAt      DateTime     @default(now())
   results        LabResult?

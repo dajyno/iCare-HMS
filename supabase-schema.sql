@@ -205,6 +205,7 @@ create table public.lab_requests (
   patient_id      uuid not null references public.patients(id) on delete cascade,
   test_id         uuid not null references public.lab_tests(id),
   consultation_id uuid references public.consultations(id),
+  batch_id        text,
   status          text not null default 'Requested' check (status in ('Requested','SampleCollected','InProgress','AwaitingValidation','Completed','Cancelled')),
   created_at      timestamptz not null default now()
 );
@@ -798,8 +799,16 @@ alter table public.radiology_results enable row level security;
 
 create policy "Authenticated users can read radiology_categories"
   on public.radiology_categories for select to authenticated using (true);
+create policy "Authenticated users can insert radiology_categories"
+  on public.radiology_categories for insert to authenticated with check (true);
+create policy "Authenticated users can update radiology_categories"
+  on public.radiology_categories for update to authenticated using (true);
 create policy "Authenticated users can read radiology_exams"
   on public.radiology_exams for select to authenticated using (true);
+create policy "Authenticated users can insert radiology_exams"
+  on public.radiology_exams for insert to authenticated with check (true);
+create policy "Authenticated users can update radiology_exams"
+  on public.radiology_exams for update to authenticated using (true);
 create policy "Authenticated users can insert radiology_requests"
   on public.radiology_requests for insert to authenticated with check (true);
 create policy "Authenticated users can read radiology_requests"

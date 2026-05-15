@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle } from "lucide-react";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import {
   Dialog,
@@ -27,6 +28,7 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
   const [editName, setEditName] = useState("");
   const [editPrice, setEditPrice] = useState("");
   const [editCategory, setEditCategory] = useState("");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [addName, setAddName] = useState("");
   const [addPrice, setAddPrice] = useState("");
@@ -81,6 +83,9 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
       queryClient.invalidateQueries({ queryKey: ["radiology-requests"] });
       setEditingId(null);
     },
+    onError: (err: Error) => {
+      setErrorMsg(err.message);
+    },
   });
 
   const addMutation = useMutation({
@@ -96,6 +101,10 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
       setAddName("");
       setAddPrice("");
       setAddCategory("");
+      setErrorMsg(null);
+    },
+    onError: (err: Error) => {
+      setErrorMsg(err.message);
     },
   });
 
@@ -126,7 +135,7 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) { setErrorMsg(null); onClose(); } }}>
       <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -138,6 +147,12 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
           </DialogDescription>
         </DialogHeader>
 
+        {errorMsg && (
+          <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+            <span>{errorMsg}</span>
+          </div>
+        )}
         <div className="flex-1 overflow-y-auto space-y-4 py-2">
           {Object.entries(groupedExams).map(([catName, catExams]) => (
             <div key={catName}>

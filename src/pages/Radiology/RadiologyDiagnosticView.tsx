@@ -23,6 +23,7 @@ import {
   Calendar,
   User,
   CheckCircle2,
+  DollarSign,
 } from "lucide-react";
 
 const statusConfig: Record<string, { label: string; bg: string; text: string }> = {
@@ -294,6 +295,38 @@ const RadiologyDiagnosticView = ({
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Pricing Summary */}
+        <div className="shrink-0 border-t border-slate-200 bg-white px-6 py-3">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100">
+                <th className="text-left pb-2 font-medium">Examination</th>
+                <th className="text-right pb-2 font-medium">Price (₦)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {requests.map((req: any) => (
+                <tr key={req.id} className="border-b border-slate-50">
+                  <td className="py-2 text-sm text-slate-900">{req.exam?.name ?? "—"}</td>
+                  <td className="py-2 text-right font-mono text-sm text-slate-700">
+                    ₦{Number(req.exam?.price ?? 0).toFixed(2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td className="pt-3 text-right text-sm font-bold text-slate-900">
+                  Total
+                </td>
+                <td className="pt-3 text-right font-mono text-sm font-bold text-slate-900">
+                  ₦{requests.reduce((sum: number, req: any) => sum + Number(req.exam?.price ?? 0), 0).toFixed(2)}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
 
         {/* Footer Toolbar */}
