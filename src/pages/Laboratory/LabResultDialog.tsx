@@ -34,7 +34,7 @@ const LabResultDialog = ({
   onEdit: () => void;
 }) => {
   const { data: result } = useQuery({
-    queryKey: ["lab-result", order.id],
+    queryKey: ["lab-result", order?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lab_results")
