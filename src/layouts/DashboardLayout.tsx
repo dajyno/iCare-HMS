@@ -80,6 +80,12 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -126,7 +132,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     ]},
     { icon: ClipboardList, label: "Consultations", children: [
       { label: "Vital Signs", href: "/consultations/vitals" },
-      { label: "Clinical Workspace", href: "/consultations" },
+      { label: "Clinical Workspace", href: "/consultations/workspace" },
     ]},
     { icon: FlaskConical, label: "Laboratory", href: "/laboratory" },
     { icon: Scan, label: "Radiology", href: "/radiology" },
@@ -225,11 +231,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         {/* Top Header */}
         <header className="h-auto min-h-16 bg-white border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 px-4 sm:px-8 py-2 sm:py-0 shrink-0">
           <div className="flex items-center gap-2 text-slate-500 text-sm">
-            <span>Modules</span>
-            <span className="text-slate-300">/</span>
-            <span className="text-slate-900 font-medium capitalize">
-              {location.pathname.split("/")[1] || "Dashboard"}
-            </span>
+            <span className="text-slate-900 font-semibold text-sm">iCare Hospital</span>
           </div>
 
           <div className="flex items-center gap-3 sm:gap-6">
@@ -280,6 +282,9 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
               <Bell className="w-6 h-6" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
             </button>
+            <span className="text-xs text-slate-500 font-mono whitespace-nowrap">
+              {currentTime.toLocaleDateString()} {currentTime.toLocaleTimeString()}
+            </span>
           </div>
         </header>
 

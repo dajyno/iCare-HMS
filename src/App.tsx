@@ -121,6 +121,14 @@ export default function App() {
               path="/consultations"
               element={
                 <ProtectedRoute>
+                  <Navigate to="/consultations/workspace" replace />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/consultations/workspace"
+              element={
+                <ProtectedRoute>
                   <ConsultationWorkspace />
                 </ProtectedRoute>
               }
