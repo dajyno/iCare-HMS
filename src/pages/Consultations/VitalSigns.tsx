@@ -28,7 +28,7 @@ const VitalSigns = () => {
       const { data, error } = await supabase
         .from("vital_signs")
         .select("*, consultation:consultations!consultation_id(id, created_at, patient:patients!patient_id(id, patient_id, first_name, last_name))")
-        .order("created_at", { ascending: false });
+        .order("consultations.created_at", { ascending: false });
       if (error) throw error;
       return toCamel(data);
     },
