@@ -511,6 +511,11 @@ create policy "Users can read all suppliers"
   to authenticated
   using (true);
 
+create policy "Users can read all vital signs"
+  on public.vital_signs for select
+  to authenticated
+  using (true);
+
 -- Insert policies for write operations
 create policy "Authenticated users can insert patients"
   on public.patients for insert
