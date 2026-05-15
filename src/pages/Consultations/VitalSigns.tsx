@@ -61,14 +61,17 @@ const VitalSigns = () => {
 
   const addMutation = useMutation({
     mutationFn: async (formData: any) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No active session. Please log in again.");
+
       const { data: consultation, error: consultError } = await supabase
         .from("consultations")
         .insert({
           patient_id: formData.patientId,
-          doctor_id: user?.id,
+          doctor_id: session.user.id,
           chief_complaint: "Vitals Check",
         })
-        .select()
+        .select("id")
         .single();
       if (consultError) throw consultError;
 
@@ -95,11 +98,12 @@ const VitalSigns = () => {
       setShowAddModal(false);
       setForm({});
     },
-    onError: (err: Error) => {
-      if (err.message?.includes("foreign key") || err.message?.includes("violates")) {
+    onError: (err: any) => {
+      const detail = err?.message || err?.error?.message || err?.error_description || JSON.stringify(err);
+      if (detail?.includes("foreign key") || detail?.includes("violates")) {
         alert("Database constraint error: Your user profile needs to be set up. Please run the updated supabase-schema.sql in your Supabase SQL Editor to fix FK constraints.");
       } else {
-        alert(`Failed to save vital signs: ${err.message}`);
+        alert(`Failed to save vital signs: ${detail}`);
       }
     },
   });
