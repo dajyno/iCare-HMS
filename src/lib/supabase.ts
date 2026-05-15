@@ -27,14 +27,4 @@ export function toCamel(obj: any): any {
   return obj;
 }
 
-// Ensures the authenticated user has a row in public.users (for doctor_id FK)
-export async function ensureUserProfile(user: any) {
-  if (!user?.id) return;
-  const { error } = await supabase.from("users").upsert(
-    { id: user.id, email: user.email, full_name: user.fullName, role: user.role || "doctor" },
-    { onConflict: "id", ignoreDuplicates: true }
-  );
-  if (error && error.code !== "23505") {
-    console.error("ensureUserProfile upsert failed:", error.message);
-  }
-}
+

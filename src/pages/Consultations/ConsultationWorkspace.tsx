@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase, toCamel, ensureUserProfile } from "@/src/lib/supabase";
+import { supabase, toCamel } from "@/src/lib/supabase";
 import { useAuth } from "../../context/AuthContext";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -117,7 +117,6 @@ const ConsultationWorkspace = () => {
 
   const mutation = useMutation({
     mutationFn: async (formData: any) => {
-      await ensureUserProfile(user);
       const { data: consultation, error: consultError } = await supabase
         .from("consultations")
         .insert({

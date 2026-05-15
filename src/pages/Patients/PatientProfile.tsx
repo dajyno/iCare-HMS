@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase, toCamel, ensureUserProfile } from "@/src/lib/supabase";
+import { supabase, toCamel } from "@/src/lib/supabase";
 import { useAuth } from "@/src/context/AuthContext";
 import {
   ArrowLeft, User, Phone, Mail, MapPin, Calendar, Edit, Save,
@@ -227,7 +227,6 @@ const PatientProfile = () => {
 
   const createVitals = useMutation({
     mutationFn: async (payload: any) => {
-      await ensureUserProfile(currentUser);
       const { data: consult, error: consultError } = await supabase
         .from("consultations")
         .insert({ patient_id: id, doctor_id: currentUser?.id, chief_complaint: "Vitals Check" })
@@ -246,7 +245,11 @@ const PatientProfile = () => {
       setVitalsForm({});
     },
     onError: (err: Error) => {
-      alert(`Failed to save vital signs: ${err.message}`);
+      if (err.message?.includes("foreign key") || err.message?.includes("violates")) {
+        alert("Database constraint error: Your user profile needs to be set up. Please run the updated supabase-schema.sql in your Supabase SQL Editor to fix FK constraints.");
+      } else {
+        alert(`Failed to save vital signs: ${err.message}`);
+      }
     },
   });
 

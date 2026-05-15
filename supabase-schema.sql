@@ -109,7 +109,7 @@ create table public.patients (
 create table public.appointments (
   id         uuid primary key default gen_random_uuid(),
   patient_id uuid not null references public.patients(id) on delete cascade,
-  doctor_id  uuid not null references public.users(id),
+  doctor_id  uuid not null,
   date       date not null,
   time       text not null,
   reason     text,
@@ -123,7 +123,7 @@ create table public.appointments (
 create table public.consultations (
   id              uuid primary key default gen_random_uuid(),
   patient_id      uuid not null references public.patients(id) on delete cascade,
-  doctor_id       uuid not null references public.users(id),
+  doctor_id       uuid not null,
   appointment_id  uuid unique references public.appointments(id),
   chief_complaint text not null,
   symptoms        text,
@@ -170,7 +170,7 @@ create table public.medications (
 create table public.prescriptions (
   id              uuid primary key default gen_random_uuid(),
   patient_id      uuid not null references public.patients(id) on delete cascade,
-  doctor_id       uuid not null references public.users(id),
+  doctor_id       uuid not null,
   consultation_id uuid references public.consultations(id),
   date            timestamptz not null default now(),
   status          text not null default 'Pending' check (status in ('Pending','Dispensed','PartiallyDispensed','Cancelled'))
@@ -282,7 +282,7 @@ create table public.admissions (
   admission_date    timestamptz not null default now(),
   ward_id           uuid not null references public.wards(id),
   bed_id            uuid not null references public.beds(id),
-  admitting_doctor_id uuid not null references public.users(id),
+  admitting_doctor_id uuid not null,
   diagnosis         text,
   notes             text,
   status            text not null default 'Admitted' check (status in ('Admitted','Discharged','Transferred'))
@@ -683,4 +683,14 @@ update public.patients p set family_id = (
 )
 where p.category = 'Family' and p.family_id is null and p.is_primary = false;
 
+-- ============================================================
+-- DROP FK CONSTRAINTS that reference public.users(id)
+-- These were removed from CREATE TABLE above but may still exist
+-- in databases that ran an earlier version of the schema.
+-- Safe to re-run: IF EXISTS prevents errors.
+-- ============================================================
+alter table public.appointments   drop constraint if exists appointments_doctor_id_fkey;
+alter table public.consultations  drop constraint if exists consultations_doctor_id_fkey;
+alter table public.prescriptions  drop constraint if exists prescriptions_doctor_id_fkey;
+alter table public.admissions     drop constraint if exists admissions_admitting_doctor_id_fkey;
 

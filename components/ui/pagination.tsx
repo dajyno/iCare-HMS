@@ -12,8 +12,8 @@ interface PaginationProps {
 const PAGE_SIZES = [10, 25, 50, 100];
 
 const Pagination = ({ currentPage, pageSize, totalItems, onPageChange, onPageSizeChange }: PaginationProps) => {
-  const totalPages = Math.ceil(totalItems / pageSize);
-  if (totalPages <= 1 && totalItems <= PAGE_SIZES[0]) return null;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  if (totalItems === 0) return null;
 
   const pages: number[] = [];
   const start = Math.max(1, currentPage - 2);
