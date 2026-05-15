@@ -7,7 +7,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Printer, Edit3, Beaker } from "lucide-react";
+import { Printer, Edit3, Beaker, CalendarClock } from "lucide-react";
+import { format } from "date-fns";
 import StatusBadge from "./StatusBadge";
 
 const mapStatus = (dbStatus: string) => {
@@ -104,14 +105,17 @@ const LabResultDialog = ({
                 </div>
               )}
 
-              {result.validated_by_id && (
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                    Validated By
-                  </p>
-                  <p className="text-sm text-slate-700">Technician #{result.validated_by_id.slice(-6)}</p>
+              {/* Timestamps */}
+              <div className="flex items-center gap-4 pt-2 border-t border-slate-100">
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                  <CalendarClock className="w-3.5 h-3.5" />
+                  <span>Requested: {order?.createdAt ? format(new Date(order.createdAt), "MMM dd, yyyy HH:mm") : "—"}</span>
                 </div>
-              )}
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                  <CalendarClock className="w-3.5 h-3.5" />
+                  <span>Completed: {result?.date ? format(new Date(result.date), "MMM dd, yyyy HH:mm") : "—"}</span>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="py-8 text-center text-sm text-slate-400">

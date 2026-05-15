@@ -138,24 +138,56 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
           testIdMap.set(name, existingMap.get(name)!);
           continue;
         }
+        let resolvedId: string | null = null;
         const { data: rpcId } = await supabase
           .rpc("ensure_lab_test", { test_name: name });
         if (rpcId) {
-          testIdMap.set(name, rpcId as string);
+          resolvedId = rpcId as string;
+        } else {
+          const { data: inserted } = await supabase
+            .from("lab_tests")
+            .insert({ name, status: "active" })
+            .select("id")
+            .maybeSingle();
+          if (inserted) {
+            resolvedId = inserted.id;
+          } else {
+            const { data: found } = await supabase
+              .from("lab_tests")
+              .select("id")
+              .eq("name", name)
+              .maybeSingle();
+            if (found) resolvedId = found.id;
+          }
         }
+        if (resolvedId) testIdMap.set(name, resolvedId);
       }
 
-      const validRequests = allSelectedTestNames
-        .filter((name) => testIdMap.has(name))
-        .map((name) => ({
-          patient_id: patientId,
-          test_id: testIdMap.get(name),
-          status: "Requested" as const,
-        }));
-
-      if (validRequests.length === 0) {
+      const validNames = allSelectedTestNames.filter((name) => testIdMap.has(name));
+      if (validNames.length === 0) {
         throw new Error("No tests could be registered. Check that lab tests exist in the database.");
       }
+
+      let batchConsultationId: string | null = null;
+      if (validNames.length > 1) {
+        const { data: consult } = await supabase
+          .from("consultations")
+          .insert({
+            patient_id: patientId,
+            chief_complaint: "Laboratory batch",
+            doctor_id: referredBy || null,
+          })
+          .select("id")
+          .maybeSingle();
+        if (consult) batchConsultationId = consult.id;
+      }
+
+      const validRequests = validNames.map((name) => ({
+        patient_id: patientId,
+        test_id: testIdMap.get(name),
+        consultation_id: batchConsultationId,
+        status: "Requested" as const,
+      }));
 
       const { error: reqError } = await supabase
         .from("lab_requests")
