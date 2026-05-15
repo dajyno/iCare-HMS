@@ -424,10 +424,21 @@ alter table public.purchase_order_items enable row level security;
 alter table public.audit_logs enable row level security;
 alter table public.notifications enable row level security;
 
--- Authenticated users can read their own data
+-- Users can read/insert/update their own profile
 create policy "Users can read own profile"
   on public.users for select
   using (auth.uid() = id);
+
+create policy "Users can insert own profile"
+  on public.users for insert
+  to authenticated
+  with check (auth.uid() = id);
+
+create policy "Users can update own profile"
+  on public.users for update
+  to authenticated
+  using (auth.uid() = id)
+  with check (auth.uid() = id);
 
 -- Service role can manage all users
 create policy "Users can read own profile"
@@ -671,3 +682,5 @@ update public.patients p set family_id = (
   limit 1
 )
 where p.category = 'Family' and p.family_id is null and p.is_primary = false;
+
+

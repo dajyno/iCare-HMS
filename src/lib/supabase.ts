@@ -29,18 +29,12 @@ export function toCamel(obj: any): any {
 
 // Ensures the authenticated user has a row in public.users (for doctor_id FK)
 export async function ensureUserProfile(user: any) {
-  const { data: existing } = await supabase
-    .from("users")
-    .select("id")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (!existing) {
-    const { error } = await supabase.from("users").insert({
-      id: user.id,
-      email: user.email || null,
-      full_name: user.fullName || null,
-      role: user.role || "doctor",
-    });
-    if (error && error.code !== "23505") throw error;
+  if (!user?.id) return;
+  const { error } = await supabase.from("users").upsert(
+    { id: user.id, email: user.email, full_name: user.fullName, role: user.role || "doctor" },
+    { onConflict: "id", ignoreDuplicates: true }
+  );
+  if (error && error.code !== "23505") {
+    console.error("ensureUserProfile upsert failed:", error.message);
   }
 }

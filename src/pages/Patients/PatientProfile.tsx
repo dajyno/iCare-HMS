@@ -7,7 +7,7 @@ import {
   ArrowLeft, User, Phone, Mail, MapPin, Calendar, Edit, Save,
   Stethoscope, FlaskConical, Pill, Activity, AlertCircle, Loader2,
   BadgeCheck, FolderOpen, Users, Building, Shield, Clock, Plus,
-  HeartPulse, Microscope, Receipt, Bone
+  HeartPulse, Microscope, Receipt, Bone, Thermometer, Scale, Droplets, Ruler
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -896,14 +896,35 @@ const PatientProfile = () => {
             <DialogDescription>Enter the patient's vital signs measurements.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleVitalsSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5"><Label>Temperature (°C)</Label><Input type="number" step="0.1" value={vitalsForm.temperature || ""} onChange={(e) => setVitalsForm({ ...vitalsForm, temperature: e.target.value })} /></div>
-              <div className="space-y-1.5"><Label>Blood Pressure (mmHg)</Label><Input placeholder="120/80" value={vitalsForm.bloodPressure || ""} onChange={(e) => setVitalsForm({ ...vitalsForm, bloodPressure: e.target.value })} /></div>
-              <div className="space-y-1.5"><Label>Pulse Rate (bpm)</Label><Input type="number" value={vitalsForm.pulseRate || ""} onChange={(e) => setVitalsForm({ ...vitalsForm, pulseRate: e.target.value })} /></div>
-              <div className="space-y-1.5"><Label>Respiratory Rate (/min)</Label><Input type="number" value={vitalsForm.respiratoryRate || ""} onChange={(e) => setVitalsForm({ ...vitalsForm, respiratoryRate: e.target.value })} /></div>
-              <div className="space-y-1.5"><Label>Weight (kg)</Label><Input type="number" step="0.1" value={vitalsForm.weight || ""} onChange={(e) => setVitalsForm({ ...vitalsForm, weight: e.target.value })} /></div>
-              <div className="space-y-1.5"><Label>Height (cm)</Label><Input type="number" step="0.1" value={vitalsForm.height || ""} onChange={(e) => setVitalsForm({ ...vitalsForm, height: e.target.value })} /></div>
-              <div className="space-y-1.5"><Label>Oxygen Saturation (%)</Label><Input type="number" value={vitalsForm.oxygenSaturation || ""} onChange={(e) => setVitalsForm({ ...vitalsForm, oxygenSaturation: e.target.value })} /></div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1"><Thermometer className="w-3 h-3" /> Temp (°C)</Label>
+                <Input type="number" step="0.1" value={vitalsForm.temperature || ""} onChange={(e) => setVitalsForm({ ...vitalsForm, temperature: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1"><Activity className="w-3 h-3" /> BP (mmHg)</Label>
+                <Input placeholder="120/80" value={vitalsForm.bloodPressure || ""} onChange={(e) => setVitalsForm({ ...vitalsForm, bloodPressure: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label><HeartPulse className="w-3 h-3 inline mr-1" /> Pulse (bpm)</Label>
+                <Input type="number" value={vitalsForm.pulseRate || ""} onChange={(e) => setVitalsForm({ ...vitalsForm, pulseRate: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label><Activity className="w-3 h-3 inline mr-1" /> RR (/min)</Label>
+                <Input type="number" value={vitalsForm.respiratoryRate || ""} onChange={(e) => setVitalsForm({ ...vitalsForm, respiratoryRate: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label><Droplets className="w-3 h-3 inline mr-1" /> SpO2 (%)</Label>
+                <Input type="number" value={vitalsForm.oxygenSaturation || ""} onChange={(e) => setVitalsForm({ ...vitalsForm, oxygenSaturation: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label><Scale className="w-3 h-3 inline mr-1" /> Weight (kg)</Label>
+                <Input type="number" step="0.1" value={vitalsForm.weight || ""} onChange={(e) => setVitalsForm({ ...vitalsForm, weight: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label><Ruler className="w-3 h-3 inline mr-1" /> Height (cm)</Label>
+                <Input type="number" step="0.1" value={vitalsForm.height || ""} onChange={(e) => setVitalsForm({ ...vitalsForm, height: e.target.value })} />
+              </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowVitalsModal(false)}>Cancel</Button>
