@@ -2,7 +2,6 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
-import { useAuth } from "../../context/AuthContext";
 import { FlaskConical, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ContextHeader from "./ContextHeader";
@@ -159,8 +158,6 @@ const LabModule = () => {
               <LabDetailView
                 order={selectedOrder}
                 onBack={handleBack}
-                emrId={selectedOrder?.patient?.patientId}
-                doctorId={user?.id}
               />
             </motion.div>
           )}

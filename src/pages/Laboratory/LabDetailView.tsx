@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Save,
@@ -9,6 +9,8 @@ import {
   Paperclip,
   DollarSign,
   Beaker,
+  Printer,
+  Edit3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,14 +70,14 @@ const useFlagDetection = (value: string, referenceRange: string | null) => {
 const LabDetailView = ({
   order,
   onBack,
-  emrId: _emrId,
-  doctorId: _doctorId,
 }: {
   order: any;
   onBack: () => void;
-  emrId?: string;
-  doctorId?: string;
 }) => {
+  const isCompleted = order?.status === "Completed";
+  const [viewMode, setViewMode] = useState<"view" | "edit">(
+    isCompleted ? "view" : "edit"
+  );
   const [resultValue, setResultValue] = useState("");
   const [unit, setUnit] = useState(order?.test?.sampleType === "Blood" ? "x10^9/L" : "");
   const [interpretation, setInterpretation] = useState("");
@@ -90,23 +92,57 @@ const LabDetailView = ({
 
   const { min, max } = parseRange(referenceRange);
 
+  const { data: existingResult } = useQuery({
+    queryKey: ["lab-result", order.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("lab_results")
+        .select("*")
+        .eq("request_id", order.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: isCompleted,
+  });
+
+  useEffect(() => {
+    if (existingResult) {
+      setResultValue(existingResult.result_value ?? "");
+      setUnit(existingResult.unit ?? "");
+      setInterpretation(existingResult.interpretation ?? "");
+    }
+  }, [existingResult]);
+
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("lab_results").insert({
-        request_id: order.id,
-        patient_id: order.patientId,
-        result_value: resultValue,
-        unit: unit || null,
-        reference_range: referenceRange,
-        interpretation: interpretation || null,
-      });
-      if (error) throw error;
+      if (isCompleted && existingResult) {
+        const { error } = await supabase
+          .from("lab_results")
+          .update({
+            result_value: resultValue,
+            unit: unit || null,
+            interpretation: interpretation || null,
+          })
+          .eq("id", existingResult.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("lab_results").insert({
+          request_id: order.id,
+          patient_id: order.patientId,
+          result_value: resultValue,
+          unit: unit || null,
+          reference_range: referenceRange,
+          interpretation: interpretation || null,
+        });
+        if (error) throw error;
 
-      const { error: updateError } = await supabase
-        .from("lab_requests")
-        .update({ status: "Completed" })
-        .eq("id", order.id);
-      if (updateError) throw updateError;
+        const { error: updateError } = await supabase
+          .from("lab_requests")
+          .update({ status: "Completed" })
+          .eq("id", order.id);
+        if (updateError) throw updateError;
+      }
     },
     onSuccess: () => {
       onBack();
@@ -151,15 +187,42 @@ const LabDetailView = ({
           </span>
           <StatusBadge status={mapStatus(order.status)} />
         </div>
-        <Button
-          size="sm"
-          className="bg-[#005EB8] hover:bg-[#004d9a] text-white h-9 px-5 gap-2 font-semibold text-xs"
-          onClick={handleSave}
-          disabled={saveMutation.isPending}
-        >
-          <Save className="w-3.5 h-3.5" />
-          {saveMutation.isPending ? "Saving..." : "Save Results"}
-        </Button>
+
+        <div className="flex items-center gap-2">
+          {isCompleted && viewMode === "view" && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-9 px-4 gap-1.5 text-xs font-semibold"
+                onClick={() => window.print()}
+              >
+                <Printer className="w-3.5 h-3.5" />
+                Print
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-9 px-4 gap-1.5 text-xs font-semibold"
+                onClick={() => setViewMode("edit")}
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                Edit
+              </Button>
+            </>
+          )}
+          {(!isCompleted || viewMode === "edit") && (
+            <Button
+              size="sm"
+              className="bg-[#005EB8] hover:bg-[#004d9a] text-white h-9 px-5 gap-2 font-semibold text-xs"
+              onClick={handleSave}
+              disabled={saveMutation.isPending}
+            >
+              <Save className="w-3.5 h-3.5" />
+              {saveMutation.isPending ? "Saving..." : isCompleted ? "Update Results" : "Save Results"}
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-6">
@@ -178,100 +241,129 @@ const LabDetailView = ({
                 </span>
               )}
             </div>
-            <div className="p-5 space-y-5">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                    Result Value
-                  </Label>
-                  <Input
-                    value={resultValue}
-                    onChange={(e) => setResultValue(e.target.value)}
-                    placeholder="Enter value..."
-                    className="h-10 text-sm font-mono"
-                  />
-                  {autoFlagged && (
-                    <motion.p
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="text-[10px] text-red-500 flex items-center gap-1"
-                    >
-                      <AlertTriangle className="w-3 h-3" />
-                      Out of range ({min}–{max})
-                    </motion.p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                    Unit
-                  </Label>
-                  <Input
-                    value={unit}
-                    onChange={(e) => setUnit(e.target.value)}
-                    placeholder="e.g. x10^9/L"
-                    className="h-10 text-sm"
-                  />
-                </div>
-                <div className="space-y-1.5 flex flex-col justify-end">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={isFlagged}
-                      onChange={(e) => setManualFlag(e.target.checked)}
-                      className="sr-only"
-                    />
-                    <motion.div
-                      animate={
-                        isFlagged
-                          ? {
-                              boxShadow: [
-                                "0 0 0 0 rgba(239,68,68,0)",
-                                "0 0 12px 2px rgba(239,68,68,0.5)",
-                                "0 0 0 0 rgba(239,68,68,0)",
-                              ],
-                            }
-                          : {}
-                      }
-                      transition={{ duration: 1, repeat: isFlagged ? Infinity : 0 }}
-                      className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                        isFlagged
-                          ? "bg-red-500 border-red-500"
-                          : "border-slate-300 bg-white"
-                      }`}
-                    >
-                      {isFlagged && (
-                        <motion.svg
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="w-3 h-3 text-white"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={3}
-                        >
-                          <path d="M20 6L9 17l-5-5" />
-                        </motion.svg>
-                      )}
-                    </motion.div>
-                    <span className="text-xs font-medium text-slate-600">
-                      Flag Abnormal
-                    </span>
-                  </label>
-                </div>
-              </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                  Interpretation / Notes
-                </Label>
-                <Textarea
-                  value={interpretation}
-                  onChange={(e) => setInterpretation(e.target.value)}
-                  placeholder="Add clinical interpretation or notes..."
-                  className="min-h-[80px] text-sm"
-                />
+            {viewMode === "view" && existingResult ? (
+              <div className="p-5 space-y-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Result Value</p>
+                    <p className="text-lg font-bold font-mono text-slate-900">{existingResult.result_value ?? "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Unit</p>
+                    <p className="text-sm text-slate-700">{existingResult.unit ?? "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Status</p>
+                    <p className="text-sm text-slate-700">
+                      {parseFloat(existingResult.result_value) < (min ?? 0) ||
+                       parseFloat(existingResult.result_value) > (max ?? Infinity)
+                        ? "Abnormal"
+                        : "Normal"}
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Interpretation</p>
+                  <p className="text-sm text-slate-700">{existingResult.interpretation ?? "—"}</p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="p-5 space-y-5">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                      Result Value
+                    </Label>
+                    <Input
+                      value={resultValue}
+                      onChange={(e) => setResultValue(e.target.value)}
+                      placeholder="Enter value..."
+                      className="h-10 text-sm font-mono"
+                    />
+                    {autoFlagged && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-[10px] text-red-500 flex items-center gap-1"
+                      >
+                        <AlertTriangle className="w-3 h-3" />
+                        Out of range ({min}–{max})
+                      </motion.p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                      Unit
+                    </Label>
+                    <Input
+                      value={unit}
+                      onChange={(e) => setUnit(e.target.value)}
+                      placeholder="e.g. x10^9/L"
+                      className="h-10 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5 flex flex-col justify-end">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isFlagged}
+                        onChange={(e) => setManualFlag(e.target.checked)}
+                        className="sr-only"
+                      />
+                      <motion.div
+                        animate={
+                          isFlagged
+                            ? {
+                                boxShadow: [
+                                  "0 0 0 0 rgba(239,68,68,0)",
+                                  "0 0 12px 2px rgba(239,68,68,0.5)",
+                                  "0 0 0 0 rgba(239,68,68,0)",
+                                ],
+                              }
+                            : {}
+                        }
+                        transition={{ duration: 1, repeat: isFlagged ? Infinity : 0 }}
+                        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                          isFlagged
+                            ? "bg-red-500 border-red-500"
+                            : "border-slate-300 bg-white"
+                        }`}
+                      >
+                        {isFlagged && (
+                          <motion.svg
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="w-3 h-3 text-white"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={3}
+                          >
+                            <path d="M20 6L9 17l-5-5" />
+                          </motion.svg>
+                        )}
+                      </motion.div>
+                      <span className="text-xs font-medium text-slate-600">
+                        Flag Abnormal
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    Interpretation / Notes
+                  </Label>
+                  <Textarea
+                    value={interpretation}
+                    onChange={(e) => setInterpretation(e.target.value)}
+                    placeholder="Add clinical interpretation or notes..."
+                    className="min-h-[80px] text-sm"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Invoicing Bridge */}

@@ -9,6 +9,8 @@ import {
   FlaskConical,
   ArrowLeft,
   Loader2,
+  Check,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +28,9 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(testCategories.map((c) => c.id))
   );
-  const [customEntries, setCustomEntries] = useState<Record<string, string>>({});
+  const [customInputs, setCustomInputs] = useState<Record<string, string>>({});
+  const [customSaved, setCustomSaved] = useState<Record<string, string[]>>({});
+  const [hormoneValues, setHormoneValues] = useState<Record<string, string>>({});
 
   const { data: patients } = useQuery({
     queryKey: ["patients"],
@@ -72,12 +76,13 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
 
   const allSelectedTestNames = useMemo(() => {
     const names = Array.from(selectedTests);
-    for (const val of Object.values(customEntries)) {
-      const trimmed = val.trim();
-      if (trimmed) names.push(trimmed);
+    for (const saved of Object.values(customSaved)) {
+      for (const name of saved) {
+        if (name.trim()) names.push(name.trim());
+      }
     }
     return names;
-  }, [selectedTests, customEntries]);
+  }, [selectedTests, customSaved]);
 
   const toggleCategory = (id: string) => {
     setExpandedCategories((prev) => {
@@ -88,48 +93,73 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
     });
   };
 
+  const handleSaveCustom = (catId: string) => {
+    const val = customInputs[catId]?.trim();
+    if (!val) return;
+    setCustomSaved((prev) => {
+      const next = { ...prev };
+      const list = [...(next[catId] ?? [])];
+      if (!list.includes(val)) list.push(val);
+      next[catId] = list;
+      return next;
+    });
+    setCustomInputs((prev) => {
+      const next = { ...prev };
+      delete next[catId];
+      return next;
+    });
+  };
+
+  const handleDeleteCustom = (catId: string, idx: number) => {
+    setCustomSaved((prev) => {
+      const next = { ...prev };
+      const list = [...(next[catId] ?? [])];
+      list.splice(idx, 1);
+      if (list.length > 0) next[catId] = list;
+      else delete next[catId];
+      return next;
+    });
+  };
+
   const submitMutation = useMutation({
     mutationFn: async () => {
-      const existingTests: string[] = [];
-      const newTests: string[] = [];
-
-      for (const name of allSelectedTestNames) {
-        const { data } = await supabase
-          .from("lab_tests")
-          .select("id")
-          .eq("name", name)
-          .single();
-        if (data) existingTests.push(name);
-        else newTests.push(name);
+      const { data: allLabTests } = await supabase
+        .from("lab_tests")
+        .select("id, name");
+      const existingMap = new Map<string, string>();
+      if (allLabTests) {
+        for (const t of allLabTests) existingMap.set(t.name, t.id);
       }
 
       const testIdMap = new Map<string, string>();
+      const toCreate: string[] = [];
 
-      for (const name of newTests) {
-        const { data, error } = await supabase
-          .from("lab_tests")
-          .insert({ name, status: "active" })
-          .select("id")
-          .maybeSingle();
-        if (error || !data) {
-          const { data: existing } = await supabase
-            .from("lab_tests")
-            .select("id")
-            .eq("name", name)
-            .maybeSingle();
-          if (existing) testIdMap.set(name, existing.id);
-          continue;
+      for (const name of allSelectedTestNames) {
+        if (existingMap.has(name)) {
+          testIdMap.set(name, existingMap.get(name)!);
+        } else {
+          toCreate.push(name);
         }
-        testIdMap.set(name, data.id);
       }
 
-      if (existingTests.length > 0) {
-        const { data } = await supabase
+      if (toCreate.length > 0) {
+        const inserts = toCreate.map((name) => ({ name, status: "active" }));
+        const { data: created, error } = await supabase
           .from("lab_tests")
-          .select("id, name")
-          .in("name", existingTests);
-        if (data) {
-          for (const row of data) testIdMap.set(row.name, row.id);
+          .insert(inserts)
+          .select("id, name");
+        if (!error && created) {
+          for (const t of created) testIdMap.set(t.name, t.id);
+        }
+        for (const name of toCreate) {
+          if (!testIdMap.has(name)) {
+            const { data: fallback } = await supabase
+              .from("lab_tests")
+              .select("id")
+              .eq("name", name)
+              .maybeSingle();
+            if (fallback) testIdMap.set(name, fallback.id);
+          }
         }
       }
 
@@ -236,9 +266,7 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
                 )}
               </div>
               {patientId && (
-                <p className="text-[10px] text-emerald-600 font-medium mt-0.5">
-                  Patient selected
-                </p>
+                <p className="text-[10px] text-emerald-600 font-medium mt-0.5">Patient selected</p>
               )}
               {!patientId && <div className="h-[18px]" />}
             </div>
@@ -301,6 +329,7 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
                   <span className="relative z-10">URGENT</span>
                 </button>
               </div>
+              <div className="h-[18px]" />
             </div>
           </div>
         </div>
@@ -309,9 +338,9 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {testCategories.map((category) => {
             const isExpanded = expandedCategories.has(category.id);
-            const catSelectedCount = category.tests.filter((t) =>
-              selectedTests.has(t)
-            ).length;
+            const catSelectedCount =
+              category.tests.filter((t) => selectedTests.has(t)).length +
+              (customSaved[category.id]?.length ?? 0);
 
             return (
               <div
@@ -352,25 +381,56 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
                     ))}
                   </div>
 
-                  {/* Empty typeable custom entry at the end of each group */}
+                  {/* Saved custom tests */}
+                  {(customSaved[category.id]?.length ?? 0) > 0 && (
+                    <div className="px-3 pb-1 space-y-1">
+                      {customSaved[category.id]!.map((name, idx) => (
+                        <div
+                          key={`${name}-${idx}`}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#005EB8]/10 text-[#005EB8] text-[12px] font-medium"
+                        >
+                          <span className="flex-1">{name}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCustom(category.id, idx)}
+                            className="text-slate-400 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Custom entry with Save + Trash */}
                   <div className="px-3 pb-3">
                     <p className="text-[10px] text-slate-400 mb-1.5 font-medium">
                       — or type a custom test —
                     </p>
-                    <Input
-                      value={customEntries[category.id] ?? ""}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setCustomEntries((prev) => {
-                          const next = { ...prev };
-                          if (val.trim()) next[category.id] = val;
-                          else delete next[category.id];
-                          return next;
-                        });
-                      }}
-                      placeholder="Enter custom test name..."
-                      className="h-8 text-xs border-dashed border-slate-300"
-                    />
+                    <div className="flex gap-1.5">
+                      <Input
+                        value={customInputs[category.id] ?? ""}
+                        onChange={(e) =>
+                          setCustomInputs((prev) => ({
+                            ...prev,
+                            [category.id]: e.target.value,
+                          }))
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSaveCustom(category.id);
+                        }}
+                        placeholder="Enter custom test name..."
+                        className="h-8 text-xs border-dashed border-slate-300 flex-1"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleSaveCustom(category.id)}
+                        disabled={!customInputs[category.id]?.trim()}
+                        className="h-8 w-8 rounded-lg flex items-center justify-center bg-emerald-50 text-emerald-600 hover:bg-emerald-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -393,12 +453,18 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
                     <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
                       {panel}
                     </Label>
-                    <div
-                      className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 flex items-center text-xs text-slate-400 italic"
+                    <Input
+                      value={hormoneValues[panel] ?? ""}
+                      onChange={(e) =>
+                        setHormoneValues((prev) => ({
+                          ...prev,
+                          [panel]: e.target.value,
+                        }))
+                      }
+                      placeholder="Enter values"
+                      className="h-9 text-xs"
                       style={{ boxShadow: "inset 0 1px 3px rgba(0,0,0,0.04)" }}
-                    >
-                      Enter values
-                    </div>
+                    />
                   </div>
                 )
               )}
