@@ -3,11 +3,12 @@ import { motion, AnimatePresence } from "motion/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { useAuth } from "../../context/AuthContext";
-import { FlaskConical } from "lucide-react";
+import { FlaskConical, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import ContextHeader from "./ContextHeader";
 import LabOrderTable from "./LabOrderTable";
 import LabDetailView from "./LabDetailView";
-import NewExamDialog from "./NewExamDialog";
+import LabTestGrid from "./LabTestGrid";
 
 const LabModule = () => {
   const { user } = useAuth();
@@ -43,7 +44,7 @@ const LabModule = () => {
     markCollectedMutation.mutate(order.id);
   };
 
-  const activePatient = selectedOrder
+  const activePatient = selectedOrder && typeof selectedOrder === "object"
     ? selectedOrder.patient
       ? {
           id: selectedOrder.patient.id,
@@ -93,9 +94,20 @@ const LabModule = () => {
     <div className="flex flex-col h-full animate-in fade-in duration-500">
       <ContextHeader patient={activePatient} />
 
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-6 overflow-y-auto">
         <AnimatePresence mode="wait">
-          {!selectedOrder ? (
+          {selectedOrder === "new" ? (
+            <motion.div
+              key="grid"
+              layoutId="lab-main-card"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+              <LabTestGrid onBack={handleBack} />
+            </motion.div>
+          ) : !selectedOrder ? (
             <motion.div
               key="orders"
               layoutId="lab-main-card"
@@ -119,11 +131,14 @@ const LabModule = () => {
                     </p>
                   </div>
                 </div>
-                <NewExamDialog
-                  onCreated={() =>
-                    queryClient.invalidateQueries({ queryKey: ["lab-requests"] })
-                  }
-                />
+                <Button
+                  size="sm"
+                  className="bg-[#005EB8] hover:bg-[#004d9a] text-white h-9 px-4 gap-2 font-semibold text-xs"
+                  onClick={() => setSelectedOrder("new")}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  New Exam
+                </Button>
               </div>
 
               <LabOrderTable

@@ -180,11 +180,6 @@ const LabOrderTable = ({
 
   return (
     <div className="space-y-4">
-      <style>{`
-        .lab-row:hover td {
-          border-left-color: #005EB8 !important;
-        }
-      `}</style>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-slate-100">
@@ -261,13 +256,12 @@ const LabOrderTable = ({
                   <TableRow
                     key={row.original.id}
                     onClick={() => onSelectOrder(row.original.raw)}
-                    className="cursor-pointer lab-row"
+                    className="cursor-pointer hover:bg-slate-50 transition-colors"
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell
                         key={cell.id}
-                        className="px-4 py-3.5 transition-all duration-150"
-                        style={{ borderLeft: "2px solid transparent" }}
+                        className="px-4 py-3.5"
                       >
                         {flexRender(
                           cell.column.columnDef.cell,

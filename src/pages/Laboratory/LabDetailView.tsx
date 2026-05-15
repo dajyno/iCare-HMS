@@ -91,8 +91,6 @@ const LabDetailView = ({
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      await new Promise((r) => setTimeout(r, 800));
-
       const { error } = await supabase.from("lab_results").insert({
         request_id: order.id,
         patient_id: order.patientId,
@@ -104,10 +102,17 @@ const LabDetailView = ({
       });
       if (error) throw error;
 
-      await supabase
+      const { error: updateError } = await supabase
         .from("lab_requests")
         .update({ status: "Completed" })
         .eq("id", order.id);
+      if (updateError) throw updateError;
+    },
+    onSuccess: () => {
+      onBack();
+    },
+    onError: (err) => {
+      console.error("Save failed:", err);
     },
   });
 
@@ -119,11 +124,7 @@ const LabDetailView = ({
   }, []);
 
   const handleSave = () => {
-    saveMutation.mutate(undefined, {
-      onSuccess: () => {
-        onBack();
-      },
-    });
+    saveMutation.mutate();
   };
 
   return (
