@@ -26,10 +26,9 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(testCategories.map((c) => c.id))
   );
+  const [customEntries, setCustomEntries] = useState<Record<string, string>>({});
 
-  const {
-    data: patients,
-  } = useQuery({
+  const { data: patients } = useQuery({
     queryKey: ["patients"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -71,7 +70,14 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
     if (p) setPatientQuery(`${p.firstName} ${p.lastName}`);
   }, [patients]);
 
-  const allSelectedTestNames = useMemo(() => Array.from(selectedTests), [selectedTests]);
+  const allSelectedTestNames = useMemo(() => {
+    const names = Array.from(selectedTests);
+    for (const val of Object.values(customEntries)) {
+      const trimmed = val.trim();
+      if (trimmed) names.push(trimmed);
+    }
+    return names;
+  }, [selectedTests, customEntries]);
 
   const toggleCategory = (id: string) => {
     setExpandedCategories((prev) => {
@@ -133,47 +139,50 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
     onSuccess: () => {
       onBack();
     },
+    onError: (err) => {
+      alert("Failed to save: " + err.message);
+    },
   });
 
   const canSubmit = patientId && allSelectedTestNames.length > 0;
 
   return (
-    <div className="space-y-6 pb-28">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-slate-400 hover:text-slate-700 -ml-2"
-            onClick={onBack}
-          >
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            Back
-          </Button>
-          <div className="h-5 w-px bg-slate-200" />
-          <div className="p-1.5 rounded-lg bg-slate-100">
-            <FlaskConical className="w-4 h-4 text-slate-500" />
-          </div>
-          <div>
-            <h1 className="text-sm font-bold text-slate-900">
-              New Laboratory Request
-            </h1>
-            <p className="text-[10px] text-slate-500">
-              Select tests to order for the patient
-            </p>
+    <div className="flex flex-col min-h-full">
+      <div className="flex-1 space-y-6 pb-32">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-slate-400 hover:text-slate-700 -ml-2"
+              onClick={onBack}
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back
+            </Button>
+            <div className="h-5 w-px bg-slate-200" />
+            <div className="p-1.5 rounded-lg bg-slate-100">
+              <FlaskConical className="w-4 h-4 text-slate-500" />
+            </div>
+            <div>
+              <h1 className="text-sm font-bold text-slate-900">
+                New Laboratory Request
+              </h1>
+              <p className="text-[10px] text-slate-500">
+                Select tests to order for the patient
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Patient Header */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-          <div className="space-y-1.5 md:col-span-2">
-            <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-              Patient Folder No.
-            </Label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
+        {/* Patient Header — all on one line */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div className="flex items-end gap-4 flex-wrap">
+            <div className="space-y-1.5 flex-1 min-w-[200px]">
+              <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                Patient Folder No.
+              </Label>
+              <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                 <Input
                   value={patientQuery}
@@ -212,130 +221,110 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
                   </div>
                 )}
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-9 px-3 gap-1.5 text-xs font-semibold border-slate-200"
-                onClick={() => {
-                  if (patientQuery) {
-                    const match = (Array.isArray(patients) ? patients : []).find(
-                      (p: any) =>
-                        `${p.firstName} ${p.lastName}`
-                          .toLowerCase()
-                          .includes(patientQuery.toLowerCase())
-                    );
-                    if (match) selectPatient(match.id);
-                  }
-                }}
-              >
-                <Loader2 className="w-3.5 h-3.5 animate-pulse" />
-                Find
-              </Button>
+              {patientId && (
+                <p className="text-[10px] text-emerald-600 font-medium">
+                  Patient selected
+                </p>
+              )}
             </div>
-            {patientId && (
-              <p className="text-[10px] text-emerald-600 font-medium">
-                Patient selected
-              </p>
-            )}
-          </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-              Referred By
-            </Label>
-            <SearchableSelect
-              value={referredBy}
-              onValueChange={setReferredBy}
-              placeholder="Select doctor..."
-              options={(Array.isArray(doctors) ? doctors : []).map((d: any) => ({
-                value: d.id,
-                label: d.fullName,
-              }))}
-              triggerClassName="h-9 text-sm"
-            />
-          </div>
+            <div className="space-y-1.5 min-w-[180px]">
+              <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                Referred By
+              </Label>
+              <SearchableSelect
+                value={referredBy}
+                onValueChange={setReferredBy}
+                placeholder="Select doctor..."
+                options={(Array.isArray(doctors) ? doctors : []).map((d: any) => ({
+                  value: d.id,
+                  label: d.fullName,
+                }))}
+                triggerClassName="h-9 text-sm"
+              />
+            </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-              Urgency
-            </Label>
-            <div className="flex rounded-lg border border-slate-200 overflow-hidden h-9">
-              <button
-                type="button"
-                onClick={() => setUrgency("normal")}
-                className={`flex-1 text-xs font-semibold transition-colors ${
-                  urgency === "normal"
-                    ? "bg-slate-900 text-white"
-                    : "bg-white text-slate-500 hover:bg-slate-50"
-                }`}
-              >
-                Normal
-              </button>
-              <button
-                type="button"
-                onClick={() => setUrgency("urgent")}
-                className={`flex-1 text-xs font-semibold transition-colors relative ${
-                  urgency === "urgent"
-                    ? "bg-amber-500 text-white"
-                    : "bg-white text-slate-500 hover:bg-slate-50"
-                }`}
-              >
-                {urgency === "urgent" && (
-                  <motion.span
-                    className="absolute inset-0 rounded-r-md"
-                    animate={{
-                      boxShadow: [
-                        "inset 0 0 0 0 rgba(245,158,11,0)",
-                        "inset 0 0 12px 2px rgba(245,158,11,0.4)",
-                        "inset 0 0 0 0 rgba(245,158,11,0)",
-                      ],
-                    }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  />
-                )}
-                <span className="relative z-10">URGENT</span>
-              </button>
+            <div className="space-y-1.5 min-w-[160px]">
+              <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                Urgency
+              </Label>
+              <div className="flex rounded-lg border border-slate-200 overflow-hidden h-9">
+                <button
+                  type="button"
+                  onClick={() => setUrgency("normal")}
+                  className={`flex-1 text-xs font-semibold transition-colors ${
+                    urgency === "normal"
+                      ? "bg-slate-900 text-white"
+                      : "bg-white text-slate-500 hover:bg-slate-50"
+                  }`}
+                >
+                  Normal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUrgency("urgent")}
+                  className={`flex-1 text-xs font-semibold transition-colors relative ${
+                    urgency === "urgent"
+                      ? "bg-amber-500 text-white"
+                      : "bg-white text-slate-500 hover:bg-slate-50"
+                  }`}
+                >
+                  {urgency === "urgent" && (
+                    <motion.span
+                      className="absolute inset-0 rounded-r-md"
+                      animate={{
+                        boxShadow: [
+                          "inset 0 0 0 0 rgba(245,158,11,0)",
+                          "inset 0 0 12px 2px rgba(245,158,11,0.4)",
+                          "inset 0 0 0 0 rgba(245,158,11,0)",
+                        ],
+                      }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    />
+                  )}
+                  <span className="relative z-10">URGENT</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Test Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {testCategories.map((category) => {
-          const isExpanded = expandedCategories.has(category.id);
-          const catSelectedCount = category.tests.filter((t) =>
-            selectedTests.has(t)
-          ).length;
+        {/* Test Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {testCategories.map((category) => {
+            const isExpanded = expandedCategories.has(category.id);
+            const catSelectedCount = category.tests.filter((t) =>
+              selectedTests.has(t)
+            ).length;
 
-          return (
-            <div
-              key={category.id}
-              className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
-            >
-              <button
-                type="button"
-                onClick={() => toggleCategory(category.id)}
-                className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50/80 border-b border-slate-100 md:cursor-default"
+            return (
+              <div
+                key={category.id}
+                className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                    {category.name}
-                  </span>
-                  {catSelectedCount > 0 && (
-                    <span className="text-[10px] font-bold text-[#005EB8] bg-[#005EB8]/10 px-1.5 py-0.5 rounded">
-                      {catSelectedCount}
+                <button
+                  type="button"
+                  onClick={() => toggleCategory(category.id)}
+                  className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50/80 border-b border-slate-100 md:cursor-default"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                      {category.name}
                     </span>
-                  )}
-                </div>
-                <ChevronDown
-                  className={`w-3.5 h-3.5 text-slate-400 transition-transform md:hidden ${
-                    isExpanded ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
+                    {catSelectedCount > 0 && (
+                      <span className="text-[10px] font-bold text-[#005EB8] bg-[#005EB8]/10 px-1.5 py-0.5 rounded">
+                        {catSelectedCount}
+                      </span>
+                    )}
+                  </div>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-slate-400 transition-transform md:hidden ${
+                      isExpanded ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
 
-              <div className={`${!isExpanded ? "hidden md:block" : "block"}`}>
+                <div className={`${!isExpanded ? "hidden md:block" : "block"}`}>
                   <div className="p-3 space-y-1.5">
                     {category.tests.map((test) => (
                       <ToggleTile
@@ -347,66 +336,65 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
                     ))}
                   </div>
 
+                  {/* Empty typeable custom entry at the end of each group */}
                   <div className="px-3 pb-3">
                     <p className="text-[10px] text-slate-400 mb-1.5 font-medium">
-                      — or add a custom test —
+                      — or type a custom test —
                     </p>
-                    <SearchableSelect
-                      value=""
-                      onValueChange={(val) => {
-                        if (val) {
-                          setSelectedTests((prev) => {
-                            const next = new Set(prev);
-                            next.add(val);
-                            return next;
-                          });
-                        }
+                    <Input
+                      value={customEntries[category.id] ?? ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setCustomEntries((prev) => {
+                          const next = { ...prev };
+                          if (val.trim()) next[category.id] = val;
+                          else delete next[category.id];
+                          return next;
+                        });
                       }}
-                      placeholder="Search & add test..."
-                      options={testDictionary
-                        .filter((t) => !category.tests.includes(t))
-                        .map((t) => ({ value: t, label: t }))}
-                      triggerClassName="h-8 text-xs border-dashed border-slate-300 text-slate-500"
+                      placeholder="Enter custom test name..."
+                      className="h-8 text-xs border-dashed border-slate-300"
                     />
                   </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Hormone Profiles - Specialized Inputs */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-        <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50/80">
-          <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-            Hormone Profiles (Specialized)
-          </span>
-        </div>
-        <div className="p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {["Infertility Panel", "Obesity Panel", "Thyroid Panel", "Diabetes Panel"].map(
-              (panel) => (
-                <div key={panel} className="space-y-1">
-                  <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-                    {panel}
-                  </Label>
-                  <div
-                    className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 flex items-center text-xs text-slate-400 italic"
-                    style={{ boxShadow: "inset 0 1px 3px rgba(0,0,0,0.04)" }}
-                  >
-                    Enter values
-                  </div>
                 </div>
-              )
-            )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Hormone Profiles - Specialized Inputs */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50/80">
+            <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+              Hormone Profiles (Specialized)
+            </span>
+          </div>
+          <div className="p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {["Infertility Panel", "Obesity Panel", "Thyroid Panel", "Diabetes Panel"].map(
+                (panel) => (
+                  <div key={panel} className="space-y-1">
+                    <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                      {panel}
+                    </Label>
+                    <div
+                      className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 flex items-center text-xs text-slate-400 italic"
+                      style={{ boxShadow: "inset 0 1px 3px rgba(0,0,0,0.04)" }}
+                    >
+                      Enter values
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Sticky Footer */}
+      {/* Sticky Footer — within content area only */}
       <motion.div
         layout
-        className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]"
+        className="sticky bottom-0 z-30 bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-[0_-2px_12px_rgba(0,0,0,0.06)] -mx-6 px-6"
       >
         {submitMutation.isPending && (
           <motion.div
@@ -417,7 +405,7 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
             style={{ transformOrigin: "left" }}
           />
         )}
-        <div className="max-w-full mx-auto px-6 py-3 flex items-center justify-between">
+        <div className="flex items-center justify-between py-3">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-slate-900">

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ExternalLink, User } from "lucide-react";
+import { User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 
@@ -54,10 +54,9 @@ const ContextHeader = ({ patient }: ContextHeaderProps) => {
           </p>
         </div>
       </div>
-      <Button variant="ghost" size="sm" className="gap-1.5 text-slate-500 hover:text-[#005EB8] text-xs" asChild>
+      <Button variant="ghost" size="sm" className="text-slate-500 hover:text-[#005EB8] text-xs" asChild>
         <Link to={`/patients/${patient.id}`}>
           View Profile
-          <ExternalLink className="w-3 h-3" />
         </Link>
       </Button>
     </div>

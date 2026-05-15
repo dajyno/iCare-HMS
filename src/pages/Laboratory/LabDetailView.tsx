@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useMutation } from "@tanstack/react-query";
 import {
@@ -82,6 +82,7 @@ const LabDetailView = ({
   const [manualFlag, setManualFlag] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const referenceRange = order?.test?.referenceRange ?? null;
   const autoFlagged = useFlagDetection(resultValue, referenceRange);
@@ -112,7 +113,7 @@ const LabDetailView = ({
       onBack();
     },
     onError: (err) => {
-      console.error("Save failed:", err);
+      alert("Save failed: " + err.message);
     },
   });
 
@@ -120,7 +121,12 @@ const LabDetailView = ({
     e.preventDefault();
     setDragOver(false);
     const f = e.dataTransfer.files?.[0];
-    if (f && f.type === "application/pdf") setFile(f);
+    if (f && (f.type === "application/pdf" || f.type.startsWith("image/"))) setFile(f);
+  }, []);
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) setFile(f);
   }, []);
 
   const handleSave = () => {
@@ -336,7 +342,15 @@ const LabDetailView = ({
               onDrop={handleDrop}
               className="p-6"
             >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
               <div
+                onClick={() => fileInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 cursor-pointer ${
                   dragOver
                     ? "border-[#005EB8] bg-[#005EB8]/5"
@@ -351,9 +365,9 @@ const LabDetailView = ({
                   }`}
                 />
                 <p className="text-xs text-slate-500 mb-1">
-                  {file ? file.name : "Drop PDF report here"}
+                  {file ? file.name : "Drop file or click to browse"}
                 </p>
-                <p className="text-[10px] text-slate-400">or click to browse</p>
+                <p className="text-[10px] text-slate-400">PDF or Image</p>
               </div>
 
               <AnimatePresence>
