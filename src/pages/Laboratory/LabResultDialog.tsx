@@ -61,9 +61,9 @@ const LabResultDialog = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="font-mono text-[11px] font-semibold text-slate-500">
-                {`REQ-${order.id?.slice(-6).toUpperCase()}`}
+                {`REQ-${order?.id?.slice(-6)?.toUpperCase() ?? "—"}`}
               </span>
-              <StatusBadge status={mapStatus(order.status)} />
+              <StatusBadge status={mapStatus(order?.status)} />
             </div>
           </div>
 
