@@ -78,10 +78,12 @@ const VitalSigns = () => {
       const heightM = (formData.height || 0) / 100;
       const bmi = formData.weight && heightM ? (formData.weight / (heightM * heightM)).toFixed(1) : null;
 
+      const now = new Date().toISOString();
       const { error: vitalError } = await supabase
         .from("vital_signs")
         .insert({
           consultation_id: consultation.id,
+          created_at: now,
           temperature: formData.temperature ? parseFloat(formData.temperature) : null,
           blood_pressure: formData.bloodPressure || null,
           pulse_rate: formData.pulseRate ? parseInt(formData.pulseRate) : null,
@@ -94,7 +96,7 @@ const VitalSigns = () => {
       if (vitalError) throw vitalError;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["all-vitals"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["all-vitals"] });
       setShowAddModal(false);
       setForm({});
     },
