@@ -27,10 +27,12 @@ const VitalSigns = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vital_signs")
-        .select("*, consultation:consultations!consultation_id(id, created_at, patient:patients!patient_id(id, patient_id, first_name, last_name))")
-        .order("created_at", { ascending: false });
+        .select("*, consultation:consultations!consultation_id(id, created_at, patient:patients!patient_id(id, patient_id, first_name, last_name))");
       if (error) throw error;
-      return toCamel(data);
+      const sorted = (data || []).sort(
+        (a, b) => new Date(b.consultation?.created_at || 0).getTime() - new Date(a.consultation?.created_at || 0).getTime()
+      );
+      return toCamel(sorted);
     },
   });
 
@@ -180,7 +182,7 @@ const VitalSigns = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{v.createdAt ? new Date(v.createdAt).toLocaleString() : ""}</td>
+                      <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{v.consultation?.createdAt ? new Date(v.consultation.createdAt).toLocaleString() : ""}</td>
                       <td className="px-4 py-3 text-center font-mono text-sm">{v.temperature ?? "-"}</td>
                       <td className="px-4 py-3 text-center font-mono text-sm">{v.bloodPressure ?? "-"}</td>
                       <td className="px-4 py-3 text-center font-mono text-sm">{v.pulseRate ?? "-"}</td>
@@ -208,7 +210,7 @@ const VitalSigns = () => {
           <DialogHeader>
             <DialogTitle>Vital Signs Details</DialogTitle>
             <DialogDescription>
-                {showDetailModal?.consultation?.patient?.firstName} {showDetailModal?.consultation?.patient?.lastName} — {showDetailModal?.createdAt ? new Date(showDetailModal.createdAt).toLocaleString() : ""}
+                {showDetailModal?.consultation?.patient?.firstName} {showDetailModal?.consultation?.patient?.lastName} — {showDetailModal?.consultation?.createdAt ? new Date(showDetailModal.consultation.createdAt).toLocaleString() : ""}
               </DialogDescription>
             </DialogHeader>
             {showDetailModal && (() => {
