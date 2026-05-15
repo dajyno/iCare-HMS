@@ -99,7 +99,6 @@ const LabDetailView = ({
         unit: unit || null,
         reference_range: referenceRange,
         interpretation: interpretation || null,
-        technician_id: _doctorId || null,
       });
       if (error) throw error;
 

@@ -557,6 +557,11 @@ create policy "Authenticated users can insert lab results"
   to authenticated
   with check (true);
 
+create policy "Authenticated users can insert lab tests"
+  on public.lab_tests for insert
+  to authenticated
+  with check (true);
+
 create policy "Authenticated users can update prescriptions"
   on public.prescriptions for update
   to authenticated

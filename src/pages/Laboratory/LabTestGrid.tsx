@@ -110,8 +110,16 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
           .from("lab_tests")
           .insert({ name, status: "active" })
           .select("id")
-          .single();
-        if (error) throw error;
+          .maybeSingle();
+        if (error || !data) {
+          const { data: existing } = await supabase
+            .from("lab_tests")
+            .select("id")
+            .eq("name", name)
+            .maybeSingle();
+          if (existing) testIdMap.set(name, existing.id);
+          continue;
+        }
         testIdMap.set(name, data.id);
       }
 
@@ -125,15 +133,21 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
         }
       }
 
-      const requests = allSelectedTestNames.map((name) => ({
-        patient_id: patientId,
-        test_id: testIdMap.get(name),
-        status: "Requested" as const,
-      }));
+      const validRequests = allSelectedTestNames
+        .filter((name) => testIdMap.has(name))
+        .map((name) => ({
+          patient_id: patientId,
+          test_id: testIdMap.get(name),
+          status: "Requested" as const,
+        }));
+
+      if (validRequests.length === 0) {
+        throw new Error("No tests could be registered. Check that lab tests exist in the database.");
+      }
 
       const { error: reqError } = await supabase
         .from("lab_requests")
-        .insert(requests);
+        .insert(validRequests);
       if (reqError) throw reqError;
     },
     onSuccess: () => {
@@ -178,7 +192,7 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
         {/* Patient Header — all on one line */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
           <div className="flex items-end gap-4 flex-wrap">
-            <div className="space-y-1.5 flex-1 min-w-[200px]">
+            <div className="flex-1 min-w-[200px]">
               <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                 Patient Folder No.
               </Label>
@@ -222,13 +236,14 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
                 )}
               </div>
               {patientId && (
-                <p className="text-[10px] text-emerald-600 font-medium">
+                <p className="text-[10px] text-emerald-600 font-medium mt-0.5">
                   Patient selected
                 </p>
               )}
+              {!patientId && <div className="h-[18px]" />}
             </div>
 
-            <div className="space-y-1.5 min-w-[180px]">
+            <div className="min-w-[180px]">
               <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                 Referred By
               </Label>
@@ -242,9 +257,10 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
                 }))}
                 triggerClassName="h-9 text-sm"
               />
+              <div className="h-[18px]" />
             </div>
 
-            <div className="space-y-1.5 min-w-[160px]">
+            <div className="min-w-[160px]">
               <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                 Urgency
               </Label>
@@ -391,10 +407,10 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
         </div>
       </div>
 
-      {/* Sticky Footer — within content area only */}
+      {/* Fixed Footer — always visible, starts after sidebar */}
       <motion.div
         layout
-        className="sticky bottom-0 z-30 bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-[0_-2px_12px_rgba(0,0,0,0.06)] -mx-6 px-6"
+        className="fixed bottom-0 left-0 md:left-64 right-0 z-30 bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-[0_-2px_12px_rgba(0,0,0,0.06)] px-6"
       >
         {submitMutation.isPending && (
           <motion.div
