@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase, toCamel } from "@/src/lib/supabase";
+import { supabase, toCamel, ensureUserProfile } from "@/src/lib/supabase";
 import { useAuth } from "@/src/context/AuthContext";
 import {
   HeartPulse, Plus, Loader2, AlertCircle, Thermometer,
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import SearchableSelect from "@/components/ui/searchable-select";
+import Pagination from "@/components/ui/pagination";
 
 const VitalSigns = () => {
   const queryClient = useQueryClient();
@@ -18,13 +19,15 @@ const VitalSigns = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState<any>(null);
   const [form, setForm] = useState<any>({});
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const { data: vitals, isLoading, isError, error } = useQuery({
     queryKey: ["all-vitals"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("consultations")
-        .select("id, created_at, doctor_id, patient_id, vital_signs(*), patients!inner(id, patient_id, first_name, last_name)")
+        .select("id, created_at, doctor_id, patient_id, vital_signs(*), patients(id, patient_id, first_name, last_name)")
         .not("vital_signs", "is", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -45,8 +48,21 @@ const VitalSigns = () => {
     },
   });
 
+  const paginatedVitals = useMemo(() => {
+    if (!Array.isArray(vitals)) return [];
+    const start = (page - 1) * pageSize;
+    return vitals.slice(start, start + pageSize);
+  }, [vitals, page, pageSize]);
+
+  useEffect(() => {
+    const total = Array.isArray(vitals) ? vitals.length : 0;
+    const maxPage = Math.max(1, Math.ceil(total / pageSize));
+    if (page > maxPage) setPage(maxPage);
+  }, [vitals, pageSize]);
+
   const addMutation = useMutation({
     mutationFn: async (formData: any) => {
+      await ensureUserProfile(user);
       const { data: consultation, error: consultError } = await supabase
         .from("consultations")
         .insert({
@@ -141,7 +157,7 @@ const VitalSigns = () => {
                   <td colSpan={8} className="px-4 py-12 text-center text-slate-400">No vital signs recorded yet.</td>
                 </tr>
               ) : (
-                vitals.map((v: any) => {
+                paginatedVitals.map((v: any) => {
                   const vs = v.vitalSigns;
                   const patient = v.patients;
                   return (
@@ -175,6 +191,8 @@ const VitalSigns = () => {
             </tbody>
           </table>
         </div>
+
+        <Pagination currentPage={page} pageSize={pageSize} totalItems={Array.isArray(vitals) ? vitals.length : 0} onPageChange={setPage} onPageSizeChange={setPageSize} />
       </div>
 
       {/* View Detail Modal */}

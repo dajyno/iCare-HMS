@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
+import Pagination from "@/components/ui/pagination";
 import {
   Search, Plus, Filter, MoreVertical, User, Phone, Mail,
   Loader2, AlertCircle, X, Save, Edit, Archive, CalendarDays,
@@ -40,6 +41,8 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [companySuggestions, setCompanySuggestions] = useState<string[]>([]);
   const [hmoSuggestions, setHmoSuggestions] = useState<string[]>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     if (defaultCategory) setCategoryFilter(defaultCategory);
@@ -231,6 +234,16 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
     return result;
   }, [patients, categoryFilter, statusFilter, searchTerm]);
 
+  const paginatedPatients = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredPatients.slice(start, start + pageSize);
+  }, [filteredPatients, page, pageSize]);
+
+  useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(filteredPatients.length / pageSize));
+    if (page > maxPage) setPage(maxPage);
+  }, [filteredPatients.length, pageSize]);
+
   if (isLoading) {
     return (
       <div className="h-[60vh] flex flex-col items-center justify-center p-12">
@@ -315,8 +328,8 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {Array.isArray(filteredPatients) && filteredPatients.length > 0 ? (
-                filteredPatients.map((patient: any) => (
+              {Array.isArray(paginatedPatients) && paginatedPatients.length > 0 ? (
+                paginatedPatients.map((patient: any) => (
                   <tr key={patient.id} className="hover:bg-slate-50/80 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -392,6 +405,8 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
             </tbody>
           </table>
         </div>
+
+        <Pagination currentPage={page} pageSize={pageSize} totalItems={filteredPatients.length} onPageChange={setPage} onPageSizeChange={setPageSize} />
       </div>
 
       {/* New Patient Modal */}

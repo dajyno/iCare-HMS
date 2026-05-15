@@ -26,9 +26,10 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
-const SidebarItem = ({ icon: Icon, label, href, active }: any) => (
+const SidebarItem = ({ icon: Icon, label, href, active, onClick }: any) => (
   <Link
     to={href}
+    onClick={onClick}
     className={cn(
       "flex items-center gap-3 px-3 py-2 rounded-md transition-all text-sm font-medium",
       active
@@ -42,19 +43,13 @@ const SidebarItem = ({ icon: Icon, label, href, active }: any) => (
 );
 
 const SidebarGroup = ({ icon: Icon, label, children, currentPath, isOpen, onToggle }: any) => {
-  const hasActiveChild = children?.some((c: any) =>
-    c.href === "/" ? currentPath === "/" : currentPath.startsWith(c.href)
-  );
-
   return (
     <div>
       <button
         onClick={onToggle}
         className={cn(
           "flex items-center gap-3 px-3 py-2 rounded-md transition-all text-sm font-medium w-full text-left",
-          hasActiveChild
-            ? "bg-sky-50 text-sky-700 shadow-none"
-            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+          "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
         )}
       >
         {Icon && <Icon className="w-5 h-5 shrink-0" strokeWidth={2} />}
@@ -130,8 +125,8 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       { label: "HMO", href: "/patients/hmo" },
     ]},
     { icon: ClipboardList, label: "Consultations", children: [
-      { label: "Clinical Workspace", href: "/consultations" },
       { label: "Vital Signs", href: "/consultations/vitals" },
+      { label: "Clinical Workspace", href: "/consultations" },
     ]},
     { icon: FlaskConical, label: "Laboratory", href: "/laboratory" },
     { icon: Scan, label: "Radiology", href: "/radiology" },
@@ -152,6 +147,17 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     );
     return activeGroup?.label || null;
   });
+
+  useEffect(() => {
+    if (expandedGroup === null) {
+      const activeGroup = navItems.find((item: any) =>
+        item.children?.some((c: any) =>
+          c.href === "/" ? location.pathname === "/" : location.pathname.startsWith(c.href)
+        )
+      );
+      if (activeGroup) setExpandedGroup(activeGroup.label);
+    }
+  }, [location.pathname]);
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
@@ -182,6 +188,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                   key={item.href}
                   {...item}
                   active={item.href === "/" ? location.pathname === "/" : location.pathname.startsWith(item.href)}
+                  onClick={() => setExpandedGroup(null)}
                 />
               )
             )}

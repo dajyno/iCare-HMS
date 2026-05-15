@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase, toCamel } from "@/src/lib/supabase";
+import { supabase, toCamel, ensureUserProfile } from "@/src/lib/supabase";
 import { useAuth } from "@/src/context/AuthContext";
 import {
   ArrowLeft, User, Phone, Mail, MapPin, Calendar, Edit, Save,
@@ -227,6 +227,7 @@ const PatientProfile = () => {
 
   const createVitals = useMutation({
     mutationFn: async (payload: any) => {
+      await ensureUserProfile(currentUser);
       const { data: consult, error: consultError } = await supabase
         .from("consultations")
         .insert({ patient_id: id, doctor_id: currentUser?.id, chief_complaint: "Vitals Check" })
@@ -512,15 +513,17 @@ const PatientProfile = () => {
 
       {/* Tabs */}
       <Tabs defaultValue="overview">
-        <TabsList className="bg-white border p-1 h-auto flex-wrap">
-          <TabsTrigger value="overview" className="gap-2 px-4 py-2"><Activity className="w-4 h-4" /> Overview</TabsTrigger>
-          <TabsTrigger value="vitals" className="gap-2 px-4 py-2"><HeartPulse className="w-4 h-4" /> Vital Signs</TabsTrigger>
-          <TabsTrigger value="consultations" className="gap-2 px-4 py-2"><Stethoscope className="w-4 h-4" /> Consultations</TabsTrigger>
-          <TabsTrigger value="labs" className="gap-2 px-4 py-2"><FlaskConical className="w-4 h-4" /> Lab Results</TabsTrigger>
-          <TabsTrigger value="radiology" className="gap-2 px-4 py-2"><Bone className="w-4 h-4" /> Radiology</TabsTrigger>
-          <TabsTrigger value="prescriptions" className="gap-2 px-4 py-2"><Pill className="w-4 h-4" /> Prescriptions</TabsTrigger>
-          <TabsTrigger value="billing" className="gap-2 px-4 py-2"><Receipt className="w-4 h-4" /> Billing</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-1 px-1">
+          <TabsList className="bg-white border p-1 h-auto w-max min-w-full">
+            <TabsTrigger value="overview" className="gap-2 px-4 py-2 whitespace-nowrap"><Activity className="w-4 h-4" /> Overview</TabsTrigger>
+            <TabsTrigger value="vitals" className="gap-2 px-4 py-2 whitespace-nowrap"><HeartPulse className="w-4 h-4" /> Vital Signs</TabsTrigger>
+            <TabsTrigger value="consultations" className="gap-2 px-4 py-2 whitespace-nowrap"><Stethoscope className="w-4 h-4" /> Consultations</TabsTrigger>
+            <TabsTrigger value="labs" className="gap-2 px-4 py-2 whitespace-nowrap"><FlaskConical className="w-4 h-4" /> Lab Results</TabsTrigger>
+            <TabsTrigger value="radiology" className="gap-2 px-4 py-2 whitespace-nowrap"><Bone className="w-4 h-4" /> Radiology</TabsTrigger>
+            <TabsTrigger value="prescriptions" className="gap-2 px-4 py-2 whitespace-nowrap"><Pill className="w-4 h-4" /> Prescriptions</TabsTrigger>
+            <TabsTrigger value="billing" className="gap-2 px-4 py-2 whitespace-nowrap"><Receipt className="w-4 h-4" /> Billing</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* ========== OVERVIEW ========== */}
         <TabsContent value="overview" className="space-y-6 mt-6">
