@@ -2,7 +2,7 @@
   "framework": "vite",
   "buildCommand": "vite build",
   "outputDirectory": "dist",
-  "installCommand": "npx npm@10 install",
+  "installCommand": "npm install --legacy-peer-deps --no-package-lock",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
