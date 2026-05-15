@@ -55,6 +55,7 @@ interface LabOrder {
   status: string;
   dbStatus: string;
   raw: any;
+  isBatch?: boolean;
 }
 
 const columnHelper = createColumnHelper<LabOrder>();
@@ -77,19 +78,57 @@ const LabOrderTable = ({
 
   const data = useMemo<LabOrder[]>(() => {
     if (!Array.isArray(orders)) return [];
-    return orders.map((o: any) => ({
-      id: o.id,
-      orderCode: `REQ-${o.id.slice(-6).toUpperCase()}`,
-      testName: o.test?.name ?? "Unknown Test",
-      patientName: `${o.patient?.firstName ?? ""} ${o.patient?.lastName ?? ""}`.trim(),
-      patientId: o.patient?.id ?? "",
-      gender: o.patient?.gender ?? "",
-      dateOfBirth: o.patient?.dateOfBirth ?? "",
-      prescribedBy: o.consultation?.doctor?.fullName ?? "—",
-      status: mapStatus(o.status),
-      dbStatus: o.status,
-      raw: o,
-    }));
+
+    const groups = new Map<string, any[]>();
+    for (const o of orders) {
+      if (o.consultationId) {
+        const key = o.consultationId;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(o);
+      }
+    }
+
+    const seen = new Set<string>();
+    const result: LabOrder[] = [];
+
+    for (const o of orders) {
+      if (o.consultationId) {
+        if (seen.has(o.consultationId)) continue;
+        seen.add(o.consultationId);
+        const batch = groups.get(o.consultationId)!;
+        const anyAvail = batch.some((b: any) => b.status === "Requested");
+        result.push({
+          id: o.consultationId,
+          orderCode: `BATCH-${o.consultationId.slice(-4).toUpperCase()}`,
+          testName: `${batch.length} Tests`,
+          patientName: `${o.patient?.firstName ?? ""} ${o.patient?.lastName ?? ""}`.trim(),
+          patientId: o.patient?.id ?? "",
+          gender: o.patient?.gender ?? "",
+          dateOfBirth: o.patient?.dateOfBirth ?? "",
+          prescribedBy: o.consultation?.doctor?.fullName ?? "—",
+          status: anyAvail ? "To Do" : mapStatus(batch[0]?.status),
+          dbStatus: anyAvail ? "Requested" : batch[0]?.status,
+          raw: batch,
+          isBatch: true,
+        });
+      } else {
+        result.push({
+          id: o.id,
+          orderCode: `REQ-${o.id.slice(-6).toUpperCase()}`,
+          testName: o.test?.name ?? "Unknown Test",
+          patientName: `${o.patient?.firstName ?? ""} ${o.patient?.lastName ?? ""}`.trim(),
+          patientId: o.patient?.id ?? "",
+          gender: o.patient?.gender ?? "",
+          dateOfBirth: o.patient?.dateOfBirth ?? "",
+          prescribedBy: o.consultation?.doctor?.fullName ?? "—",
+          status: mapStatus(o.status),
+          dbStatus: o.status,
+          raw: o,
+          isBatch: false,
+        });
+      }
+    }
+    return result;
   }, [orders]);
 
   const filteredData = useMemo(() => {
@@ -143,6 +182,7 @@ const LabOrderTable = ({
         id: "actions",
         header: "",
         cell: ({ row }) => {
+          if (row.original.isBatch) return null;
           if (row.original.dbStatus !== "Requested") return null;
           const id = row.original.id;
           return (
@@ -258,10 +298,12 @@ const LabOrderTable = ({
                   <TableRow
                     key={row.original.id}
                     onClick={() => {
-                      if (row.original.dbStatus === "Completed") {
-                        onViewResult(row.original.raw);
+                      const clicked = row.original;
+                      const target = clicked.isBatch ? clicked.raw[0] : clicked.raw;
+                      if (clicked.dbStatus === "Completed" && !clicked.isBatch) {
+                        onViewResult(target);
                       } else {
-                        onSelectOrder(row.original.raw);
+                        onSelectOrder(target);
                       }
                     }}
                     className="cursor-pointer hover:bg-slate-50 transition-colors"

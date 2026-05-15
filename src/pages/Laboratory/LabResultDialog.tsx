@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Printer, Edit3, Beaker, CalendarClock } from "lucide-react";
+import { Printer, Edit3, Beaker, CalendarClock, FileText } from "lucide-react";
 import { format } from "date-fns";
 import StatusBadge from "./StatusBadge";
 
@@ -101,7 +101,18 @@ const LabResultDialog = ({
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                     Interpretation
                   </p>
-                  <p className="text-sm text-slate-700">{result.interpretation}</p>
+                  <p className="text-sm text-slate-700">
+                    {result.interpretation.replace(/^\[ATTACHMENT:.+?\]\n?/, "") || "—"}
+                  </p>
+                </div>
+              )}
+
+              {result.interpretation?.startsWith("[ATTACHMENT:") && (
+                <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                  <FileText className="w-4 h-4 text-[#005EB8]" />
+                  <span className="text-xs text-slate-700 font-medium">
+                    {result.interpretation.match(/\[ATTACHMENT:(.+?)\]/)?.[1] ?? "Attached file"}
+                  </span>
                 </div>
               )}
 

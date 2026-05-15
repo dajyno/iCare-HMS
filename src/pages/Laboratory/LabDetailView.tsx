@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Save,
@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import StatusBadge from "./StatusBadge";
-import { supabase } from "@/src/lib/supabase";
+import { supabase, toCamel } from "@/src/lib/supabase";
 
 const mapStatus = (dbStatus: string) => {
   const map: Record<string, string> = {
@@ -45,6 +45,7 @@ const LabDetailView = ({
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
 
   const { data: siblingOrders } = useQuery({
     queryKey: ["batch-orders", order?.consultationId],
@@ -56,7 +57,7 @@ const LabDetailView = ({
         .eq("consultation_id", order.consultationId)
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return data;
+      return toCamel(data);
     },
     enabled: !!order,
   });
@@ -76,7 +77,7 @@ const LabDetailView = ({
         .select("*")
         .in("request_id", ids);
       if (error) throw error;
-      return data ?? [];
+      return toCamel(data ?? []);
     },
     enabled: isCompleted && orders.length > 0,
   });
@@ -88,9 +89,9 @@ const LabDetailView = ({
       const interpMap: Record<string, string> = {};
       const flagMap: Record<string, boolean> = {};
       for (const r of existingResults) {
-        values[r.request_id] = r.result_value ?? "";
-        unitMap[r.request_id] = r.unit ?? "";
-        interpMap[r.request_id] = r.interpretation ?? "";
+        values[r.requestId] = r.resultValue ?? "";
+        unitMap[r.requestId] = r.unit ?? "";
+        interpMap[r.requestId] = r.interpretation ?? "";
       }
       setResultValues((prev) => ({ ...prev, ...values }));
       setUnits((prev) => ({ ...prev, ...unitMap }));
@@ -103,10 +104,15 @@ const LabDetailView = ({
       for (const o of orders) {
         const val = resultValues[o.id] ?? "";
         const unit = units[o.id] ?? "";
-        const interp = interpretations[o.id] ?? "";
+        let interp = interpretations[o.id] ?? "";
+
+        if (file && val) {
+          const fileTag = `[ATTACHMENT:${file.name}]\n`;
+          if (!interp.startsWith("[ATTACHMENT:")) interp = fileTag + interp;
+        }
 
         if (isCompleted && existingResults?.length) {
-          const existing = existingResults.find((r: any) => r.request_id === o.id);
+          const existing = existingResults.find((r: any) => r.requestId === o.id);
           if (existing) {
             await supabase
               .from("lab_results")
@@ -133,6 +139,9 @@ const LabDetailView = ({
       }
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["batch-results"] });
+      queryClient.invalidateQueries({ queryKey: ["batch-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["lab-result"] });
       onBack();
     },
     onError: (err) => {
@@ -237,16 +246,26 @@ const LabDetailView = ({
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Result</p>
                         <p className="text-lg font-bold font-mono text-slate-900">
-                          {existingResults.find((r: any) => r.request_id === o.id)?.result_value ?? "—"}
+                          {existingResults.find((r: any) => r.requestId === o.id)?.resultValue ?? "—"}
                         </p>
                       </div>
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Unit</p>
-                        <p className="text-sm text-slate-700">{existingResults.find((r: any) => r.request_id === o.id)?.unit ?? "—"}</p>
+                        <p className="text-sm text-slate-700">{existingResults.find((r: any) => r.requestId === o.id)?.unit ?? "—"}</p>
                       </div>
                     </div>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Interpretation</p>
-                    <p className="text-sm text-slate-700">{existingResults.find((r: any) => r.request_id === o.id)?.interpretation ?? "—"}</p>
+                    <p className="text-sm text-slate-700">
+                      {existingResults.find((r: any) => r.requestId === o.id)?.interpretation?.replace(/^\[ATTACHMENT:.+?\]\n?/, "") || "—"}
+                    </p>
+                    {existingResults.find((r: any) => r.requestId === o.id)?.interpretation?.startsWith("[ATTACHMENT:") && (
+                      <div className="flex items-center gap-2 p-2 bg-slate-50 rounded border border-slate-200">
+                        <FileText className="w-3.5 h-3.5 text-[#005EB8]" />
+                        <span className="text-[11px] text-slate-700 font-medium">
+                          {existingResults.find((r: any) => r.requestId === o.id)?.interpretation?.match(/\[ATTACHMENT:(.+?)\]/)?.[1]}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="p-5 space-y-3">
