@@ -89,7 +89,7 @@ const Overview = () => {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-800">Hospital Overview</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-800">HOSPITAL NAME</h1>
           <p className="text-slate-500 text-sm mt-1">Welcome back. Here's what's happening across departments today.</p>
         </div>
       </div>
