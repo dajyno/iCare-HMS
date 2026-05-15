@@ -2,8 +2,7 @@
   "framework": "vite",
   "buildCommand": "vite build",
   "outputDirectory": "dist",
-  "nodeVersion": "20.x",
-  "installCommand": "npm install --legacy-peer-deps",
+  "installCommand": "npx npm@10 install",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
