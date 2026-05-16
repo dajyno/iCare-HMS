@@ -13,7 +13,6 @@ import VitalSigns from "./pages/Consultations/VitalSigns";
 import LabModule from "./pages/Laboratory/LabModule";
 import PrescriptionTerminal from "./pages/Pharmacy/prescriptions/PrescriptionTerminal";
 import InventoryMatrix from "./pages/Pharmacy/inventory/InventoryMatrix";
-import BillingPage from "./pages/Pharmacy/analytics/BillingPage";
 import BillingAnalytics from "./pages/Pharmacy/analytics/BillingAnalytics";
 import BillingOverview from "./pages/Billing/BillingOverview";
 import InpatientOverview from "./pages/Inpatient/InpatientOverview";
@@ -181,14 +180,6 @@ export default function App() {
                element={
                  <ProtectedRoute>
                    <InventoryMatrix />
-                 </ProtectedRoute>
-               }
-             />
-             <Route
-               path="/pharmacy/billing"
-               element={
-                 <ProtectedRoute>
-                   <BillingPage />
                  </ProtectedRoute>
                }
              />

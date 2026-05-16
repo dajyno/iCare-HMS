@@ -139,7 +139,6 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     { icon: Pill, label: "Pharmacy", children: [
       { label: "Prescription", href: "/pharmacy/prescriptions" },
       { label: "Inventory", href: "/pharmacy/inventory" },
-      { label: "Billing", href: "/pharmacy/billing" },
       { label: "Analytics", href: "/pharmacy/analytics" },
     ]},
     { icon: Bed, label: "Inpatient", href: "/inpatient" },
