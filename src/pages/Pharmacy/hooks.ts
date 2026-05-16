@@ -114,18 +114,26 @@ export function useDispense() {
 
       for (const item of dispensedItems) {
         if (!item.medicationId) continue;
-        const { error: rpcError } = await (supabase.rpc as any)("decrement_stock", {
-          med_id: item.medicationId,
-          qty: item.qtyDispensed,
-        });
-        if (rpcError) throw rpcError;
+        const { data: med, error: readError } = await (supabase as any)
+          .from("medications")
+          .select("quantity_in_stock")
+          .eq("id", item.medicationId)
+          .single();
+        if (readError) throw new Error(`Failed to read stock for ${item.itemName}: ${readError.message}`);
+        const current = med?.quantity_in_stock ?? 0;
+        const next = Math.max(current - item.qtyDispensed, 0);
+        const { error: updateError } = await (supabase as any)
+          .from("medications")
+          .update({ quantity_in_stock: next })
+          .eq("id", item.medicationId);
+        if (updateError) throw new Error(`Failed to update stock for ${item.itemName}: ${updateError.message}`);
       }
 
       const { error: presError } = await (supabase as any)
         .from("prescriptions")
         .update({ status: newStatus })
         .eq("id", prescription.id);
-      if (presError) throw presError;
+      if (presError) throw new Error(presError.message || "Failed to update prescription status");
 
       const invNumber = `INV-PHARM-${Date.now().toString(36).toUpperCase()}`;
       const subtotal = Number(dispensedItems.reduce((s, i) => s + i.qtyDispensed * i.unitPrice, 0).toFixed(2));
@@ -139,7 +147,7 @@ export function useDispense() {
         total: Number((i.qtyDispensed * i.unitPrice).toFixed(2)),
       }));
 
-      const { data: invData, error: invError } = await (supabase as any)
+      const { error: invError } = await (supabase as any)
         .from("invoices")
         .insert({
           invoice_number: invNumber,
@@ -148,13 +156,16 @@ export function useDispense() {
           amount_paid: 0,
           balance: total,
           status: "Unpaid",
-        })
-        .select()
-        .single();
+        });
       if (invError) throw new Error(invError.message || "Failed to create invoice");
 
-      const invId = invData?.id;
-      if (!invId) throw new Error("Failed to create invoice");
+      const { data: invRows } = await (supabase as any)
+        .from("invoices")
+        .select("id")
+        .eq("invoice_number", invNumber)
+        .single();
+      const invId = invRows?.id;
+      if (!invId) throw new Error("Failed to retrieve invoice after creation");
 
       const { error: itemsError } = await (supabase as any).from("invoice_items").insert(
         invItems.map((li) => ({

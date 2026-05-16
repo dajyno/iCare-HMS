@@ -6,9 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/src/lib/supabase";
-
-const SUPABASE_URL = (import.meta as any).env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = (import.meta as any).env.VITE_SUPABASE_ANON_KEY;
 import { useAuth } from "@/src/context/AuthContext";
 import {
   Dialog,
@@ -54,54 +51,29 @@ const NewPrescriptionDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
         throw new Error("Please fill in all medication fields");
       }
 
-      const { data: sess } = await supabase.auth.getSession();
-      const token = sess?.session?.access_token;
-      if (!token) throw new Error("No auth session");
-
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/prescriptions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apikey": SUPABASE_ANON_KEY,
-          "Authorization": `Bearer ${token}`,
-          "Prefer": "return=representation",
-        },
-        body: JSON.stringify({
+      const { data: rxData, error: rxError } = await (supabase as any)
+        .from("prescriptions")
+        .insert({
           patient_id: selectedPatient.id,
           doctor_id: user?.id || "00000000-0000-0000-0000-000000000000",
           status: "Pending",
-        }),
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `Server returned ${res.status}`);
-      }
-      const created = await res.json();
-      const prescriptionId = Array.isArray(created) ? created[0]?.id : created?.id;
+        })
+        .select("id");
+      if (rxError) throw new Error(rxError.message || "Failed to create prescription");
+      const prescriptionId = rxData?.[0]?.id;
       if (!prescriptionId) throw new Error("No prescription ID returned");
 
-      const itemsPayload = items.filter((i) => i.medicationId).map((item) => ({
-        prescription_id: prescriptionId,
-        medication_id: item.medicationId,
-        dosage: item.dosage,
-        frequency: item.frequency,
-        duration: item.duration,
-        instructions: item.route,
-      }));
-
-      const itemsRes = await fetch(`${SUPABASE_URL}/rest/v1/prescription_items`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apikey": SUPABASE_ANON_KEY,
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify(itemsPayload),
-      });
-      if (!itemsRes.ok) {
-        const text = await itemsRes.text();
-        throw new Error(`Failed to add items: ${text}`);
-      }
+      const { error: itemsError } = await (supabase as any).from("prescription_items").insert(
+        items.filter((i) => i.medicationId).map((item) => ({
+          prescription_id: prescriptionId,
+          medication_id: item.medicationId,
+          dosage: item.dosage,
+          frequency: item.frequency,
+          duration: item.duration,
+          instructions: item.route,
+        }))
+      );
+      if (itemsError) throw new Error(itemsError.message || "Failed to add medication items");
 
       return prescriptionId;
     },
