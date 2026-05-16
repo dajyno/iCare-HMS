@@ -136,7 +136,11 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     ]},
     { icon: FlaskConical, label: "Laboratory", href: "/laboratory" },
     { icon: Scan, label: "Radiology", href: "/radiology" },
-    { icon: Pill, label: "Pharmacy", href: "/pharmacy" },
+    { icon: Pill, label: "Pharmacy", children: [
+      { label: "Prescription Terminal", href: "/pharmacy/prescriptions" },
+      { label: "Inventory Matrix", href: "/pharmacy/inventory" },
+      { label: "Billing & Analytics", href: "/pharmacy/analytics" },
+    ]},
     { icon: Bed, label: "Inpatient", href: "/inpatient" },
     { icon: CreditCard, label: "Billing", href: "/billing" },
     { icon: Calculator, label: "Accounting", href: "/accounting" },

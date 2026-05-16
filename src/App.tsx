@@ -11,7 +11,9 @@ import AppointmentList from "./pages/Appointments/AppointmentList";
 import ConsultationWorkspace from "./pages/Consultations/ConsultationWorkspace";
 import VitalSigns from "./pages/Consultations/VitalSigns";
 import LabModule from "./pages/Laboratory/LabModule";
-import PharmacyQueue from "./pages/Pharmacy/PharmacyQueue";
+import PrescriptionTerminal from "./pages/Pharmacy/prescriptions/PrescriptionTerminal";
+import InventoryMatrix from "./pages/Pharmacy/inventory/InventoryMatrix";
+import BillingAnalytics from "./pages/Pharmacy/analytics/BillingAnalytics";
 import BillingOverview from "./pages/Billing/BillingOverview";
 import InpatientOverview from "./pages/Inpatient/InpatientOverview";
 import InventoryList from "./pages/Inventory/InventoryList";
@@ -158,13 +160,37 @@ export default function App() {
               }
             />
              <Route
-              path="/pharmacy"
-              element={
-                <ProtectedRoute>
-                  <PharmacyQueue />
-                </ProtectedRoute>
-              }
-            />
+               path="/pharmacy"
+               element={
+                 <ProtectedRoute>
+                   <Navigate to="/pharmacy/prescriptions" replace />
+                 </ProtectedRoute>
+               }
+             />
+             <Route
+               path="/pharmacy/prescriptions"
+               element={
+                 <ProtectedRoute>
+                   <PrescriptionTerminal />
+                 </ProtectedRoute>
+               }
+             />
+             <Route
+               path="/pharmacy/inventory"
+               element={
+                 <ProtectedRoute>
+                   <InventoryMatrix />
+                 </ProtectedRoute>
+               }
+             />
+             <Route
+               path="/pharmacy/analytics"
+               element={
+                 <ProtectedRoute>
+                   <BillingAnalytics />
+                 </ProtectedRoute>
+               }
+             />
             <Route
               path="/billing"
               element={
