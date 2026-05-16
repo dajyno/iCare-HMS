@@ -51,7 +51,7 @@ const NewPrescriptionDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
         throw new Error("Please fill in all medication fields");
       }
 
-      const { data: rxData, error: rxError } = await (supabase as any)
+      const rxResult = await (supabase as any)
         .from("prescriptions")
         .insert({
           patient_id: selectedPatient.id,
@@ -59,21 +59,23 @@ const NewPrescriptionDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
           status: "Pending",
         })
         .select("id");
-      if (rxError) throw new Error(rxError.message || "Failed to create prescription");
-      const prescriptionId = rxData?.[0]?.id;
+      if (rxResult.error) throw new Error(rxResult.error.message || "Failed to create prescription");
+      const prescriptionId = rxResult.data?.[0]?.id;
       if (!prescriptionId) throw new Error("No prescription ID returned");
 
-      const { error: itemsError } = await (supabase as any).from("prescription_items").insert(
-        items.filter((i) => i.medicationId).map((item) => ({
-          prescription_id: prescriptionId,
-          medication_id: item.medicationId,
-          dosage: item.dosage,
-          frequency: item.frequency,
-          duration: item.duration,
-          instructions: item.route,
-        }))
-      );
-      if (itemsError) throw new Error(itemsError.message || "Failed to add medication items");
+      const itemsPayload = items.filter((i) => i.medicationId).map((item) => ({
+        prescription_id: prescriptionId,
+        medication_id: item.medicationId,
+        dosage: item.dosage,
+        frequency: item.frequency,
+        duration: item.duration,
+        instructions: item.route,
+      }));
+      console.log("Inserting prescription items:", JSON.stringify(itemsPayload));
+
+      const itemsResult = await (supabase as any).from("prescription_items").insert(itemsPayload).select("id");
+      if (itemsResult.error) throw new Error(itemsResult.error.message || "Failed to add medication items");
+      console.log("Created items:", itemsResult.data?.length ?? 0);
 
       return prescriptionId;
     },

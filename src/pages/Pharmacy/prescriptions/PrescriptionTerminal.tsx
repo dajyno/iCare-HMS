@@ -300,7 +300,7 @@ const PrescriptionTerminal = () => {
       </div>
 
       <Dialog open={!!selectedPrescription} onOpenChange={(open) => { if (!open) handleSheetClose(); }}>
-        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto p-0 gap-0">
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto p-0 gap-0" showCloseButton={false}>
           {selectedPrescription && (
             <PrescriptionDetail
               prescription={selectedPrescription}
