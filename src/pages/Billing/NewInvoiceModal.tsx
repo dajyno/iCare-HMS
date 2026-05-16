@@ -17,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { useAuth } from "@/src/context/AuthContext";
 import { usePatients, useDoctors, useCreateInvoice } from "./billingHooks";
 import {
   INITIAL_FORM_STATE,
@@ -37,7 +36,6 @@ interface NewInvoiceModalProps {
 }
 
 const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
-  const { user } = useAuth();
   const createInvoice = useCreateInvoice();
 
   const [form, setForm] = useState<NewInvoiceFormState>(INITIAL_FORM_STATE);
@@ -230,7 +228,6 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
         sourceType: form.sourceType || "General",
         lineItems: form.lineItems,
         taxRate: form.taxRate,
-        createdBy: user?.id || null,
         invoiceNumber: invNumber,
       },
       {
@@ -725,13 +722,13 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                           <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider w-28">
                             Date
                           </th>
-                          <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-20">
+                          <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-28">
                             Price ($)
                           </th>
-                          <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-14">
+                          <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-16">
                             Qty
                           </th>
-                          <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-20">
+                          <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-28">
                             Amount ($)
                           </th>
                           <th className="px-3 py-2.5 text-center w-8" />
@@ -800,7 +797,7 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                                     )
                                   }
                                   placeholder="0.00"
-                                  className="h-8 text-xs text-right border-0 bg-transparent px-1 focus:bg-white focus:border font-mono"
+                                  className="h-8 text-xs text-right border-0 bg-transparent px-1 focus:bg-white focus:border font-mono w-full min-w-[80px]"
                                 />
                               </td>
                               <td className="px-3 py-2">
@@ -815,10 +812,10 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                                       Math.max(1, parseInt(e.target.value) || 1)
                                     )
                                   }
-                                  className="h-8 text-xs text-right border-0 bg-transparent px-1 focus:bg-white focus:border font-mono"
+                                  className="h-8 text-xs text-right border-0 bg-transparent px-1 focus:bg-white focus:border font-mono w-full min-w-[50px]"
                                 />
                               </td>
-                              <td className="px-3 py-2 text-right font-mono text-sm font-semibold text-slate-900 tabular-nums">
+                              <td className="px-3 py-2 text-right font-mono text-sm font-semibold text-slate-900 tabular-nums whitespace-nowrap min-w-[90px]">
                                 ₦{item.amount.toFixed(2)}
                               </td>
                               <td className="px-3 py-2 text-center">

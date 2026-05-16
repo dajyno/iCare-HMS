@@ -101,3 +101,209 @@ export function computeGrandTotal(subtotal: number, taxRate: number): number {
 export function generateItemCode(idx: number): string {
   return `G-${String(idx + 1).padStart(2, "0")}`;
 }
+
+export interface InvoiceSummary {
+  id: string;
+  invoiceNumber: string;
+  patientId: string;
+  totalAmount: number;
+  amountPaid: number;
+  balance: number;
+  status: string;
+  sourceType: string;
+  paymentMethod: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+  patient: {
+    id: string;
+    patientId: string;
+    firstName: string;
+    lastName: string;
+  } | null;
+  items: {
+    id: string;
+    invoiceId: string;
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+  }[];
+}
+
+export const MOCK_INVOICES: InvoiceSummary[] = [
+  {
+    id: "mock-001",
+    invoiceNumber: "INV-2026-9042",
+    patientId: "mock-pt-1",
+    totalAmount: 15.0,
+    amountPaid: 0,
+    balance: 15.0,
+    status: "Unpaid",
+    sourceType: "Pharmacy",
+    paymentMethod: null,
+    createdBy: null,
+    createdAt: "2026-05-16T15:10:00Z",
+    updatedAt: "2026-05-16T15:10:00Z",
+    patient: {
+      id: "mock-pt-1",
+      patientId: "MD/0016/23",
+      firstName: "Jerel Kevin",
+      lastName: "Parocha",
+    },
+    items: [
+      {
+        id: "mock-item-1",
+        invoiceId: "mock-001",
+        description: "Paracetamol-10 mg Tab",
+        quantity: 1,
+        unitPrice: 15.0,
+        total: 15.0,
+      },
+    ],
+  },
+  {
+    id: "mock-002",
+    invoiceNumber: "INV-2026-9041",
+    patientId: "mock-pt-2",
+    totalAmount: 214.0,
+    amountPaid: 0,
+    balance: 214.0,
+    status: "Unpaid",
+    sourceType: "General",
+    paymentMethod: null,
+    createdBy: null,
+    createdAt: "2026-05-16T14:37:00Z",
+    updatedAt: "2026-05-16T14:37:00Z",
+    patient: {
+      id: "mock-pt-2",
+      patientId: "EG/0042/99",
+      firstName: "Charity",
+      lastName: "Enyioko",
+    },
+    items: [
+      {
+        id: "mock-item-2a",
+        invoiceId: "mock-002",
+        description: "Physical Therapy Session",
+        quantity: 1,
+        unitPrice: 99.0,
+        total: 99.0,
+      },
+      {
+        id: "mock-item-2b",
+        invoiceId: "mock-002",
+        description: "General Blood Test",
+        quantity: 1,
+        unitPrice: 80.0,
+        total: 80.0,
+      },
+      {
+        id: "mock-item-2c",
+        invoiceId: "mock-002",
+        description: "VAT",
+        quantity: 1,
+        unitPrice: 35.0,
+        total: 35.0,
+      },
+    ],
+  },
+  {
+    id: "mock-003",
+    invoiceNumber: "INV-2026-9040",
+    patientId: "mock-pt-3",
+    totalAmount: 250.0,
+    amountPaid: 250.0,
+    balance: 0,
+    status: "Paid",
+    sourceType: "Consultation",
+    paymentMethod: "Cash",
+    createdBy: null,
+    createdAt: "2026-05-15T09:30:00Z",
+    updatedAt: "2026-05-15T16:45:00Z",
+    patient: {
+      id: "mock-pt-3",
+      patientId: "FL/0051/88",
+      firstName: "Amara",
+      lastName: "Okafor",
+    },
+    items: [
+      {
+        id: "mock-item-3",
+        invoiceId: "mock-003",
+        description: "Consultation — Dr. Adebayo",
+        quantity: 1,
+        unitPrice: 250.0,
+        total: 250.0,
+      },
+    ],
+  },
+  {
+    id: "mock-004",
+    invoiceNumber: "INV-2026-9039",
+    patientId: "mock-pt-4",
+    totalAmount: 500.0,
+    amountPaid: 0,
+    balance: 500.0,
+    status: "Unpaid",
+    sourceType: "Inpatient",
+    paymentMethod: null,
+    createdBy: null,
+    createdAt: "2026-05-14T11:00:00Z",
+    updatedAt: "2026-05-14T11:00:00Z",
+    patient: {
+      id: "mock-pt-4",
+      patientId: "AB/0033/77",
+      firstName: "Chuka",
+      lastName: "Okafor",
+    },
+    items: [
+      {
+        id: "mock-item-4",
+        invoiceId: "mock-004",
+        description: "Inpatient Admission (3 days)",
+        quantity: 1,
+        unitPrice: 500.0,
+        total: 500.0,
+      },
+    ],
+  },
+  {
+    id: "mock-005",
+    invoiceNumber: "INV-2026-9038",
+    patientId: "mock-pt-5",
+    totalAmount: 75.0,
+    amountPaid: 75.0,
+    balance: 0,
+    status: "Paid",
+    sourceType: "Lab",
+    paymentMethod: "Card",
+    createdBy: null,
+    createdAt: "2026-05-14T08:20:00Z",
+    updatedAt: "2026-05-14T10:30:00Z",
+    patient: {
+      id: "mock-pt-5",
+      patientId: "CD/0022/11",
+      firstName: "Ibrahim",
+      lastName: "Musa",
+    },
+    items: [
+      {
+        id: "mock-item-5",
+        invoiceId: "mock-005",
+        description: "Complete Blood Count",
+        quantity: 1,
+        unitPrice: 45.0,
+        total: 45.0,
+      },
+      {
+        id: "mock-item-5b",
+        invoiceId: "mock-005",
+        description: "Malaria Test",
+        quantity: 1,
+        unitPrice: 30.0,
+        total: 30.0,
+      },
+    ],
+  },
+];

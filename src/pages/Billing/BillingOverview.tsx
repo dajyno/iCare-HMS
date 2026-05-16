@@ -20,11 +20,10 @@ import {
   SOURCE_TABS,
   STATUS_STYLES,
   SOURCE_STYLES,
+  type InvoiceSummary,
 } from "./billingTypes";
 import NewInvoiceModal from "./NewInvoiceModal";
 import InvoiceActionDrawer from "./InvoiceActionDrawer";
-import type { InvoiceSourceType } from "./billingTypes";
-import type { InvoiceSummary } from "./billingHooks";
 
 type FilterTab = (typeof SOURCE_TABS)[number];
 

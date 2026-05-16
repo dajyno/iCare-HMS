@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { STATUS_STYLES, SOURCE_STYLES } from "./billingTypes";
 import { useUpdateInvoiceStatus } from "./billingHooks";
-import type { InvoiceSummary } from "./billingHooks";
+import type { InvoiceSummary } from "./billingTypes";
 
 interface InvoiceActionDrawerProps {
   invoice: InvoiceSummary | null;
