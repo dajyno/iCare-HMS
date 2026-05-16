@@ -61,18 +61,26 @@ export function usePrescriptionQueue() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("prescriptions")
-        .select("*, patient:patients(*), items:prescription_items(*)")
+        .select("*, patient:patients(*), prescription_items(*)")
         .order("date", { ascending: false });
       if (error) { console.error("Prescription query error:", error); throw error; }
       if (!data || !Array.isArray(data)) return [];
       const rows = data as any[];
 
+      console.log("Raw prescriptions count:", rows.length);
+      if (rows.length > 0) {
+        const sample = rows[0] as any;
+        console.log("First prescription items count:", (sample.prescription_items ?? []).length);
+      }
+
       const medIds = new Set<string>();
       for (const rx of rows) {
-        for (const item of (rx.items ?? [])) {
+        for (const item of (rx.prescription_items ?? [])) {
           if (item.medication_id) medIds.add(item.medication_id);
         }
       }
+      console.log("Unique medication IDs found:", medIds.size);
+
       const medMap: Record<string, any> = {};
       if (medIds.size > 0) {
         const { data: meds } = await supabase
@@ -86,14 +94,16 @@ export function usePrescriptionQueue() {
 
       const enriched = rows.map((rx: any) => ({
         ...rx,
-        items: (rx.items ?? []).map((item: any) => ({
+        items: (rx.prescription_items ?? []).map((item: any) => ({
           ...item,
           medication: medMap[item.medication_id] ?? null,
         })),
       }));
 
       const camel = toCamel(enriched) as any[];
-      return (camel ?? []).map(toPharmacyPrescription) as PharmacyPrescription[];
+      const result = (camel ?? []).map(toPharmacyPrescription) as PharmacyPrescription[];
+      console.log("Processed prescriptions with items:", result.filter((r: any) => r.items.length > 0).length, "have items");
+      return result;
     },
   });
 }
