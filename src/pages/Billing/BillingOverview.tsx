@@ -131,7 +131,7 @@ const BillingOverview = () => {
     for (const id of ids) {
       const inv = (invoices as InvoiceSummary[] | undefined)?.find((i: InvoiceSummary) => i.id === id);
       if (inv && inv.status !== "Paid") {
-        await updateStatus.mutateAsync({ id, status: "Paid", amountPaid: inv.balance as number });
+        await updateStatus.mutateAsync({ id, amountPaid: inv.balance as number, paymentMethod: "Cash" });
       }
     }
     clearSelection();

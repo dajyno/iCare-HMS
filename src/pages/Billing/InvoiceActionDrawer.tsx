@@ -1,8 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Printer, CreditCard, Loader2, CheckCircle } from "lucide-react";
+import { X, Printer, CreditCard, Loader2, CheckCircle, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { STATUS_STYLES, SOURCE_STYLES } from "./billingTypes";
 import { useUpdateInvoiceStatus } from "./billingHooks";
@@ -14,8 +16,19 @@ interface InvoiceActionDrawerProps {
   onClose: () => void;
 }
 
+const PAYMENT_METHODS = ["Cash", "Card", "Bank Transfer", "Insurance Split"] as const;
+
 const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProps) => {
   const updateStatus = useUpdateInvoiceStatus();
+  const [payAmount, setPayAmount] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState<"Cash" | "Card" | "Bank Transfer" | "Insurance Split">("Cash");
+
+  useEffect(() => {
+    if (invoice) {
+      setPayAmount(invoice.balance);
+      setPaymentMethod(invoice.paymentMethod as any || "Cash");
+    }
+  }, [invoice]);
 
   useEffect(() => {
     if (!open) return;
@@ -27,11 +40,11 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
   }, [open, onClose]);
 
   const handleProcessPayment = () => {
-    if (!invoice) return;
+    if (!invoice || payAmount <= 0) return;
     updateStatus.mutate({
       id: invoice.id,
-      status: "Paid",
-      amountPaid: invoice.balance,
+      amountPaid: payAmount,
+      paymentMethod,
     });
   };
 
@@ -107,6 +120,11 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
                     >
                       {invoice.sourceType}
                     </Badge>
+                    {invoice.paidAt && (
+                      <Badge variant="outline" className="ml-2 text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200">
+                        Paid {new Date(invoice.paidAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
+                      </Badge>
+                    )}
                   </div>
                 </div>
 
@@ -164,6 +182,54 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
                     </span>
                   </div>
                 </div>
+
+                {/* Payment Input Section */}
+                {invoice.status !== "Paid" && (
+                  <div className="bg-slate-50 rounded-xl p-4 space-y-3">
+                    <div>
+                      <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
+                        Payment Amount (₦)
+                      </Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={invoice.balance}
+                        step={0.01}
+                        value={payAmount || ""}
+                        onChange={(e) => setPayAmount(Math.min(invoice.balance, Math.max(0, Number(e.target.value) || 0)))}
+                        className="h-9 bg-white font-mono"
+                      />
+                      <button
+                        onClick={() => setPayAmount(invoice.balance)}
+                        className="text-[10px] text-blue-600 hover:text-blue-800 mt-1 font-medium"
+                      >
+                        Pay full balance (₦{invoice.balance.toFixed(2)})
+                      </button>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
+                        Payment Method
+                      </Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {PAYMENT_METHODS.map((method) => (
+                          <button
+                            key={method}
+                            type="button"
+                            onClick={() => setPaymentMethod(method)}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${
+                              paymentMethod === method
+                                ? "bg-blue-50 border-blue-300 text-blue-700"
+                                : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
+                            }`}
+                          >
+                            <Wallet className="w-3.5 h-3.5" />
+                            {method}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="sticky bottom-0 bg-white/80 backdrop-blur-md border-t border-slate-200 rounded-b-2xl px-6 py-4 space-y-2">
@@ -183,18 +249,14 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
                 {invoice.status === "Paid" ? (
                   <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 rounded-lg px-4 py-3">
                     <CheckCircle className="w-4 h-4" />
-                    Payment received on{" "}
-                    {new Date(invoice.updatedAt).toLocaleDateString("en-GB", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}
+                    Payment received{invoice.paidAt ? ` on ${new Date(invoice.paidAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}` : ""}
+                    {invoice.paymentMethod && ` via ${invoice.paymentMethod}`}
                   </div>
                 ) : (
                   <Button
                     className="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2"
                     onClick={handleProcessPayment}
-                    disabled={updateStatus.isPending}
+                    disabled={updateStatus.isPending || payAmount <= 0}
                   >
                     {updateStatus.isPending ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -203,9 +265,9 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
                     )}
                     {updateStatus.isPending
                       ? "Processing..."
-                      : invoice.status === "PartiallyPaid"
-                        ? "Process Remaining Payment"
-                        : "Process Payment"}
+                      : payAmount < invoice.balance
+                        ? `Pay ₦${payAmount.toFixed(2)}`
+                        : "Process Full Payment"}
                   </Button>
                 )}
 

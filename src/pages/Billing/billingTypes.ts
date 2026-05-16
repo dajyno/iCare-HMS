@@ -109,6 +109,7 @@ export interface InvoiceSummary {
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
+  paidAt: string | null;
   patient: {
     id: string;
     patientId: string;
@@ -167,6 +168,7 @@ export const MOCK_INVOICES: InvoiceSummary[] = [
     createdBy: null,
     createdAt: "2026-05-16T15:10:00Z",
     updatedAt: "2026-05-16T15:10:00Z",
+    paidAt: null,
     patient: {
       id: "mock-pt-1",
       patientId: "MD/0016/23",
@@ -197,6 +199,7 @@ export const MOCK_INVOICES: InvoiceSummary[] = [
     createdBy: null,
     createdAt: "2026-05-16T14:37:00Z",
     updatedAt: "2026-05-16T14:37:00Z",
+    paidAt: null,
     patient: {
       id: "mock-pt-2",
       patientId: "EG/0042/99",
@@ -235,6 +238,7 @@ export const MOCK_INVOICES: InvoiceSummary[] = [
     createdBy: null,
     createdAt: "2026-05-15T09:30:00Z",
     updatedAt: "2026-05-15T16:45:00Z",
+    paidAt: null,
     patient: {
       id: "mock-pt-3",
       patientId: "FL/0051/88",
@@ -265,6 +269,7 @@ export const MOCK_INVOICES: InvoiceSummary[] = [
     createdBy: null,
     createdAt: "2026-05-14T11:00:00Z",
     updatedAt: "2026-05-14T11:00:00Z",
+    paidAt: null,
     patient: {
       id: "mock-pt-4",
       patientId: "AB/0033/77",
@@ -295,6 +300,7 @@ export const MOCK_INVOICES: InvoiceSummary[] = [
     createdBy: null,
     createdAt: "2026-05-14T08:20:00Z",
     updatedAt: "2026-05-14T10:30:00Z",
+    paidAt: null,
     patient: {
       id: "mock-pt-5",
       patientId: "CD/0022/11",

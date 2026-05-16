@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import type { LineItem, InvoiceSummary, CatalogItem } from "./billingTypes";
 import { computeLineItemAmount, MOCK_INVOICES, MOCK_MEDICATIONS, MOCK_LAB_TESTS } from "./billingTypes";
@@ -235,6 +235,7 @@ export function useCreateInvoice() {
           createdBy: null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
+          paidAt: null,
           patient: patientInfo
             ? {
                 id: patientId,
@@ -270,61 +271,158 @@ export function useCreateInvoice() {
   });
 }
 
+async function processPaymentSideEffects(
+  invoice: InvoiceSummary,
+  queryClient: QueryClient
+) {
+  const sourceType = invoice.sourceType;
+  const patientId = invoice.patientId;
+
+  if (sourceType === "Pharmacy") {
+    try {
+      const { error } = await (supabase as any)
+        .from("prescriptions")
+        .update({ status: "Ready for Dispensing" })
+        .eq("patient_id", patientId)
+        .eq("status", "Pending");
+      if (error) {
+        await (supabase as any)
+          .from("prescriptions")
+          .update({ status: "Dispensed" })
+          .eq("patient_id", patientId)
+          .eq("status", "Pending");
+      }
+    } catch {
+      // Prescriptions not in mock/localStorage, skip
+    }
+    queryClient.invalidateQueries({ queryKey: ["prescriptions"] });
+  }
+
+  if (sourceType === "Inpatient") {
+    try {
+      const { data: admissions } = await (supabase as any)
+        .from("admissions")
+        .select("id, bed_id")
+        .eq("patient_id", patientId)
+        .eq("status", "Admitted")
+        .limit(1)
+        .single();
+
+      if (admissions) {
+        await (supabase as any)
+          .from("admissions")
+          .update({ status: "Cleared for Discharge" })
+          .eq("id", admissions.id);
+
+        if (admissions.bed_id) {
+          await (supabase as any)
+            .from("beds")
+            .update({ status: "Cleaning" })
+            .eq("id", admissions.bed_id);
+        }
+      }
+    } catch {
+      // Local fallback — not supported
+    }
+    queryClient.invalidateQueries({ queryKey: ["admissions"] });
+  }
+
+  if (sourceType === "Lab & Radiology") {
+    try {
+      await (supabase as any)
+        .from("lab_requests")
+        .update({ status: "Authorized" })
+        .eq("patient_id", patientId)
+        .eq("status", "Requested");
+    } catch {
+      // Local fallback
+    }
+    queryClient.invalidateQueries({ queryKey: ["labRequests"] });
+
+    try {
+      await (supabase as any)
+        .from("radiology_requests")
+        .update({ status: "Authorized" })
+        .eq("patient_id", patientId)
+        .eq("status", "Requested");
+    } catch {
+      // Local fallback
+    }
+    queryClient.invalidateQueries({ queryKey: ["radiologyRequests"] });
+  }
+}
+
 export function useUpdateInvoiceStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({
       id,
-      status,
       amountPaid,
+      paymentMethod,
     }: {
       id: string;
-      status: string;
-      amountPaid?: number;
+      amountPaid: number;
+      paymentMethod: "Cash" | "Card" | "Bank Transfer" | "Insurance Split";
     }) => {
+      const cache = queryClient.getQueryData<InvoiceSummary[]>(["invoices"]);
+      const currentInvoice = cache?.find((inv) => inv.id === id);
+      if (!currentInvoice) throw new Error("Invoice not found");
+
+      const currentPaid = currentInvoice.amountPaid || 0;
+      const newAmountPaid = currentPaid + amountPaid;
+      const newBalance = Math.max(0, currentInvoice.balance - amountPaid);
+
+      const status =
+        newBalance <= 0
+          ? "Paid"
+          : amountPaid > 0
+            ? "PartiallyPaid"
+            : currentInvoice.status;
+
+      const paidAt = status === "Paid" ? new Date().toISOString() : null;
+
+      const updatePayload: Record<string, any> = {
+        amount_paid: newAmountPaid,
+        balance: newBalance,
+        status,
+        payment_method: paymentMethod,
+      };
+      if (paidAt) updatePayload.paid_at = paidAt;
+
       try {
-        const updatePayload: Record<string, any> = { status };
-
-        if (status === "Paid") {
-          updatePayload.amount_paid = amountPaid || 0;
-          updatePayload.balance = 0;
-        }
-
         const { error } = await (supabase as any)
           .from("invoices")
           .update(updatePayload)
           .eq("id", id);
-
-        if (!error) return;
+        if (error) throw error;
       } catch {
         const localKey = "icare_billing_local";
         const raw = localStorage.getItem(localKey);
         const existing: InvoiceSummary[] = raw ? JSON.parse(raw) : [];
         const idx = existing.findIndex((inv) => inv.id === id);
         if (idx !== -1) {
+          existing[idx].amountPaid = newAmountPaid;
+          existing[idx].balance = newBalance;
           existing[idx].status = status;
-          if (status === "Paid") {
-            existing[idx].amountPaid = amountPaid ?? existing[idx].balance;
-            existing[idx].balance = 0;
-          }
+          existing[idx].paymentMethod = paymentMethod;
+          existing[idx].paidAt = paidAt;
+          existing[idx].updatedAt = new Date().toISOString();
           localStorage.setItem(localKey, JSON.stringify(existing));
         }
+      }
 
-        const cache = queryClient.getQueryData<InvoiceSummary[]>(["invoices"]);
-        if (cache) {
-          const updated = cache.map((inv) =>
-            inv.id === id
-              ? {
-                  ...inv,
-                  status,
-                  amountPaid: status === "Paid" ? (amountPaid ?? inv.balance) : inv.amountPaid,
-                  balance: status === "Paid" ? 0 : inv.balance,
-                }
-              : inv
-          );
-          queryClient.setQueryData(["invoices"], updated);
-        }
+      if (cache) {
+        const updated = cache.map((inv) =>
+          inv.id === id
+            ? { ...inv, amountPaid: newAmountPaid, balance: newBalance, status, paymentMethod, paidAt, updatedAt: new Date().toISOString() }
+            : inv
+        );
+        queryClient.setQueryData(["invoices"], updated);
+      }
+
+      if (status === "Paid") {
+        await processPaymentSideEffects(currentInvoice, queryClient);
       }
     },
     onSuccess: () => {
