@@ -11,6 +11,8 @@ import {
   Beaker,
   Printer,
   Edit3,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -103,29 +105,25 @@ const LabDetailView = ({
     }
   }, [existingResults]);
 
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      for (const o of orders) {
-        const val = resultValues[o.id] ?? "";
-        const unit = units[o.id] ?? "";
-        let interp = interpretations[o.id] ?? "";
+  const saveResults = async (markCompleted: boolean) => {
+    for (const o of orders) {
+      const val = resultValues[o.id] ?? "";
+      const unit = units[o.id] ?? "";
+      let interp = interpretations[o.id] ?? "";
 
-        if (file && val) {
-          const fileTag = `[ATTACHMENT:${file.name}]\n`;
-          if (!interp.startsWith("[ATTACHMENT:")) interp = fileTag + interp;
-        }
+      if (file && val) {
+        const fileTag = `[ATTACHMENT:${file.name}]\n`;
+        if (!interp.startsWith("[ATTACHMENT:")) interp = fileTag + interp;
+      }
 
-        if (isCompleted && existingResults?.length) {
-          const existing = existingResults.find((r: any) => r.requestId === o.id);
-          if (existing) {
-            await supabase
-              .from("lab_results")
-              .update({ result_value: val, unit: unit || null, interpretation: interp || null })
-              .eq("id", existing.id);
-            continue;
-          }
-        }
-
+      const existing = existingResults?.find((r: any) => r.requestId === o.id);
+      if (existing) {
+        const { error } = await supabase
+          .from("lab_results")
+          .update({ result_value: val, unit: unit || null, interpretation: interp || null })
+          .eq("id", existing.id);
+        if (error) throw error;
+      } else {
         const { error } = await supabase.from("lab_results").insert({
           request_id: o.id,
           patient_id: o.patientId,
@@ -135,13 +133,20 @@ const LabDetailView = ({
           interpretation: interp || null,
         });
         if (error) throw error;
+      }
 
-        await supabase
+      if (markCompleted) {
+        const { error } = await supabase
           .from("lab_requests")
           .update({ status: "Completed" })
           .eq("id", o.id);
+        if (error) throw error;
       }
-    },
+    }
+  };
+
+  const saveDraftMutation = useMutation({
+    mutationFn: () => saveResults(false),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["batch-results"] });
       queryClient.invalidateQueries({ queryKey: ["batch-orders"] });
@@ -149,7 +154,20 @@ const LabDetailView = ({
       onBack();
     },
     onError: (err) => {
-      alert("Save failed: " + err.message);
+      alert("Save draft failed: " + err.message);
+    },
+  });
+
+  const completeMutation = useMutation({
+    mutationFn: () => saveResults(true),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["batch-results"] });
+      queryClient.invalidateQueries({ queryKey: ["batch-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["lab-result"] });
+      onBack();
+    },
+    onError: (err) => {
+      alert("Complete failed: " + err.message);
     },
   });
 
@@ -165,10 +183,6 @@ const LabDetailView = ({
     if (f) setFile(f);
   }, []);
 
-  const handleSave = () => {
-    saveMutation.mutate();
-  };
-
   const totalPrice = orders.reduce(
     (sum: number, o: any) => sum + (o?.test?.price ?? 0),
     0
@@ -176,50 +190,70 @@ const LabDetailView = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-slate-400 hover:text-slate-700 -ml-2"
-            onClick={onBack}
-          >
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            Back
-          </Button>
-          <div className="h-5 w-px bg-slate-200" />
-          <span className="font-mono text-xs font-semibold text-slate-500">
-            {orders.length > 1
-              ? `BATCH-${order?.consultationId?.slice(-4).toUpperCase()}`
-              : `REQ-${order.id?.slice(-6).toUpperCase()}`}
-          </span>
-          <StatusBadge status={mapStatus(order?.status)} />
-        </div>
-
-        <div className="flex items-center gap-2">
-          {isCompleted && viewMode === "view" && (
-            <>
-              <Button size="sm" variant="outline" className="h-9 px-4 gap-1.5 text-xs font-semibold" onClick={() => window.print()}>
-                <Printer className="w-3.5 h-3.5" /> Print
-              </Button>
-              <Button size="sm" variant="outline" className="h-9 px-4 gap-1.5 text-xs font-semibold" onClick={() => setViewMode("edit")}>
-                <Edit3 className="w-3.5 h-3.5" /> Edit
-              </Button>
-            </>
-          )}
-          {(!isCompleted || viewMode === "edit") && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <Button
+              variant="ghost"
               size="sm"
-              className="bg-[#005EB8] hover:bg-[#004d9a] text-white h-9 px-5 gap-2 font-semibold text-xs"
-              onClick={handleSave}
-              disabled={saveMutation.isPending}
+              className="text-slate-400 hover:text-slate-700 -ml-2"
+              onClick={onBack}
             >
-              <Save className="w-3.5 h-3.5" />
-              {saveMutation.isPending ? "Saving..." : isCompleted ? "Update Results" : "Save Results"}
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back
             </Button>
-          )}
+            <div className="h-5 w-px bg-slate-200" />
+            <span className="font-mono text-xs font-semibold text-slate-500">
+              {orders.length > 1
+                ? `BATCH-${order?.consultationId?.slice(-4).toUpperCase() || order?.batchId?.slice(-4).toUpperCase()}`
+                : `REQ-${order.id?.slice(-6).toUpperCase()}`}
+            </span>
+            <StatusBadge status={mapStatus(order?.status)} />
+          </div>
+
+          <div className="flex items-center gap-2">
+            {isCompleted && viewMode === "view" ? (
+              <>
+                <Button size="sm" variant="outline" className="h-9 px-4 gap-1.5 text-xs font-semibold" onClick={onBack}>
+                  Close
+                </Button>
+                <Button size="sm" variant="outline" className="h-9 px-4 gap-1.5 text-xs font-semibold" onClick={() => setViewMode("edit")}>
+                  <Edit3 className="w-3.5 h-3.5" /> Edit
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-9 px-4 gap-1.5 text-xs font-semibold"
+                  onClick={() => saveDraftMutation.mutate()}
+                  disabled={saveDraftMutation.isPending}
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  {saveDraftMutation.isPending ? "Saving..." : "Save Draft"}
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white h-9 px-5 gap-2 font-semibold text-xs"
+                  onClick={() => completeMutation.mutate()}
+                  disabled={completeMutation.isPending}
+                >
+                  {completeMutation.isPending ? (
+                    <span className="flex items-center gap-1.5">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Processing...
+                    </span>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Complete All
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
+          </div>
         </div>
-      </div>
 
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-2 space-y-6">
