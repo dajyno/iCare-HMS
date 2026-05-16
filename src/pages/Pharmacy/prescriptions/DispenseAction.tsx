@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { CheckCircle2, Loader2, FileText } from "lucide-react";
+import { CheckCircle2, Loader2, FileText, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDispense } from "../hooks";
 import type { PharmacyPrescription } from "../types";
@@ -15,6 +15,7 @@ const DispenseAction = ({
   onSuccess: () => void;
 }) => {
   const dispense = useDispense();
+  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{
     invoiceNumber: string;
     totalCost: number;
@@ -22,6 +23,7 @@ const DispenseAction = ({
   } | null>(null);
 
   const handleDispense = async () => {
+    setError(null);
     try {
       const res = await dispense.mutateAsync(prescription);
       setResult({
@@ -29,8 +31,9 @@ const DispenseAction = ({
         totalCost: res.totalCost,
         isPartial: res.isPartial,
       });
-    } catch {
-      // error handled by mutation
+    } catch (err: any) {
+      setError(err?.message || err?.toString() || "Dispense failed. Check console for details.");
+      console.error("Dispense error:", err);
     }
   };
 
@@ -67,23 +70,31 @@ const DispenseAction = ({
   }
 
   return (
-    <Button
-      className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold h-11 text-sm"
-      disabled={disabled || dispense.isPending}
-      onClick={handleDispense}
-    >
-      {dispense.isPending ? (
-        <span className="flex items-center gap-2">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          Dispensing...
-        </span>
-      ) : (
-        <span className="flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4" />
-          Dispense & Log
-        </span>
+    <div className="space-y-3">
+      {error && (
+        <div className="flex items-start gap-2 text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">
+          <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+          <span>{error}</span>
+        </div>
       )}
-    </Button>
+      <Button
+        className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold h-11 text-sm"
+        disabled={disabled || dispense.isPending}
+        onClick={handleDispense}
+      >
+        {dispense.isPending ? (
+          <span className="flex items-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Dispensing...
+          </span>
+        ) : (
+          <span className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4" />
+            Dispense & Log
+          </span>
+        )}
+      </Button>
+    </div>
   );
 };
 

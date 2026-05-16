@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
-import { Pill, Calendar, User, Hash } from "lucide-react";
+import { Pill, Calendar, User, Hash, X } from "lucide-react";
 import { format } from "date-fns";
+import { DialogClose } from "@/components/ui/dialog";
 import PrescriptionBadge from "./PrescriptionBadge";
 import DispenseAction from "./DispenseAction";
 import type { PharmacyPrescription } from "../types";
@@ -14,12 +15,11 @@ const PrescriptionDetail = ({
   onClose: () => void;
   onItemToggle: (index: number) => void;
 }) => {
-  const allDispensed = prescription.items.every((i) => i.qtyDispensed > 0);
   const anyDispensed = prescription.items.some((i) => i.qtyDispensed > 0);
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/60">
+    <div className="divide-y divide-slate-200/60">
+      <div className="flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-sm">
             {prescription.patientName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
@@ -29,11 +29,16 @@ const PrescriptionDetail = ({
             <p className="text-[11px] text-slate-500 font-mono">{prescription.patientCode}</p>
           </div>
         </div>
-        <PrescriptionBadge status={prescription.orderStatus} />
+        <div className="flex items-center gap-3">
+          <PrescriptionBadge status={prescription.orderStatus} />
+          <DialogClose className="text-slate-400 hover:text-slate-600 transition-colors">
+            <X className="w-4 h-4" />
+          </DialogClose>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
-        <div className="grid grid-cols-2 gap-4">
+      <div className="px-6 py-4 space-y-5">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3">
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <Hash className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <span className="font-mono text-xs">{prescription.id.slice(0, 8).toUpperCase()}</span>
@@ -44,12 +49,14 @@ const PrescriptionDetail = ({
           </div>
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span className="text-xs">{format(new Date(prescription.prescriptionDate), "MMM dd, yyyy")}</span>
+            <span className="text-xs">Rx: {format(new Date(prescription.prescriptionDate), "MMM dd, yyyy")}</span>
           </div>
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span className="text-xs">{prescription.patientDob ? format(new Date(prescription.patientDob), "MMM dd, yyyy") : "—"}</span>
-          </div>
+          {(prescription.orderStatus === "All Completed" || prescription.orderStatus === "Partially Completed") && (
+            <div className="flex items-center gap-2 text-sm text-emerald-600">
+              <Calendar className="w-3.5 h-3.5 shrink-0" />
+              <span className="text-xs font-semibold">Dispensed: {format(new Date(), "MMM dd, yyyy")}</span>
+            </div>
+          )}
         </div>
 
         <div>
@@ -72,6 +79,7 @@ const PrescriptionDetail = ({
                       onClick={() => onItemToggle(i)}
                       className="mt-0.5 shrink-0"
                       whileTap={{ scale: 0.9 }}
+                      disabled={prescription.orderStatus === "All Completed"}
                     >
                       <motion.div
                         layout
@@ -169,7 +177,7 @@ const PrescriptionDetail = ({
         )}
       </div>
 
-      <div className="px-6 py-4 border-t border-slate-200/60 bg-slate-50/30">
+      <div className="px-6 py-4 bg-slate-50/30">
         <DispenseAction
           prescription={prescription}
           disabled={prescription.orderStatus === "All Completed" || !anyDispensed}

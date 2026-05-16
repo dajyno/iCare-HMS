@@ -22,9 +22,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Sheet,
-  SheetContent,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
 import Pagination from "@/components/ui/pagination";
 import PrescriptionBadge from "./PrescriptionBadge";
 import PrescriptionDetail from "./PrescriptionDetail";
@@ -299,8 +299,8 @@ const PrescriptionTerminal = () => {
         />
       </div>
 
-      <Sheet open={!!selectedPrescription} onOpenChange={(open) => { if (!open) handleSheetClose(); }}>
-        <SheetContent className="w-full sm:max-w-xl p-0 flex flex-col">
+      <Dialog open={!!selectedPrescription} onOpenChange={(open) => { if (!open) handleSheetClose(); }}>
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto p-0 gap-0">
           {selectedPrescription && (
             <PrescriptionDetail
               prescription={selectedPrescription}
@@ -308,8 +308,8 @@ const PrescriptionTerminal = () => {
               onItemToggle={handleItemToggle}
             />
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       <NewPrescriptionDialog open={newPrescriptionOpen} onOpenChange={setNewPrescriptionOpen} />
 
