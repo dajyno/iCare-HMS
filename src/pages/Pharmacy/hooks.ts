@@ -62,9 +62,9 @@ export function usePrescriptionQueue() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("prescriptions")
-        .select("*, patient:patients(*), doctor:users(*), items:prescription_items(*, medication:medications(*)))")
+        .select("*, patient:patients(*), doctor:users(*), items:prescription_items(*, medication:medications(*))")
         .order("date", { ascending: false });
-      if (error) throw error;
+      if (error) { console.error("Prescription query error:", error); throw error; }
       const camel = toCamel(data) as any[];
       return (camel ?? []).map(toPharmacyPrescription) as PharmacyPrescription[];
     },
@@ -199,14 +199,16 @@ export function useAddInventoryItem() {
       initialStock: number;
       reorderLevel: number;
     }) => {
-      const { error } = await (supabase as any).from("medications").insert({
+      const result = await (supabase as any).from("medications").insert({
         name: item.name,
         dosage_form: item.packageType,
         unit_price: item.unitPrice,
         quantity_in_stock: item.initialStock,
         reorder_level: item.reorderLevel,
-      });
-      if (error) throw error;
+        status: "available",
+      }).select().single();
+      if (result?.error) throw new Error(result.error.message || "Failed to add item");
+      return result?.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pharmacy-inventory"] });

@@ -179,7 +179,7 @@ const PrescriptionTerminal = () => {
           </div>
         </div>
         <div className="flex items-center justify-center py-24">
-          <p className="text-sm text-red-500">Failed to load prescriptions. Please try again.</p>
+          <p className="text-sm text-red-500">Failed to load prescriptions. {(error as any)?.message || "Please try again."}</p>
         </div>
       </div>
     );

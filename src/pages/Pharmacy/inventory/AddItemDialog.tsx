@@ -22,20 +22,12 @@ const schema = z.object({
   sku: z.string().min(1, "SKU is required"),
   packageType: z.string().min(1, "Package type is required"),
   unitOfMeasurement: z.string().min(1, "Unit is required"),
-  unitPrice: z.coerce.number().positive("Price must be positive"),
-  initialStock: z.coerce.number().int().min(0, "Stock cannot be negative"),
-  reorderLevel: z.coerce.number().int().min(0, "Reorder level cannot be negative"),
-}) as unknown as z.ZodObject<{
-  name: z.ZodString;
-  sku: z.ZodString;
-  packageType: z.ZodString;
-  unitOfMeasurement: z.ZodString;
-  unitPrice: z.ZodNumber;
-  initialStock: z.ZodNumber;
-  reorderLevel: z.ZodNumber;
-}>;
+  unitPrice: z.number().positive("Price must be positive"),
+  initialStock: z.number().int().min(0, "Stock cannot be negative"),
+  reorderLevel: z.number().int().min(0, "Reorder level cannot be negative"),
+});
 
-type FormData = z.input<typeof schema>;
+type FormData = z.infer<typeof schema>;
 
 const AddItemDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) => {
   const addItem = useAddInventoryItem();
@@ -43,6 +35,7 @@ const AddItemDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (o
     register,
     handleSubmit,
     reset,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -62,8 +55,8 @@ const AddItemDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (o
       await addItem.mutateAsync(data);
       reset();
       onOpenChange(false);
-    } catch {
-      // error handled by mutation
+    } catch (err: any) {
+      setError("root", { message: err?.message || "Failed to add item. Check your permissions." });
     }
   };
 
@@ -76,6 +69,11 @@ const AddItemDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (o
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {errors.root && (
+            <div className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">
+              {errors.root.message}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="name" className="text-xs font-semibold text-slate-600">Item Name</Label>
@@ -105,17 +103,17 @@ const AddItemDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (o
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="unitPrice" className="text-xs font-semibold text-slate-600">Unit Price (₦)</Label>
-              <Input id="unitPrice" type="number" step="0.01" {...register("unitPrice")} className="h-9 text-sm font-mono tabular-nums" />
+              <Input id="unitPrice" type="number" step="0.01" {...register("unitPrice", { valueAsNumber: true })} className="h-9 text-sm font-mono tabular-nums" />
               {errors.unitPrice && <p className="text-[10px] text-red-500">{errors.unitPrice.message}</p>}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="initialStock" className="text-xs font-semibold text-slate-600">Initial Stock</Label>
-              <Input id="initialStock" type="number" {...register("initialStock")} className="h-9 text-sm font-mono tabular-nums" />
+              <Input id="initialStock" type="number" {...register("initialStock", { valueAsNumber: true })} className="h-9 text-sm font-mono tabular-nums" />
               {errors.initialStock && <p className="text-[10px] text-red-500">{errors.initialStock.message}</p>}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="reorderLevel" className="text-xs font-semibold text-slate-600">Reorder Level</Label>
-              <Input id="reorderLevel" type="number" {...register("reorderLevel")} className="h-9 text-sm font-mono tabular-nums" />
+              <Input id="reorderLevel" type="number" {...register("reorderLevel", { valueAsNumber: true })} className="h-9 text-sm font-mono tabular-nums" />
               {errors.reorderLevel && <p className="text-[10px] text-red-500">{errors.reorderLevel.message}</p>}
             </div>
           </div>
