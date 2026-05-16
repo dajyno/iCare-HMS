@@ -45,7 +45,7 @@ const PrescriptionDetail = ({
           </div>
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span className="text-xs">{prescription.prescribedBy}</span>
+            <span className="text-xs">{prescription.prescribedBy.startsWith("Doctor") ? "Attending Physician" : prescription.prescribedBy}</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />

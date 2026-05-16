@@ -26,12 +26,12 @@ function toPharmacyPrescription(row: any): PharmacyPrescription {
   const p = row.patient ?? {};
   return {
     id: row.id,
-    patientId: row.patientId ?? row.patient_id,
+    patientId: p.id ?? row.patientId ?? row.patient_id,
     patientCode: p.patientId ?? p.patient_id ?? "N/A",
     patientName: `${p.firstName ?? p.first_name ?? ""} ${p.lastName ?? p.last_name ?? ""}`.trim(),
     patientDob: p.dateOfBirth ?? p.date_of_birth ?? "",
     prescriptionDate: row.date ?? row.created_at ?? "",
-    prescribedBy: `Dr. ${row.doctorId ?? row.doctor_id ?? "Unknown"}`,
+    prescribedBy: (row.doctorName) ? `Dr. ${row.doctorName}` : `Doctor #${(row.doctorId ?? row.doctor_id ?? "?").slice(0, 6)}`,
     orderStatus: getOrderStatus(row.status),
     items: (row.items ?? []).map((item: any) => {
       const med = item.medication ?? {};
