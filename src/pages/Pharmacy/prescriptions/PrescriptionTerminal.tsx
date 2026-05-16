@@ -10,8 +10,9 @@ import {
   flexRender,
   SortingState,
 } from "@tanstack/react-table";
-import { Search, Pill, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Pill, ArrowUpDown, ArrowUp, ArrowDown, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -27,6 +28,7 @@ import {
 import Pagination from "@/components/ui/pagination";
 import PrescriptionBadge from "./PrescriptionBadge";
 import PrescriptionDetail from "./PrescriptionDetail";
+import NewPrescriptionDialog from "./NewPrescriptionDialog";
 import { usePrescriptionQueue } from "../hooks";
 import type { PharmacyPrescription, OrderStatus } from "../types";
 import { format } from "date-fns";
@@ -48,6 +50,7 @@ const PrescriptionTerminal = () => {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [selectedPrescription, setSelectedPrescription] = useState<PharmacyPrescription | null>(null);
+  const [newPrescriptionOpen, setNewPrescriptionOpen] = useState(false);
 
   const data = useMemo<RowData[]>(() => {
     if (!Array.isArray(prescriptions)) return [];
@@ -199,6 +202,14 @@ const PrescriptionTerminal = () => {
             </p>
           </div>
         </div>
+        <Button
+          size="sm"
+          className="h-9 gap-1.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs"
+          onClick={() => setNewPrescriptionOpen(true)}
+        >
+          <Plus className="w-3.5 h-3.5" />
+          New Prescription
+        </Button>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -299,6 +310,8 @@ const PrescriptionTerminal = () => {
           )}
         </SheetContent>
       </Sheet>
+
+      <NewPrescriptionDialog open={newPrescriptionOpen} onOpenChange={setNewPrescriptionOpen} />
 
       <style>{`
         @keyframes badgePulse {

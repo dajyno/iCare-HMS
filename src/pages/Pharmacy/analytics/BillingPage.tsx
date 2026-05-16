@@ -23,7 +23,7 @@ const BillingPage = () => {
   const { data: invoices, isLoading, error } = useQuery({
     queryKey: ["pharmacy-invoices"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("invoices")
         .select("*, patient:patients(*)")
         .order("created_at", { ascending: false })

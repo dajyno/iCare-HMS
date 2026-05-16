@@ -583,10 +583,25 @@ create policy "Authenticated users can update prescriptions"
   to authenticated
   using (true);
 
+create policy "Authenticated users can insert medications"
+  on public.medications for insert
+  to authenticated
+  with check (true);
+
 create policy "Authenticated users can update medications"
   on public.medications for update
   to authenticated
   using (true);
+
+create policy "Authenticated users can insert invoices"
+  on public.invoices for insert
+  to authenticated
+  with check (true);
+
+create policy "Authenticated users can insert invoice_items"
+  on public.invoice_items for insert
+  to authenticated
+  with check (true);
 
 create policy "Authenticated users can update lab requests"
   on public.lab_requests for update
