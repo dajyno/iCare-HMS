@@ -37,7 +37,7 @@ function toPharmacyPrescription(row: any): PharmacyPrescription {
       const med = item.medication ?? {};
       return {
         id: item.id,
-        medicationId: med.id ?? "",
+        medicationId: med.id ?? item.medicationId ?? item.medication_id ?? "",
         sku: med.sku ?? makeSku(med),
         itemName: med.name ?? "Unknown",
         strength: med.strength ?? "",
@@ -61,10 +61,38 @@ export function usePrescriptionQueue() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("prescriptions")
-        .select("*, patient:patients(*), items:prescription_items(*, medication:medications(*))")
+        .select("*, patient:patients(*), items:prescription_items(*)")
         .order("date", { ascending: false });
       if (error) { console.error("Prescription query error:", error); throw error; }
-      const camel = toCamel(data) as any[];
+      if (!data || !Array.isArray(data)) return [];
+      const rows = data as any[];
+
+      const medIds = new Set<string>();
+      for (const rx of rows) {
+        for (const item of (rx.items ?? [])) {
+          if (item.medication_id) medIds.add(item.medication_id);
+        }
+      }
+      const medMap: Record<string, any> = {};
+      if (medIds.size > 0) {
+        const { data: meds } = await supabase
+          .from("medications")
+          .select("*")
+          .in("id", [...medIds]);
+        if (meds) {
+          for (const m of meds as any[]) medMap[m.id] = m;
+        }
+      }
+
+      const enriched = rows.map((rx: any) => ({
+        ...rx,
+        items: (rx.items ?? []).map((item: any) => ({
+          ...item,
+          medication: medMap[item.medication_id] ?? null,
+        })),
+      }));
+
+      const camel = toCamel(enriched) as any[];
       return (camel ?? []).map(toPharmacyPrescription) as PharmacyPrescription[];
     },
   });
