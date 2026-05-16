@@ -59,25 +59,32 @@ export function usePrescriptionQueue() {
   return useQuery({
     queryKey: ["pharmacy-prescriptions"],
     queryFn: async () => {
+      console.log("PHARMACY: Fetching prescriptions...");
       const { data, error } = await supabase
         .from("prescriptions")
         .select("*, patient:patients(*)")
         .order("date", { ascending: false });
-      if (error) { console.error("Prescription query error:", error); throw error; }
-      if (!data || !Array.isArray(data)) return [];
+      if (error) { console.error("PHARMACY query error:", error); throw error; }
+      if (!data || !Array.isArray(data)) { console.log("PHARMACY: no data"); return []; }
       const rows = data as any[];
+      console.log("PHARMACY: got", rows.length, "prescriptions");
 
       const rxIds = rows.map((r: any) => r.id);
-      const { data: allItems } = await supabase
+      console.log("PHARMACY: fetching items for", rxIds.length, "prescriptions");
+      const { data: allItems, error: itemsErr } = await supabase
         .from("prescription_items")
         .select("*")
         .in("prescription_id", rxIds);
+      if (itemsErr) console.error("PHARMACY items error:", itemsErr);
+      console.log("PHARMACY: got", (allItems as any[] ?? []).length, "items total");
+
       const itemsByRxId: Record<string, any[]> = {};
       for (const item of (allItems as any[] ?? [])) {
         const pid = item.prescription_id;
         if (!itemsByRxId[pid]) itemsByRxId[pid] = [];
         itemsByRxId[pid].push(item);
       }
+      console.log("PHARMACY: prescriptions with items:", Object.keys(itemsByRxId).length);
 
       const medIds = new Set<string>();
       for (const item of (allItems as any[] ?? [])) {
@@ -93,6 +100,7 @@ export function usePrescriptionQueue() {
           for (const m of meds as any[]) medMap[m.id] = m;
         }
       }
+      console.log("PHARMACY: medications fetched:", Object.keys(medMap).length);
 
       const enriched = rows.map((rx: any) => ({
         ...rx,
@@ -104,6 +112,7 @@ export function usePrescriptionQueue() {
 
       const camel = toCamel(enriched) as any[];
       const result = (camel ?? []).map(toPharmacyPrescription) as PharmacyPrescription[];
+      console.log("PHARMACY: final count with items > 0:", result.filter((r: any) => r.items.length > 0).length);
       return result;
     },
   });
