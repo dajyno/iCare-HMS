@@ -73,9 +73,12 @@ const NewPrescriptionDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
       }));
       console.log("Inserting prescription items:", JSON.stringify(itemsPayload));
 
-      const itemsResult = await (supabase as any).from("prescription_items").insert(itemsPayload).select("id");
-      if (itemsResult.error) throw new Error(itemsResult.error.message || "Failed to add medication items");
-      console.log("Created items:", itemsResult.data?.length ?? 0);
+      const itemsResult = await (supabase as any).from("prescription_items").insert(itemsPayload);
+      if (itemsResult.error) {
+        console.error("Items insert failed:", itemsResult.error);
+        throw new Error(itemsResult.error.message || "Failed to add medication items");
+      }
+      console.log("Items created successfully");
 
       return prescriptionId;
     },
@@ -83,6 +86,9 @@ const NewPrescriptionDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
       queryClient.invalidateQueries({ queryKey: ["pharmacy-prescriptions"] });
       resetForm();
       onOpenChange(false);
+    },
+    onError: (err: any) => {
+      console.error("Create prescription mutation failed:", err);
     },
   });
 
