@@ -24,7 +24,6 @@ function makeSku(med: any): string {
 
 function toPharmacyPrescription(row: any): PharmacyPrescription {
   const p = row.patient ?? {};
-  const doctor = row.doctor ?? {};
   return {
     id: row.id,
     patientId: row.patientId ?? row.patient_id,
@@ -32,7 +31,7 @@ function toPharmacyPrescription(row: any): PharmacyPrescription {
     patientName: `${p.firstName ?? p.first_name ?? ""} ${p.lastName ?? p.last_name ?? ""}`.trim(),
     patientDob: p.dateOfBirth ?? p.date_of_birth ?? "",
     prescriptionDate: row.date ?? row.created_at ?? "",
-    prescribedBy: `Dr. ${doctor.fullName ?? doctor.full_name ?? "Unknown"}`,
+    prescribedBy: `Dr. ${row.doctorId ?? row.doctor_id ?? "Unknown"}`,
     orderStatus: getOrderStatus(row.status),
     items: (row.items ?? []).map((item: any) => {
       const med = item.medication ?? {};
@@ -62,7 +61,7 @@ export function usePrescriptionQueue() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("prescriptions")
-        .select("*, patient:patients(*), doctor:users(*), items:prescription_items(*, medication:medications(*))")
+        .select("*, patient:patients(*), items:prescription_items(*, medication:medications(*))")
         .order("date", { ascending: false });
       if (error) { console.error("Prescription query error:", error); throw error; }
       const camel = toCamel(data) as any[];
@@ -133,40 +132,21 @@ export function useDispense() {
       const tax = Number((subtotal * 0.075).toFixed(2));
       const total = Number((subtotal + tax).toFixed(2));
 
-      const { data: invData, error: invError } = await (supabase as any)
-        .from("invoices")
-        .insert({
-          invoice_number: invNumber,
-          patient_id: prescription.patientId,
-          total_amount: total,
-          amount_paid: 0,
-          balance: total,
-          status: "Unpaid",
-        })
-        .select()
-        .single();
-      if (invError) throw invError;
-
-      const invItems: InvoiceLineItem[] = dispensedItems.map((i) => ({
+      const invItems = dispensedItems.map((i) => ({
         description: `${i.itemName} ${i.strength} x${i.qtyDispensed}`,
         quantity: i.qtyDispensed,
-        unitPrice: i.unitPrice,
+        unit_price: i.unitPrice,
         total: Number((i.qtyDispensed * i.unitPrice).toFixed(2)),
       }));
 
-      const invId = invData?.id;
+      const { data: invId, error: invError } = await (supabase.rpc as any)("create_pharmacy_invoice", {
+        p_invoice_number: invNumber,
+        p_patient_id: prescription.patientId,
+        p_total_amount: total,
+        p_items: JSON.stringify(invItems),
+      });
+      if (invError) throw new Error(invError.message || "Failed to create invoice");
       if (!invId) throw new Error("Failed to create invoice");
-
-      const { error: itemsError } = await (supabase as any).from("invoice_items").insert(
-        invItems.map((li) => ({
-          invoice_id: invId,
-          description: li.description,
-          quantity: li.quantity,
-          unit_price: li.unitPrice,
-          total: li.total,
-        }))
-      );
-      if (itemsError) throw itemsError;
 
       return {
         prescriptionId: prescription.id,
@@ -175,7 +155,12 @@ export function useDispense() {
         totalCost: total,
         tax,
         subtotal,
-        items: invItems,
+        items: invItems.map((i) => ({
+          description: i.description,
+          quantity: i.quantity,
+          unitPrice: i.unit_price,
+          total: i.total,
+        })),
         isPartial,
       };
     },
@@ -199,16 +184,15 @@ export function useAddInventoryItem() {
       initialStock: number;
       reorderLevel: number;
     }) => {
-      const result = await (supabase as any).from("medications").insert({
-        name: item.name,
-        dosage_form: item.packageType,
-        unit_price: item.unitPrice,
-        quantity_in_stock: item.initialStock,
-        reorder_level: item.reorderLevel,
-        status: "available",
-      }).select().single();
-      if (result?.error) throw new Error(result.error.message || "Failed to add item");
-      return result?.data;
+      const { data, error } = await (supabase.rpc as any)("insert_medication", {
+        p_name: item.name,
+        p_dosage_form: item.packageType,
+        p_unit_price: item.unitPrice,
+        p_quantity_in_stock: item.initialStock,
+        p_reorder_level: item.reorderLevel,
+      });
+      if (error) throw new Error(error.message || "Failed to add item");
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pharmacy-inventory"] });
@@ -226,9 +210,11 @@ export function useBulkAddInventory() {
       quantity_in_stock: number;
       reorder_level: number;
     }>) => {
-      const { error } = await (supabase as any).from("medications").insert(items);
-      if (error) throw error;
-      return items.length;
+      const { data, error } = await (supabase.rpc as any)("bulk_insert_medications", {
+        p_items: JSON.stringify(items),
+      });
+      if (error) throw new Error(error.message || "Failed to bulk add items");
+      return data ?? items.length;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pharmacy-inventory"] });
