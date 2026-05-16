@@ -109,11 +109,14 @@ const PrescriptionTerminal = () => {
       columnHelper.display({
         id: "items",
         header: "Items",
-        cell: ({ row }) => (
-          <span className="text-xs font-mono tabular-nums text-slate-400">
-            {row.original.raw.items.length}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const count = (row.original as RowData).raw.items.length;
+          return (
+            <span className={`text-xs font-mono tabular-nums ${count > 0 ? "text-slate-700 font-semibold" : "text-red-400"}`}>
+              {count > 0 ? `${count} drug${count > 1 ? "s" : ""}` : "No drugs"}
+            </span>
+          );
+        },
       }),
     ],
     []
