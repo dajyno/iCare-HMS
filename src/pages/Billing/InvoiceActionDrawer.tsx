@@ -40,8 +40,6 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
   };
 
   const subtotal = invoice?.items?.reduce((s, i) => s + i.total, 0) ?? 0;
-  const vatItem = invoice?.items?.find((i) => i.description === "VAT");
-  const vatAmount = vatItem?.total ?? 0;
 
   return (
     <AnimatePresence>
@@ -147,19 +145,11 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-500">Subtotal (excl. VAT)</span>
+                    <span className="text-slate-500">Subtotal</span>
                     <span className="font-mono tabular-nums text-slate-700">
-                      ₦{(subtotal - vatAmount).toFixed(2)}
+                      ₦{subtotal.toFixed(2)}
                     </span>
                   </div>
-                  {vatAmount > 0 && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-500">VAT (5%)</span>
-                      <span className="font-mono tabular-nums text-slate-700">
-                        ₦{vatAmount.toFixed(2)}
-                      </span>
-                    </div>
-                  )}
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-500">Amount Paid</span>
                     <span className="font-mono tabular-nums text-emerald-600">

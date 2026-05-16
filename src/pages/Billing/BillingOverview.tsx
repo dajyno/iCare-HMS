@@ -122,17 +122,21 @@ const BillingOverview = () => {
 
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
-  const handleBulkPay = useCallback(() => {
-    if (selectedIds.size === 0) return;
+  const [bulkPaying, setBulkPaying] = useState(false);
+
+  const handleBulkPay = useCallback(async () => {
+    if (selectedIds.size === 0 || bulkPaying) return;
+    setBulkPaying(true);
     const ids: string[] = Array.from(selectedIds);
     for (const id of ids) {
       const inv = (invoices as InvoiceSummary[] | undefined)?.find((i: InvoiceSummary) => i.id === id);
       if (inv && inv.status !== "Paid") {
-        updateStatus.mutate({ id: id, status: "Paid", amountPaid: (inv.balance as number) });
+        await updateStatus.mutateAsync({ id, status: "Paid", amountPaid: inv.balance as number });
       }
     }
     clearSelection();
-  }, [selectedIds, invoices, updateStatus, clearSelection]);
+    setBulkPaying(false);
+  }, [selectedIds, invoices, updateStatus, clearSelection, bulkPaying]);
 
   const handleRowClick = (inv: InvoiceSummary) => {
     setSelectedInvoice(inv);
@@ -426,14 +430,14 @@ const BillingOverview = () => {
             <Button
               className="h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 px-6"
               onClick={handleBulkPay}
-              disabled={updateStatus.isPending}
+              disabled={bulkPaying}
             >
-              {updateStatus.isPending ? (
+              {bulkPaying ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Check className="w-4 h-4" />
               )}
-              Pay Selected
+              {bulkPaying ? "Paying..." : "Pay Selected"}
             </Button>
           </motion.div>
         )}

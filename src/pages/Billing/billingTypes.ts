@@ -1,4 +1,4 @@
-export type InvoiceSourceType = "Pharmacy" | "Lab" | "Consultation" | "General" | "Admin" | "Inpatient";
+export type InvoiceSourceType = "Pharmacy" | "Lab & Radiology" | "Consultation" | "General" | "Admin" | "Inpatient";
 
 export type LineItemType = "Service" | "Product" | "Other";
 
@@ -30,7 +30,6 @@ export interface NewInvoiceFormState {
     consultationFee: number;
   };
   lineItems: LineItem[];
-  taxRate: number;
 }
 
 export const DEFAULT_LINE_ITEM: LineItem = {
@@ -56,13 +55,12 @@ export const INITIAL_FORM_STATE: NewInvoiceFormState = {
     consultationFee: 0,
   },
   lineItems: [{ ...DEFAULT_LINE_ITEM }],
-  taxRate: 0.05,
 };
 
 export const SOURCE_TABS = [
   "All",
   "Pharmacy",
-  "Lab",
+  "Lab & Radiology",
   "Consultation",
   "General",
   "Admin",
@@ -79,7 +77,7 @@ export const STATUS_STYLES: Record<string, string> = {
 
 export const SOURCE_STYLES: Record<string, string> = {
   Pharmacy: "bg-sky-50 text-sky-700 border-sky-200",
-  Lab: "bg-purple-50 text-purple-700 border-purple-200",
+  "Lab & Radiology": "bg-purple-50 text-purple-700 border-purple-200",
   Consultation: "bg-teal-50 text-teal-700 border-teal-200",
   General: "bg-indigo-50 text-indigo-700 border-indigo-200",
   Admin: "bg-amber-50 text-amber-700 border-amber-200",
@@ -92,10 +90,6 @@ export function computeLineItemAmount(price: number, qty: number): number {
 
 export function computeSubtotal(items: LineItem[]): number {
   return items.reduce((sum, item) => sum + computeLineItemAmount(item.price, item.qty), 0);
-}
-
-export function computeGrandTotal(subtotal: number, taxRate: number): number {
-  return subtotal + subtotal * taxRate;
 }
 
 export function generateItemCode(idx: number): string {
@@ -131,6 +125,34 @@ export interface InvoiceSummary {
   }[];
 }
 
+export interface CatalogItem {
+  id: string;
+  name: string;
+  price: number;
+}
+
+export const MOCK_MEDICATIONS: CatalogItem[] = [
+  { id: "med-1", name: "Paracetamol 500mg", price: 15 },
+  { id: "med-2", name: "Amoxicillin 250mg", price: 25 },
+  { id: "med-3", name: "Metronidazole 400mg", price: 18 },
+  { id: "med-4", name: "Omeprazole 20mg", price: 12 },
+  { id: "med-5", name: "Ibuprofen 400mg", price: 10 },
+  { id: "med-6", name: "Ciprofloxacin 500mg", price: 30 },
+  { id: "med-7", name: "Diclofenac 50mg", price: 8 },
+  { id: "med-8", name: "Amlodipine 5mg", price: 22 },
+];
+
+export const MOCK_LAB_TESTS: CatalogItem[] = [
+  { id: "lab-1", name: "Complete Blood Count", price: 45 },
+  { id: "lab-2", name: "Malaria Test", price: 30 },
+  { id: "lab-3", name: "Chest X-Ray", price: 80 },
+  { id: "lab-4", name: "Urinalysis", price: 25 },
+  { id: "lab-5", name: "Blood Glucose", price: 15 },
+  { id: "lab-6", name: "CT Scan (Head)", price: 250 },
+  { id: "lab-7", name: "Lipid Profile", price: 55 },
+  { id: "lab-8", name: "Liver Function Test", price: 60 },
+];
+
 export const MOCK_INVOICES: InvoiceSummary[] = [
   {
     id: "mock-001",
@@ -155,7 +177,7 @@ export const MOCK_INVOICES: InvoiceSummary[] = [
       {
         id: "mock-item-1",
         invoiceId: "mock-001",
-        description: "Paracetamol-10 mg Tab",
+        description: "Paracetamol 500mg",
         quantity: 1,
         unitPrice: 15.0,
         total: 15.0,
@@ -166,9 +188,9 @@ export const MOCK_INVOICES: InvoiceSummary[] = [
     id: "mock-002",
     invoiceNumber: "INV-2026-9041",
     patientId: "mock-pt-2",
-    totalAmount: 214.0,
+    totalAmount: 179.0,
     amountPaid: 0,
-    balance: 214.0,
+    balance: 179.0,
     status: "Unpaid",
     sourceType: "General",
     paymentMethod: null,
@@ -197,14 +219,6 @@ export const MOCK_INVOICES: InvoiceSummary[] = [
         quantity: 1,
         unitPrice: 80.0,
         total: 80.0,
-      },
-      {
-        id: "mock-item-2c",
-        invoiceId: "mock-002",
-        description: "VAT",
-        quantity: 1,
-        unitPrice: 35.0,
-        total: 35.0,
       },
     ],
   },
@@ -276,7 +290,7 @@ export const MOCK_INVOICES: InvoiceSummary[] = [
     amountPaid: 75.0,
     balance: 0,
     status: "Paid",
-    sourceType: "Lab",
+    sourceType: "Lab & Radiology",
     paymentMethod: "Card",
     createdBy: null,
     createdAt: "2026-05-14T08:20:00Z",

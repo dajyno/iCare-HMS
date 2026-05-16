@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
-import type { LineItem, InvoiceSummary } from "./billingTypes";
-import { computeLineItemAmount, MOCK_INVOICES } from "./billingTypes";
+import type { LineItem, InvoiceSummary, CatalogItem } from "./billingTypes";
+import { computeLineItemAmount, MOCK_INVOICES, MOCK_MEDICATIONS, MOCK_LAB_TESTS } from "./billingTypes";
 
 export function useInvoices() {
   return useQuery<InvoiceSummary[]>({
@@ -110,6 +110,58 @@ export function useDoctors() {
   });
 }
 
+export function useMedications(query: string) {
+  return useQuery({
+    queryKey: ["medications", query],
+    queryFn: async () => {
+      const lower = query.toLowerCase();
+      const filtered = MOCK_MEDICATIONS.filter(
+        (m) => m.name.toLowerCase().includes(lower)
+      );
+
+      try {
+        const { data, error } = await (supabase as any)
+          .from("medications")
+          .select("id, name, price")
+          .ilike("name", `%${query}%`)
+          .limit(10);
+        if (error) return filtered;
+        const results = toCamel(data) as CatalogItem[];
+        return results.length > 0 ? results : filtered;
+      } catch {
+        return filtered;
+      }
+    },
+    enabled: query.trim().length >= 1,
+  });
+}
+
+export function useLabTests(query: string) {
+  return useQuery({
+    queryKey: ["labTests", query],
+    queryFn: async () => {
+      const lower = query.toLowerCase();
+      const filtered = MOCK_LAB_TESTS.filter(
+        (t) => t.name.toLowerCase().includes(lower)
+      );
+
+      try {
+        const { data, error } = await (supabase as any)
+          .from("lab_tests")
+          .select("id, name, price")
+          .ilike("name", `%${query}%`)
+          .limit(10);
+        if (error) return filtered;
+        const results = toCamel(data) as CatalogItem[];
+        return results.length > 0 ? results : filtered;
+      } catch {
+        return filtered;
+      }
+    },
+    enabled: query.trim().length >= 1,
+  });
+}
+
 export function useCreateInvoice() {
   const queryClient = useQueryClient();
 
@@ -119,22 +171,18 @@ export function useCreateInvoice() {
       patientInfo,
       sourceType,
       lineItems,
-      taxRate,
       invoiceNumber,
     }: {
       patientId: string;
       patientInfo?: { firstName: string; lastName: string; patientId: string };
       sourceType: string;
       lineItems: LineItem[];
-      taxRate: number;
       invoiceNumber: string;
     }) => {
-      const subtotal = lineItems.reduce(
+      const totalAmount = lineItems.reduce(
         (sum, item) => sum + computeLineItemAmount(item.price, item.qty),
         0
       );
-      const taxAmount = subtotal * taxRate;
-      const totalAmount = subtotal + taxAmount;
 
       const supabaseInvoicePayload: Record<string, any> = {
         invoice_number: invoiceNumber,
@@ -165,16 +213,6 @@ export function useCreateInvoice() {
             unit_price: item.price,
             total: computeLineItemAmount(item.price, item.qty),
           }));
-
-        if (taxRate > 0) {
-          itemsPayload.push({
-            invoice_id: invoiceId,
-            description: "VAT",
-            quantity: 1,
-            unit_price: subtotal * taxRate,
-            total: subtotal * taxRate,
-          });
-        }
 
         const { error: itemsError } = await (supabase as any)
           .from("invoice_items")
