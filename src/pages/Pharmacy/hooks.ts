@@ -185,8 +185,8 @@ export function useDispense() {
 
       const invNumber = `INV-PHARM-${Date.now().toString(36).toUpperCase()}`;
       const subtotal = Number(dispensedItems.reduce((s, i) => s + i.qtyDispensed * i.unitPrice, 0).toFixed(2));
-      const tax = Number((subtotal * 0.075).toFixed(2));
-      const total = Number((subtotal + tax).toFixed(2));
+      const tax = 0;
+      const total = subtotal;
 
       const invItems = dispensedItems.map((i) => ({
         description: `${i.itemName} ${i.strength} x${i.qtyDispensed}`,

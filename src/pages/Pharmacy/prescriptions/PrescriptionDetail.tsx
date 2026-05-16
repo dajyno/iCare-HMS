@@ -213,16 +213,10 @@ const PrescriptionDetail = ({
                 ₦{activePrescription.items.reduce((s, i) => s + i.qtyDispensed * i.unitPrice, 0).toFixed(2)}
               </span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-500">VAT (7.5%)</span>
-              <span className="font-mono tabular-nums text-slate-600">
-                ₦{(activePrescription.items.reduce((s, i) => s + i.qtyDispensed * i.unitPrice, 0) * 0.075).toFixed(2)}
-              </span>
-            </div>
             <div className="border-t border-slate-200 pt-2 flex justify-between text-sm font-bold">
               <span className="text-slate-900">Total</span>
               <span className="font-mono tabular-nums text-sky-700">
-                ₦{(activePrescription.items.reduce((s, i) => s + i.qtyDispensed * i.unitPrice, 0) * 1.075).toFixed(2)}
+                ₦{activePrescription.items.reduce((s, i) => s + i.qtyDispensed * i.unitPrice, 0).toFixed(2)}
               </span>
             </div>
           </div>
