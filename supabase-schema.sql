@@ -563,6 +563,11 @@ create policy "Authenticated users can insert prescription items"
   to authenticated
   with check (true);
 
+create policy "Users can read all prescription items"
+  on public.prescription_items for select
+  to authenticated
+  using (true);
+
 create policy "Authenticated users can insert lab requests"
   on public.lab_requests for insert
   to authenticated
@@ -606,6 +611,12 @@ create policy "Authenticated users can insert invoice_items"
   on public.invoice_items for insert
   to authenticated
   with check (true);
+
+drop policy if exists "Users can read all invoice_items" on public.invoice_items;
+create policy "Users can read all invoice_items"
+  on public.invoice_items for select
+  to authenticated
+  using (true);
 
 create policy "Authenticated users can update lab requests"
   on public.lab_requests for update
