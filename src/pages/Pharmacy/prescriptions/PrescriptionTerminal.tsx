@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -132,23 +132,7 @@ const PrescriptionTerminal = () => {
 
   const rows = table.getRowModel().rows;
 
-  const handleItemToggle = useCallback(
-    (itemIndex: number) => {
-      if (!selectedPrescription) return;
-      setSelectedPrescription((prev) => {
-        if (!prev) return prev;
-        const newItems = prev.items.map((item, i) => {
-          if (i !== itemIndex) return item;
-          const alreadyDispensed = item.qtyDispensed > 0;
-          return { ...item, qtyDispensed: alreadyDispensed ? 0 : item.qtyPrescribed };
-        });
-        return { ...prev, items: newItems };
-      });
-    },
-    [selectedPrescription]
-  );
-
-  const handleSheetClose = () => {
+  const handleDialogClose = () => {
     setSelectedPrescription(null);
     queryClient.invalidateQueries({ queryKey: ["pharmacy-prescriptions"] });
   };
@@ -299,13 +283,12 @@ const PrescriptionTerminal = () => {
         />
       </div>
 
-      <Dialog open={!!selectedPrescription} onOpenChange={(open) => { if (!open) handleSheetClose(); }}>
+      <Dialog open={!!selectedPrescription} onOpenChange={(open) => { if (!open) handleDialogClose(); }}>
         <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto p-0 gap-0" showCloseButton={false}>
           {selectedPrescription && (
             <PrescriptionDetail
               prescription={selectedPrescription}
-              onClose={handleSheetClose}
-              onItemToggle={handleItemToggle}
+              onClose={handleDialogClose}
             />
           )}
         </DialogContent>
