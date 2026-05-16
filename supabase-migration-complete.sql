@@ -49,6 +49,18 @@ begin
 end
 $$;
 
+-- Add source_type column to invoices if not present
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'invoices' and column_name = 'source_type'
+  ) then
+    alter table public.invoices add column source_type text not null default 'General';
+  end if;
+end
+$$;
+
 drop policy if exists "Authenticated users can insert medications" on public.medications;
 create policy "Authenticated users can insert medications"
   on public.medications for insert
@@ -143,9 +155,9 @@ declare
   item jsonb;
 begin
   insert into public.invoices (
-    invoice_number, patient_id, total_amount, amount_paid, balance, status
+    invoice_number, patient_id, total_amount, amount_paid, balance, status, source_type
   ) values (
-    p_invoice_number, p_patient_id, p_total_amount, 0, p_total_amount, 'Unpaid'
+    p_invoice_number, p_patient_id, p_total_amount, 0, p_total_amount, 'Unpaid', 'Pharmacy'
   )
   returning id into new_invoice_id;
 

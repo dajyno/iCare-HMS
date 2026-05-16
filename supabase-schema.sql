@@ -234,6 +234,7 @@ create table public.invoices (
   amount_paid    double precision not null default 0,
   balance        double precision not null,
   status         text not null default 'Unpaid' check (status in ('Unpaid','PartiallyPaid','Paid','Refunded','Cancelled')),
+  source_type    text not null default 'General',
   payment_method text,
   created_by     uuid references public.users(id),
   created_at     timestamptz not null default now(),

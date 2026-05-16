@@ -204,6 +204,7 @@ export function useDispense() {
           amount_paid: 0,
           balance: total,
           status: "Unpaid",
+          source_type: "Pharmacy",
         });
       if (invError) throw new Error(invError.message || "Failed to create invoice");
 
