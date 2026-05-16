@@ -70,6 +70,7 @@ const NewPrescriptionDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
         frequency: item.frequency,
         duration: item.duration,
         instructions: item.route,
+        quantity: item.quantity,
       }));
       console.log("Inserting prescription items:", JSON.stringify(itemsPayload));
 

@@ -102,6 +102,18 @@ const PrescriptionTerminal = () => {
           );
         },
       }),
+      columnHelper.display({
+        id: "date",
+        header: "Date / Time",
+        cell: ({ row }) => {
+          const date = (row.original as RowData).raw.prescriptionDate;
+          return (
+            <span className="text-sm tabular-nums text-slate-600">
+              {date ? format(new Date(date), "MMM dd, yyyy h:mm a") : "—"}
+            </span>
+          );
+        },
+      }),
       columnHelper.accessor("orderStatus", {
         header: "Fulfillment State",
         cell: (info) => <PrescriptionBadge status={info.getValue()} />,

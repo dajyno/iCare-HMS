@@ -37,6 +37,18 @@ create policy "Users can read all prescription items"
   to authenticated
   using (true);
 
+-- Add quantity column if not present
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'prescription_items' and column_name = 'quantity'
+  ) then
+    alter table public.prescription_items add column quantity integer not null default 1;
+  end if;
+end
+$$;
+
 drop policy if exists "Authenticated users can insert medications" on public.medications;
 create policy "Authenticated users can insert medications"
   on public.medications for insert

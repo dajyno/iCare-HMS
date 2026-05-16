@@ -184,7 +184,8 @@ create table public.prescription_items (
   dosage          text not null,
   frequency       text not null,
   duration        text not null,
-  instructions    text
+  instructions    text,
+  quantity        integer not null default 1
 );
 
 -- 11. Lab Tests
