@@ -12,6 +12,8 @@ import {
   Check,
   ChevronRight,
   User,
+  Pill,
+  FlaskConical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -225,6 +227,11 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
     createInvoice.mutate(
       {
         patientId: form.selectedPatient.id,
+        patientInfo: {
+          firstName: form.selectedPatient.firstName,
+          lastName: form.selectedPatient.lastName,
+          patientId: form.selectedPatient.patientId,
+        },
         sourceType: form.sourceType || "General",
         lineItems: form.lineItems,
         taxRate: form.taxRate,
@@ -424,32 +431,46 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                   <p className="text-xs text-slate-400 mb-4">
                     Choose the department origin for this invoice
                   </p>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-3">
                     <TileButton
-                      icon={<FolderOpen className="w-6 h-6" />}
+                      icon={<FolderOpen className="w-5 h-5" />}
                       title="Card/Folder Opening"
-                      description="Administrative folder creation fee"
+                      description="Admin folder fee"
                       color="amber"
                       onClick={() => handleTileSelect("Admin")}
                     />
                     <TileButton
-                      icon={<Stethoscope className="w-6 h-6" />}
+                      icon={<Stethoscope className="w-5 h-5" />}
                       title="Consultation"
-                      description="Doctor consultation fee"
+                      description="Doctor consultation"
                       color="teal"
                       onClick={() => handleTileSelect("Consultation")}
                     />
                     <TileButton
-                      icon={<Bed className="w-6 h-6" />}
-                      title="Inpatient Admission"
+                      icon={<Bed className="w-5 h-5" />}
+                      title="Inpatient"
                       description="Admission & bed charges"
                       color="rose"
                       onClick={() => handleTileSelect("Inpatient")}
                     />
                     <TileButton
-                      icon={<FileSpreadsheet className="w-6 h-6" />}
+                      icon={<Pill className="w-5 h-5" />}
+                      title="Pharmacy"
+                      description="Medication & supplies"
+                      color="sky"
+                      onClick={() => handleTileSelect("Pharmacy")}
+                    />
+                    <TileButton
+                      icon={<FlaskConical className="w-5 h-5" />}
+                      title="Lab"
+                      description="Lab tests & diagnostics"
+                      color="purple"
+                      onClick={() => handleTileSelect("Lab")}
+                    />
+                    <TileButton
+                      icon={<FileSpreadsheet className="w-5 h-5" />}
                       title="General Billings"
-                      description="Custom line items & services"
+                      description="Custom line items"
                       color="indigo"
                       onClick={() => handleTileSelect("General")}
                     />
@@ -685,6 +706,188 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                             form.metaData.dailyBedRate
                           ).toFixed(2)}
                         </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Pharmacy Tile Content */}
+              {selectedTile === "Pharmacy" && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-slate-700">
+                      Pharmacy Invoice
+                    </h3>
+                    <button
+                      onClick={() => setSelectedTile(null)}
+                      className="text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      Change source
+                    </button>
+                  </div>
+                  <div className="bg-sky-50 rounded-xl p-4 space-y-4">
+                    <div>
+                      <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
+                        Item Name
+                      </Label>
+                      <Input
+                        value={form.lineItems[0]?.name || ""}
+                        onChange={(e) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            lineItems: prev.lineItems.map((item, idx) =>
+                              idx === 0 ? { ...item, name: e.target.value } : item
+                            ),
+                          }))
+                        }
+                        placeholder="e.g. Paracetamol, Amoxicillin..."
+                        className="h-9 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
+                        Unit Price ($)
+                      </Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        value={form.lineItems[0]?.price || ""}
+                        onChange={(e) => {
+                          const val = Number(e.target.value) || 0;
+                          setForm((prev) => ({
+                            ...prev,
+                            lineItems: prev.lineItems.map((item, idx) =>
+                              idx === 0
+                                ? { ...item, price: val, amount: computeLineItemAmount(val, item.qty) }
+                                : item
+                            ),
+                          }));
+                        }}
+                        placeholder="0.00"
+                        className="h-9 w-48 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
+                        Quantity
+                      </Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={form.lineItems[0]?.qty || 1}
+                        onChange={(e) => {
+                          const val = Math.max(1, parseInt(e.target.value) || 1);
+                          setForm((prev) => ({
+                            ...prev,
+                            lineItems: prev.lineItems.map((item, idx) =>
+                              idx === 0
+                                ? { ...item, qty: val, amount: computeLineItemAmount(item.price, val) }
+                                : item
+                            ),
+                          }));
+                        }}
+                        className="h-9 w-24 bg-white"
+                      />
+                    </div>
+                    {form.lineItems[0]?.price > 0 && (
+                      <div className="bg-white rounded-lg p-3 flex items-center justify-between">
+                        <span className="text-sm text-slate-500">Total</span>
+                        <span className="font-mono text-lg font-bold text-slate-900 tabular-nums">
+                          ₦{computeLineItemAmount(form.lineItems[0].price, form.lineItems[0].qty).toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Lab Tile Content */}
+              {selectedTile === "Lab" && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-slate-700">
+                      Lab Invoice
+                    </h3>
+                    <button
+                      onClick={() => setSelectedTile(null)}
+                      className="text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      Change source
+                    </button>
+                  </div>
+                  <div className="bg-purple-50 rounded-xl p-4 space-y-4">
+                    <div>
+                      <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
+                        Test / Service Name
+                      </Label>
+                      <Input
+                        value={form.lineItems[0]?.name || ""}
+                        onChange={(e) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            lineItems: prev.lineItems.map((item, idx) =>
+                              idx === 0 ? { ...item, name: e.target.value } : item
+                            ),
+                          }))
+                        }
+                        placeholder="e.g. Complete Blood Count, Urinalysis..."
+                        className="h-9 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
+                        Test Fee ($)
+                      </Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        value={form.lineItems[0]?.price || ""}
+                        onChange={(e) => {
+                          const val = Number(e.target.value) || 0;
+                          setForm((prev) => ({
+                            ...prev,
+                            lineItems: prev.lineItems.map((item, idx) =>
+                              idx === 0
+                                ? { ...item, price: val, amount: computeLineItemAmount(val, item.qty) }
+                                : item
+                            ),
+                          }));
+                        }}
+                        placeholder="0.00"
+                        className="h-9 w-48 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
+                        Quantity
+                      </Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={form.lineItems[0]?.qty || 1}
+                        onChange={(e) => {
+                          const val = Math.max(1, parseInt(e.target.value) || 1);
+                          setForm((prev) => ({
+                            ...prev,
+                            lineItems: prev.lineItems.map((item, idx) =>
+                              idx === 0
+                                ? { ...item, qty: val, amount: computeLineItemAmount(item.price, val) }
+                                : item
+                            ),
+                          }));
+                        }}
+                        className="h-9 w-24 bg-white"
+                      />
+                    </div>
+                    {form.lineItems[0]?.price > 0 && (
+                      <div className="bg-white rounded-lg p-3 flex items-center justify-between">
+                        <span className="text-sm text-slate-500">Total</span>
+                        <span className="font-mono text-lg font-bold text-slate-900 tabular-nums">
+                          ₦{computeLineItemAmount(form.lineItems[0].price, form.lineItems[0].qty).toFixed(2)}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -942,7 +1145,7 @@ interface TileButtonProps {
   icon: ReactNode;
   title: string;
   description: string;
-  color: "amber" | "teal" | "rose" | "indigo";
+  color: "amber" | "teal" | "rose" | "indigo" | "sky" | "purple";
   onClick: () => void;
 }
 
@@ -970,6 +1173,18 @@ const colorMap = {
     icon: "text-indigo-600",
     title: "text-indigo-900",
     desc: "text-indigo-600",
+  },
+  sky: {
+    bg: "bg-sky-50 hover:bg-sky-100 border-sky-200",
+    icon: "text-sky-600",
+    title: "text-sky-900",
+    desc: "text-sky-600",
+  },
+  purple: {
+    bg: "bg-purple-50 hover:bg-purple-100 border-purple-200",
+    icon: "text-purple-600",
+    title: "text-purple-900",
+    desc: "text-purple-600",
   },
 };
 

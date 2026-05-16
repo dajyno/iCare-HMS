@@ -1,21 +1,19 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { format } from "date-fns";
 import {
-  CreditCard,
   Plus,
   Search,
-  Receipt,
   RefreshCw,
-  DollarSign,
-  FileText,
+  Check,
+  X,
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useInvoices } from "./billingHooks";
+import { useInvoices, useUpdateInvoiceStatus } from "./billingHooks";
 import {
   SOURCE_TABS,
   STATUS_STYLES,
@@ -32,8 +30,12 @@ const BillingOverview = () => {
   const [activeFilter, setActiveFilter] = useState<FilterTab>("All");
   const [showNewInvoice, setShowNewInvoice] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceSummary | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const updateStatus = useUpdateInvoiceStatus();
 
-  const { data: invoices, isLoading, error, refetch } = useInvoices();
+  const result = useInvoices();
+  const invoices = result.data;
+  const { isLoading, error, refetch } = result;
 
   const filteredInvoices = useMemo(() => {
     if (!Array.isArray(invoices)) return [];
@@ -91,6 +93,47 @@ const BillingOverview = () => {
     return { totalOutstanding, collectedToday, pendingClaims, refundsIssued };
   }, [invoices]);
 
+  const toggleSelection = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleAll = useCallback(() => {
+    if (selectedIds.size === filteredInvoices.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredInvoices.map((inv) => inv.id)));
+    }
+  }, [filteredInvoices, selectedIds]);
+
+  const computeTotal = () => {
+    let total = 0;
+    for (const id of Array.from(selectedIds)) {
+      const inv = (invoices as InvoiceSummary[] | undefined)?.find((i: InvoiceSummary) => i.id === id);
+      total += (inv?.balance as number) ?? 0;
+    }
+    return total;
+  };
+  const selectedTotal = useMemo(computeTotal, [selectedIds, invoices]);
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+
+  const handleBulkPay = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    const ids: string[] = Array.from(selectedIds);
+    for (const id of ids) {
+      const inv = (invoices as InvoiceSummary[] | undefined)?.find((i: InvoiceSummary) => i.id === id);
+      if (inv && inv.status !== "Paid") {
+        updateStatus.mutate({ id: id, status: "Paid", amountPaid: (inv.balance as number) });
+      }
+    }
+    clearSelection();
+  }, [selectedIds, invoices, updateStatus, clearSelection]);
+
   const handleRowClick = (inv: InvoiceSummary) => {
     setSelectedInvoice(inv);
   };
@@ -135,9 +178,7 @@ const BillingOverview = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-extrabold text-rose-600 tabular-nums">
-              ₦{stats.totalOutstanding.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-              })}
+              ₦{stats.totalOutstanding.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
           </CardContent>
         </Card>
@@ -149,9 +190,7 @@ const BillingOverview = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-extrabold text-emerald-600 tabular-nums">
-              ₦{stats.collectedToday.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-              })}
+              ₦{stats.collectedToday.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
           </CardContent>
         </Card>
@@ -175,9 +214,7 @@ const BillingOverview = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-extrabold text-amber-600 tabular-nums">
-              ₦{stats.refundsIssued.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-              })}
+              ₦{stats.refundsIssued.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
           </CardContent>
         </Card>
@@ -188,7 +225,7 @@ const BillingOverview = () => {
         {SOURCE_TABS.map((tab) => (
           <button
             key={tab}
-            onClick={() => setActiveFilter(tab)}
+            onClick={() => { setActiveFilter(tab); clearSelection(); }}
             className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               activeFilter === tab
                 ? "bg-blue-50 text-blue-700 border border-blue-200 shadow-sm"
@@ -213,8 +250,7 @@ const BillingOverview = () => {
             />
           </div>
           <div className="text-xs text-slate-400 font-medium">
-            {filteredInvoices.length} invoice
-            {filteredInvoices.length !== 1 ? "s" : ""}
+            {filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? "s" : ""}
           </div>
         </div>
 
@@ -228,12 +264,7 @@ const BillingOverview = () => {
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <p className="text-sm text-red-500">Failed to load invoices.</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs"
-              onClick={() => refetch()}
-            >
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => refetch()}>
               Try Again
             </Button>
           </div>
@@ -242,26 +273,33 @@ const BillingOverview = () => {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
                 <tr>
-                  <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-wider">
+                  <th className="px-3 py-3 w-10">
+                    <button
+                      onClick={toggleAll}
+                      className="flex items-center justify-center w-5 h-5 rounded border border-slate-300 hover:border-slate-500 transition-colors"
+                    >
+                      {selectedIds.size === filteredInvoices.length && filteredInvoices.length > 0 ? (
+                        <Check className="w-3 h-3 text-blue-600" />
+                      ) : null}
+                    </button>
+                  </th>
+                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider">
                     Invoice ID
                   </th>
-                  <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider">
                     Timestamp
                   </th>
-                  <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider">
                     Patient Info
                   </th>
-                  <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider">
                     Billing Source
                   </th>
-                  <th className="px-6 py-3 text-right text-[10px] font-bold uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider">
                     Total Amount
                   </th>
-                  <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider">
                     Payment Status
-                  </th>
-                  <th className="px-6 py-3 text-right text-[10px] font-bold uppercase tracking-wider">
-                    Action
                   </th>
                 </tr>
               </thead>
@@ -276,78 +314,80 @@ const BillingOverview = () => {
                 >
                   {filteredInvoices.length === 0 ? (
                     <tr>
-                      <td
-                        colSpan={7}
-                        className="px-6 py-16 text-center text-slate-400 italic"
-                      >
+                      <td colSpan={7} className="px-6 py-16 text-center text-slate-400 italic">
                         {searchTerm
                           ? "No invoices match your search or filter."
                           : "No invoices yet. Click '+ New Invoice' to create one."}
                       </td>
                     </tr>
                   ) : (
-                    filteredInvoices.map((inv) => (
-                      <tr
-                        key={inv.id}
-                        className="hover:bg-slate-50 transition-colors cursor-pointer"
-                        onClick={() => handleRowClick(inv)}
-                      >
-                        <td className="px-6 py-4">
-                          <span className="font-mono text-xs font-bold text-blue-600">
-                            {inv.invoiceNumber}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-slate-500 tabular-nums whitespace-nowrap">
-                          {format(
-                            new Date(inv.createdAt),
-                            "dd-MMM-yyyy - HH:mm"
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div>
-                            <span className="font-semibold text-slate-900">
-                              {inv.patient?.firstName} {inv.patient?.lastName}
+                    filteredInvoices.map((inv) => {
+                      const isChecked = selectedIds.has(inv.id);
+                      return (
+                        <tr
+                          key={inv.id}
+                          className={`hover:bg-slate-50 transition-colors cursor-pointer ${isChecked ? "bg-blue-50/30" : ""}`}
+                          onClick={() => handleRowClick(inv)}
+                        >
+                          <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => toggleSelection(inv.id)}
+                              className={`flex items-center justify-center w-5 h-5 rounded border transition-colors ${
+                                isChecked
+                                  ? "bg-blue-600 border-blue-600 text-white"
+                                  : "border-slate-300 hover:border-slate-500"
+                              }`}
+                            >
+                              {isChecked && <Check className="w-3 h-3" />}
+                            </button>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className="font-mono text-xs font-bold text-blue-600">
+                              {inv.invoiceNumber}
                             </span>
-                            <span className="block text-[11px] font-mono text-slate-400">
-                              {inv.patient?.patientId}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <Badge
-                            variant="outline"
-                            className={`text-[10px] font-semibold ${
-                              SOURCE_STYLES[inv.sourceType] ??
-                              "bg-slate-50 text-slate-600"
-                            }`}
-                          >
-                            {inv.sourceType || "General"}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 text-right font-bold text-slate-900 tabular-nums">
-                          ₦
-                          {(inv.totalAmount ?? 0).toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                          })}
-                        </td>
-                        <td className="px-6 py-4">
-                          <Badge
-                            variant="outline"
-                            className={`text-[10px] font-bold uppercase tracking-wider ${
-                              STATUS_STYLES[inv.status] ??
-                              "bg-slate-50 text-slate-600"
-                            }`}
-                          >
-                            {inv.status}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <span className="text-xs text-blue-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                            View Details
-                          </span>
-                        </td>
-                      </tr>
-                    ))
+                          </td>
+                          <td className="px-4 py-4 text-sm text-slate-500 tabular-nums whitespace-nowrap">
+                            {format(new Date(inv.createdAt), "dd-MMM-yyyy - HH:mm")}
+                          </td>
+                          <td className="px-4 py-4">
+                            <div>
+                              <span className="font-semibold text-slate-900">
+                                {inv.patient?.firstName} {inv.patient?.lastName}
+                              </span>
+                              <span className="block text-[11px] font-mono text-slate-400">
+                                {inv.patient?.patientId}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <Badge
+                              variant="outline"
+                              className={`text-[10px] font-semibold ${
+                                SOURCE_STYLES[inv.sourceType] ?? "bg-slate-50 text-slate-600"
+                              }`}
+                            >
+                              {inv.sourceType || "General"}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-4 text-right font-bold text-slate-900 tabular-nums">
+                            ₦
+                            {(inv.totalAmount ?? 0).toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                            })}
+                          </td>
+                          <td className="px-4 py-4">
+                            <Badge
+                              variant="outline"
+                              className={`text-[10px] font-bold uppercase tracking-wider ${
+                                STATUS_STYLES[inv.status] ?? "bg-slate-50 text-slate-600"
+                              }`}
+                            >
+                              {inv.status}
+                            </Badge>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </motion.tbody>
               </AnimatePresence>
@@ -355,6 +395,49 @@ const BillingOverview = () => {
           </div>
         )}
       </div>
+
+      {/* Floating Bulk Pay Bar */}
+      <AnimatePresence>
+        {selectedIds.size > 0 && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 bg-white rounded-2xl shadow-2xl border border-slate-200 px-6 py-4 flex items-center gap-6"
+          >
+            <button
+              onClick={clearSelection}
+              className="text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <span className="text-sm text-slate-600 whitespace-nowrap">
+              <strong className="text-slate-900">{selectedIds.size}</strong> invoice
+              {selectedIds.size !== 1 ? "s" : ""} selected
+            </span>
+            <div className="text-right">
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold block">
+                Total
+              </span>
+              <span className="font-mono text-lg font-extrabold text-slate-900 tabular-nums">
+                ₦{selectedTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            <Button
+              className="h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 px-6"
+              onClick={handleBulkPay}
+              disabled={updateStatus.isPending}
+            >
+              {updateStatus.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Check className="w-4 h-4" />
+              )}
+              Pay Selected
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* New Invoice Modal */}
       <NewInvoiceModal

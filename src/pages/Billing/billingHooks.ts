@@ -116,12 +116,14 @@ export function useCreateInvoice() {
   return useMutation({
     mutationFn: async ({
       patientId,
+      patientInfo,
       sourceType,
       lineItems,
       taxRate,
       invoiceNumber,
     }: {
       patientId: string;
+      patientInfo?: { firstName: string; lastName: string; patientId: string };
       sourceType: string;
       lineItems: LineItem[];
       taxRate: number;
@@ -195,7 +197,14 @@ export function useCreateInvoice() {
           createdBy: null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          patient: null,
+          patient: patientInfo
+            ? {
+                id: patientId,
+                patientId: patientInfo.patientId,
+                firstName: patientInfo.firstName,
+                lastName: patientInfo.lastName,
+              }
+            : null,
           items: lineItems
             .filter((item) => item.name.trim() && item.price > 0)
             .map((item) => ({
