@@ -3,19 +3,21 @@ import { motion, AnimatePresence } from "motion/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { useAuth } from "../../context/AuthContext";
-import { FlaskConical, Plus } from "lucide-react";
+import { FlaskConical, Plus, FolderEdit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ContextHeader from "./ContextHeader";
 import LabOrderTable from "./LabOrderTable";
 import LabDetailView from "./LabDetailView";
 import LabTestGrid from "./LabTestGrid";
 import LabResultDialog from "./LabResultDialog";
+import LabManageCategories from "./LabManageCategories";
 
 const LabModule = () => {
   const queryClient = useQueryClient();
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [selectedBatch, setSelectedBatch] = useState<any[] | null>(null);
   const [viewingResult, setViewingResult] = useState<any>(null);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
 
   const { data: requests, isLoading, error } = useQuery({
     queryKey: ["lab-requests"],
@@ -150,14 +152,25 @@ const LabModule = () => {
                     </p>
                   </div>
                 </div>
-                <Button
-                  size="sm"
-                  className="bg-[#005EB8] hover:bg-[#004d9a] text-white h-9 px-4 gap-2 font-semibold text-xs"
-                  onClick={() => setSelectedOrder("new")}
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  New Exam
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-9 px-4 gap-1.5 text-xs font-semibold border-slate-200"
+                    onClick={() => setCategoriesOpen(true)}
+                  >
+                    <FolderEdit className="w-3.5 h-3.5" />
+                    Manage Categories
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-[#005EB8] hover:bg-[#004d9a] text-white h-9 px-4 gap-2 font-semibold text-xs"
+                    onClick={() => setSelectedOrder("new")}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    New Exam
+                  </Button>
+                </div>
               </div>
 
               <LabOrderTable
@@ -191,6 +204,14 @@ const LabModule = () => {
         open={!!viewingResult}
         onClose={() => setViewingResult(null)}
         onEdit={handleEditResult}
+      />
+
+      <LabManageCategories
+        open={categoriesOpen}
+        onClose={() => {
+          setCategoriesOpen(false);
+          queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
+        }}
       />
     </div>
   );

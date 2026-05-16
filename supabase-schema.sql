@@ -472,6 +472,16 @@ create policy "Users can read all lab tests"
   to authenticated
   using (true);
 
+create policy "Users can insert lab tests"
+  on public.lab_tests for insert
+  to authenticated
+  with check (true);
+
+create policy "Users can update lab tests"
+  on public.lab_tests for update
+  to authenticated
+  using (true);
+
 create policy "Users can read all lab requests"
   on public.lab_requests for select
   to authenticated
