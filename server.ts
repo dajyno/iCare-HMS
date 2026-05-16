@@ -286,6 +286,36 @@ async function startServer() {
     res.json(prescriptions);
   });
 
+  app.post("/api/pharmacy/prescriptions", authenticate, async (req, res) => {
+    try {
+      const { patientId, doctorId, items } = req.body;
+      if (!patientId) return res.status(400).json({ error: "patientId is required" });
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: "At least one medication item is required" });
+      }
+      const prescription = await prisma.prescription.create({
+        data: {
+          patientId,
+          doctorId: doctorId || req.user?.id,
+          status: "Pending",
+          items: {
+            create: items.map((item: any) => ({
+              medicationId: item.medicationId,
+              dosage: item.dosage,
+              frequency: item.frequency,
+              duration: item.duration,
+              instructions: item.route,
+            })),
+          },
+        },
+        include: { patient: true, doctor: true, items: { include: { medication: true } } },
+      });
+      res.json(prescription);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   app.post("/api/pharmacy/dispense", authenticate, async (req, res) => {
     try {
       const { prescriptionId, items } = req.body; // items = [{ medicationId, quantity }]

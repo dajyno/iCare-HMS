@@ -37,6 +37,7 @@ import {
 import Pagination from "@/components/ui/pagination";
 import AddItemDialog from "./AddItemDialog";
 import UploadCsvDialog from "./UploadCsvDialog";
+import EditItemDialog from "./EditItemDialog";
 import { usePharmacyInventory } from "../hooks";
 import type { PharmacyInventoryItem } from "../types";
 
@@ -48,6 +49,7 @@ const InventoryMatrix = () => {
   const [globalFilter, setGlobalFilter] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [editItem, setEditItem] = useState<PharmacyInventoryItem | null>(null);
 
   const lowStockCount = useMemo(
     () => (items ?? []).filter((i) => i.status === "Low Stock" || i.status === "Out of Stock").length,
@@ -126,6 +128,22 @@ const InventoryMatrix = () => {
             ₦{info.getValue().toFixed(2)}
           </span>
         ),
+      }),
+      columnHelper.display({
+        id: "actions",
+        header: "",
+        cell: ({ row }) => {
+          const rowData = row.original as PharmacyInventoryItem;
+          if (rowData.status === "Out of Stock") return null;
+          return (
+            <button
+              onClick={(e) => { e.stopPropagation(); setEditItem(rowData); }}
+              className="text-[11px] font-semibold text-sky-600 hover:text-sky-700 hover:underline"
+            >
+              Edit
+            </button>
+          );
+        },
       }),
     ],
     []
@@ -308,7 +326,8 @@ const InventoryMatrix = () => {
                   return (
                     <TableRow
                       key={row.id}
-                      className={`transition-colors ${oos ? "opacity-40 pointer-events-none" : "hover:bg-sky-50/40"}`}
+                      className={`transition-colors ${oos ? "opacity-40 pointer-events-none" : "hover:bg-sky-50/40 cursor-pointer"}`}
+                      onClick={() => { if (!oos) setEditItem(rowData); }}
                     >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id} className="px-5 py-3">
@@ -334,6 +353,7 @@ const InventoryMatrix = () => {
 
       <AddItemDialog open={addOpen} onOpenChange={setAddOpen} />
       <UploadCsvDialog open={uploadOpen} onOpenChange={setUploadOpen} />
+      <EditItemDialog item={editItem} open={!!editItem} onOpenChange={(open) => { if (!open) setEditItem(null); }} />
     </div>
   );
 };
