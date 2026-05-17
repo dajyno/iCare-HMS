@@ -279,23 +279,19 @@ async function processPaymentSideEffects(
   const patientId = invoice.patientId;
 
   if (sourceType === "Pharmacy") {
-    try {
-      const { error } = await (supabase as any)
-        .from("prescriptions")
-        .update({ status: "Ready for Dispensing" })
-        .eq("patient_id", patientId)
-        .eq("status", "Pending");
-      if (error) {
+    const prescriptionId = (invoice as any).prescriptionId;
+    if (prescriptionId) {
+      try {
         await (supabase as any)
           .from("prescriptions")
-          .update({ status: "Dispensed" })
-          .eq("patient_id", patientId)
-          .eq("status", "Pending");
+          .update({ status: "Paid" })
+          .eq("id", prescriptionId);
+      } catch {
+        // Prescriptions not in Supabase, skip
       }
-    } catch {
-      // Prescriptions not in mock/localStorage, skip
     }
     queryClient.invalidateQueries({ queryKey: ["prescriptions"] });
+    queryClient.invalidateQueries({ queryKey: ["pharmacy-prescriptions"] });
   }
 
   if (sourceType === "Inpatient") {

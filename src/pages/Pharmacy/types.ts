@@ -1,4 +1,4 @@
-export type OrderStatus = "New Orders" | "Partially Completed" | "All Completed";
+export type OrderStatus = "New Orders" | "Unpaid" | "Paid" | "Partially Completed" | "All Completed";
 export type StockStatus = "In Stock" | "Low Stock" | "Out of Stock";
 
 export interface PharmacyPrescriptionItem {
@@ -28,6 +28,8 @@ export interface PharmacyPrescription {
   prescribedBy: string;
   orderStatus: OrderStatus;
   items: PharmacyPrescriptionItem[];
+  invoiceId?: string;
+  invoiceNumber?: string;
 }
 
 export interface PharmacyInventoryItem {

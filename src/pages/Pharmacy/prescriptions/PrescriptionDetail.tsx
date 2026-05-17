@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { motion } from "motion/react";
-import { Pill, Calendar, User, Hash, X, CheckCircle2, Loader2, FileText, AlertCircle } from "lucide-react";
+import { Pill, Calendar, User, Hash, X, CheckCircle2, Loader2, FileText, AlertCircle, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -18,9 +18,12 @@ const PrescriptionDetail = ({
   const [dispensedMap, setDispensedMap] = useState<Record<number, number>>({});
   const dispense = useDispense();
   const [dispenseError, setDispenseError] = useState<string | null>(null);
-  const [dispenseResult, setDispenseResult] = useState<{
-    invoiceNumber: string; totalCost: number; isPartial: boolean;
-  } | null>(null);
+  const [dispensed, setDispensed] = useState(false);
+
+  const isPaid = prescription.orderStatus === "Paid";
+  const isUnpaid = prescription.orderStatus === "Unpaid";
+  const isCompleted = prescription.orderStatus === "All Completed";
+  const canDispense = isPaid && !dispensed;
 
   const activePrescription = useMemo(() => ({
     ...prescription,
@@ -51,12 +54,8 @@ const PrescriptionDetail = ({
       return;
     }
     try {
-      const res = await dispense.mutateAsync(activePrescription);
-      setDispenseResult({
-        invoiceNumber: res.invoiceNumber,
-        totalCost: res.totalCost,
-        isPartial: res.isPartial,
-      });
+      await dispense.mutateAsync(activePrescription);
+      setDispensed(true);
     } catch (err: any) {
       const msg = err?.message || err?.toString() || "Dispense failed";
       setDispenseError(msg);
@@ -64,22 +63,14 @@ const PrescriptionDetail = ({
     }
   };
 
-  if (dispenseResult) {
+  if (dispensed) {
     return (
       <div className="p-6 space-y-4">
         <div className="flex items-center gap-2 text-emerald-600 text-sm font-semibold">
           <CheckCircle2 className="w-4 h-4" />
-          <span>{dispenseResult.isPartial ? "Partially dispensed" : "Dispensed successfully"}</span>
+          <span>Dispensed successfully</span>
         </div>
-        <div className="flex items-center justify-between bg-white rounded-lg border border-slate-200 p-3">
-          <div className="flex items-center gap-2 text-sm">
-            <FileText className="w-4 h-4 text-slate-400" />
-            <span className="font-mono text-xs text-slate-600">{dispenseResult.invoiceNumber}</span>
-          </div>
-          <span className="font-mono tabular-nums font-bold text-sky-700">
-            ₦{dispenseResult.totalCost.toFixed(2)}
-          </span>
-        </div>
+        <p className="text-xs text-slate-500">Stock has been deducted and prescription marked as completed.</p>
         <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm h-10" onClick={onClose}>
           Back to Queue
         </Button>
@@ -121,9 +112,15 @@ const PrescriptionDetail = ({
             <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <span className="text-xs">Rx: {format(new Date(prescription.prescriptionDate), "MMM dd, yyyy")}</span>
           </div>
-          {(prescription.orderStatus === "All Completed" || prescription.orderStatus === "Partially Completed") && (
+          {prescription.invoiceNumber && (
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span className="font-mono text-xs">{prescription.invoiceNumber}</span>
+            </div>
+          )}
+          {isCompleted && (
             <div className="flex items-center gap-2 text-sm text-emerald-600">
-              <Calendar className="w-3.5 h-3.5 shrink-0" />
+              <Clock className="w-3.5 h-3.5 shrink-0" />
               <span className="text-xs font-semibold">Dispensed: {format(new Date(), "MMM dd, yyyy")}</span>
             </div>
           )}
@@ -133,32 +130,32 @@ const PrescriptionDetail = ({
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Medications</h3>
           <div className="space-y-2">
             {activePrescription.items.map((item, i) => {
-              const dispensed = item.qtyDispensed > 0;
+              const selected = item.qtyDispensed > 0;
               return (
                 <motion.div
                   key={i}
                   layout
                   className={`rounded-xl border p-3.5 transition-all ${
-                    dispensed ? "border-emerald-200/60 bg-emerald-50/40" : "border-slate-200/60 bg-white hover:border-slate-300"
+                    selected ? "border-emerald-200/60 bg-emerald-50/40" : "border-slate-200/60 bg-white hover:border-slate-300"
                   }`}
                 >
                   <div className="flex items-start gap-3">
                     <button
                       onClick={() => toggleItem(i)}
                       className="mt-0.5 shrink-0"
-                      disabled={prescription.orderStatus === "All Completed"}
+                      disabled={!canDispense}
                     >
                       <motion.div
                         layout
                         animate={
-                          dispensed
+                          selected
                             ? { backgroundColor: "rgb(16 185 129)", borderColor: "rgb(16 185 129)" }
                             : { backgroundColor: "rgb(255 255 255)", borderColor: "rgb(203 213 225)" }
                         }
                         transition={{ type: "spring", mass: 0.5, damping: 12 }}
-                        className="w-5 h-5 rounded-md border-2 flex items-center justify-center"
+                        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center ${!canDispense ? "opacity-40 cursor-not-allowed" : ""}`}
                       >
-                        {dispensed && (
+                        {selected && (
                           <motion.svg
                             initial={{ pathLength: 0 }}
                             animate={{ pathLength: 1 }}
@@ -178,8 +175,8 @@ const PrescriptionDetail = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
-                          <Pill className={`w-3.5 h-3.5 shrink-0 ${dispensed ? "text-emerald-500" : "text-sky-500"}`} />
-                          <span className={`font-semibold text-sm ${dispensed ? "text-emerald-800" : "text-slate-900"}`}>
+                          <Pill className={`w-3.5 h-3.5 shrink-0 ${selected ? "text-emerald-500" : "text-sky-500"}`} />
+                          <span className={`font-semibold text-sm ${selected ? "text-emerald-800" : "text-slate-900"}`}>
                             {item.itemName}
                           </span>
                           {item.strength && <span className="text-[11px] font-mono text-slate-400">{item.strength}</span>}
@@ -195,7 +192,7 @@ const PrescriptionDetail = ({
                       </div>
                       <div className="mt-1.5 flex items-center gap-3 text-[11px]">
                         <span className="font-mono tabular-nums text-slate-500">Unit: ₦{item.unitPrice.toFixed(2)}</span>
-                        {dispensed && <span className="font-mono tabular-nums text-emerald-600 font-semibold">Sub: ₦{(item.qtyDispensed * item.unitPrice).toFixed(2)}</span>}
+                        {selected && <span className="font-mono tabular-nums text-emerald-600 font-semibold">Sub: ₦{(item.qtyDispensed * item.unitPrice).toFixed(2)}</span>}
                       </div>
                     </div>
                   </div>
@@ -205,14 +202,8 @@ const PrescriptionDetail = ({
           </div>
         </div>
 
-        {anyDispensed && (
+        {anyDispensed && canDispense && (
           <div className="rounded-xl border border-slate-200/60 bg-slate-50/50 p-4 space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Subtotal</span>
-              <span className="font-mono tabular-nums font-semibold text-slate-900">
-                ₦{activePrescription.items.reduce((s, i) => s + i.qtyDispensed * i.unitPrice, 0).toFixed(2)}
-              </span>
-            </div>
             <div className="border-t border-slate-200 pt-2 flex justify-between text-sm font-bold">
               <span className="text-slate-900">Total</span>
               <span className="font-mono tabular-nums text-sky-700">
@@ -224,23 +215,37 @@ const PrescriptionDetail = ({
       </div>
 
       <div className="px-6 py-4 bg-slate-50/30 space-y-3">
+        {isUnpaid && (
+          <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+            <Clock className="w-3.5 h-3.5 shrink-0" />
+            <span>Awaiting payment — prescription will be available to dispense once marked as Paid in Billing.</span>
+          </div>
+        )}
+        {!canDispense && !isUnpaid && !isCompleted && (
+          <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-100 rounded-lg px-3 py-2">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+            <span>Payment must be completed before dispensing.</span>
+          </div>
+        )}
         {dispenseError && (
           <div className="flex items-start gap-2 text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">
             <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
             <span>{dispenseError}</span>
           </div>
         )}
-        <Button
-          className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold h-11 text-sm"
-          disabled={prescription.orderStatus === "All Completed" || dispense.isPending}
-          onClick={handleDispense}
-        >
-          {dispense.isPending ? (
-            <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Dispensing...</span>
-          ) : (
-            <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Dispense & Log</span>
-          )}
-        </Button>
+        {canDispense && (
+          <Button
+            className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold h-11 text-sm"
+            disabled={dispense.isPending}
+            onClick={handleDispense}
+          >
+            {dispense.isPending ? (
+              <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Dispensing...</span>
+            ) : (
+              <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Dispense & Log</span>
+            )}
+          </Button>
+        )}
       </div>
     </div>
   );

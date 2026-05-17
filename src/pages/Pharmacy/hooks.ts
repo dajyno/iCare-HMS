@@ -13,6 +13,8 @@ import type {
 function getOrderStatus(dbStatus: string): OrderStatus {
   if (dbStatus === "Dispensed") return "All Completed";
   if (dbStatus === "PartiallyDispensed") return "Partially Completed";
+  if (dbStatus === "Unpaid") return "Unpaid";
+  if (dbStatus === "Paid") return "Paid";
   return "New Orders";
 }
 
@@ -24,6 +26,7 @@ function makeSku(med: any): string {
 
 function toPharmacyPrescription(row: any): PharmacyPrescription {
   const p = row.patient ?? {};
+  const inv = row.invoice ?? {};
   return {
     id: row.id,
     patientId: p.id ?? row.patientId ?? row.patient_id,
@@ -33,6 +36,8 @@ function toPharmacyPrescription(row: any): PharmacyPrescription {
     prescriptionDate: row.date ?? row.created_at ?? "",
     prescribedBy: (row.doctorName) ? `Dr. ${row.doctorName}` : `Doctor #${(row.doctorId ?? row.doctor_id ?? "?").slice(0, 6)}`,
     orderStatus: getOrderStatus(row.status),
+    invoiceId: inv.id ?? undefined,
+    invoiceNumber: inv.invoiceNumber ?? inv.invoice_number ?? undefined,
     items: (row.items ?? []).map((item: any) => {
       const med = item.medication ?? {};
       return {
@@ -102,8 +107,18 @@ export function usePrescriptionQueue() {
       }
       console.log("PHARMACY: medications fetched:", Object.keys(medMap).length);
 
+      const { data: invoices } = await supabase
+        .from("invoices")
+        .select("id, invoice_number, status, prescription_id")
+        .in("prescription_id", rxIds);
+      const invoiceByRxId: Record<string, any> = {};
+      for (const inv of (invoices as any[] ?? [])) {
+        if (inv.prescription_id) invoiceByRxId[inv.prescription_id] = inv;
+      }
+
       const enriched = rows.map((rx: any) => ({
         ...rx,
+        invoice: invoiceByRxId[rx.id] ?? null,
         items: (itemsByRxId[rx.id] ?? []).map((item: any) => ({
           ...item,
           medication: medMap[item.medication_id] ?? null,
@@ -154,11 +169,12 @@ export function useDispense() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (prescription: PharmacyPrescription) => {
+      if (prescription.orderStatus !== "Paid") {
+        throw new Error("Prescription must be marked as Paid before dispensing");
+      }
+
       const dispensedItems = prescription.items.filter((i) => i.qtyDispensed > 0);
       if (dispensedItems.length === 0) throw new Error("No items selected for dispensing");
-
-      const isPartial = dispensedItems.length < prescription.items.length;
-      const newStatus = isPartial ? "PartiallyDispensed" : "Dispensed";
 
       for (const item of dispensedItems) {
         if (!item.medicationId) continue;
@@ -179,74 +195,15 @@ export function useDispense() {
 
       const { error: presError } = await (supabase as any)
         .from("prescriptions")
-        .update({ status: newStatus })
+        .update({ status: "Dispensed" })
         .eq("id", prescription.id);
       if (presError) throw new Error(presError.message || "Failed to update prescription status");
 
-      const invNumber = `INV-PHARM-${Date.now().toString(36).toUpperCase()}`;
-      const subtotal = Number(dispensedItems.reduce((s, i) => s + i.qtyDispensed * i.unitPrice, 0).toFixed(2));
-      const tax = 0;
-      const total = subtotal;
-
-      const invItems = dispensedItems.map((i) => ({
-        description: `${i.itemName} ${i.strength} x${i.qtyDispensed}`,
-        quantity: i.qtyDispensed,
-        unit_price: i.unitPrice,
-        total: Number((i.qtyDispensed * i.unitPrice).toFixed(2)),
-      }));
-
-      const { error: invError } = await (supabase as any)
-        .from("invoices")
-        .insert({
-          invoice_number: invNumber,
-          patient_id: prescription.patientId,
-          total_amount: total,
-          amount_paid: 0,
-          balance: total,
-          status: "Unpaid",
-          source_type: "Pharmacy",
-        });
-      if (invError) throw new Error(invError.message || "Failed to create invoice");
-
-      const { data: invRows } = await (supabase as any)
-        .from("invoices")
-        .select("id")
-        .eq("invoice_number", invNumber)
-        .single();
-      const invId = invRows?.id;
-      if (!invId) throw new Error("Failed to retrieve invoice after creation");
-
-      const { error: itemsError } = await (supabase as any).from("invoice_items").insert(
-        invItems.map((li) => ({
-          invoice_id: invId,
-          description: li.description,
-          quantity: li.quantity,
-          unit_price: li.unit_price,
-          total: li.total,
-        }))
-      );
-      if (itemsError) throw new Error(itemsError.message || "Failed to create invoice items");
-
-      return {
-        prescriptionId: prescription.id,
-        invoiceId: invId,
-        invoiceNumber: invNumber,
-        totalCost: total,
-        tax,
-        subtotal,
-        items: invItems.map((i) => ({
-          description: i.description,
-          quantity: i.quantity,
-          unitPrice: i.unit_price,
-          total: i.total,
-        })),
-        isPartial,
-      };
+      return { prescriptionId: prescription.id };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pharmacy-prescriptions"] });
       queryClient.invalidateQueries({ queryKey: ["pharmacy-inventory"] });
-      queryClient.invalidateQueries({ queryKey: ["pharmacy-invoices"] });
     },
   });
 }

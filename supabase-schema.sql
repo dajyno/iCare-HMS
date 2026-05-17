@@ -173,7 +173,7 @@ create table public.prescriptions (
   doctor_id       uuid not null,
   consultation_id uuid references public.consultations(id),
   date            timestamptz not null default now(),
-  status          text not null default 'Pending' check (status in ('Pending','Dispensed','PartiallyDispensed','Cancelled'))
+  status         text not null default 'Pending' check (status in ('Pending','Unpaid','Paid','Dispensed','PartiallyDispensed','Cancelled'))
 );
 
 -- 10. Prescription Items
@@ -233,9 +233,10 @@ create table public.invoices (
   total_amount   double precision not null,
   amount_paid    double precision not null default 0,
   balance        double precision not null,
-  status         text not null default 'Unpaid' check (status in ('Unpaid','PartiallyPaid','Paid','Refunded','Cancelled')),
-  source_type    text not null default 'General',
-  payment_method text,
+  status          text not null default 'Unpaid' check (status in ('Unpaid','PartiallyPaid','Paid','Refunded','Cancelled')),
+  source_type     text not null default 'General',
+  prescription_id uuid references public.prescriptions(id) on delete set null,
+  payment_method  text,
   created_by     uuid references public.users(id),
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now()

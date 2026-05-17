@@ -81,6 +81,55 @@ const NewPrescriptionDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
       }
       console.log("Items created successfully");
 
+      const itemTotal = items.filter((i) => i.medicationId).reduce((s, i) => s + (i.quantity || 1) * 0, 0);
+      const invNumber = `INV-PHARM-${Date.now().toString(36).toUpperCase()}`;
+
+      const { data: medPrices } = await (supabase as any)
+        .from("medications")
+        .select("id, unit_price")
+        .in("id", items.filter((i) => i.medicationId).map((i) => i.medicationId));
+      const priceMap: Record<string, number> = {};
+      if (medPrices) for (const m of medPrices) priceMap[m.id] = m.unit_price ?? 0;
+
+      const totalAmount = items.filter((i) => i.medicationId).reduce(
+        (s, i) => s + (priceMap[i.medicationId] ?? 0) * (i.quantity || 1), 0
+      );
+
+      const { data: invData, error: invError } = await (supabase as any)
+        .from("invoices")
+        .insert({
+          invoice_number: invNumber,
+          patient_id: selectedPatient.id,
+          total_amount: totalAmount,
+          amount_paid: 0,
+          balance: totalAmount,
+          status: "Unpaid",
+          source_type: "Pharmacy",
+          prescription_id: prescriptionId,
+        })
+        .select("id")
+        .single();
+      if (invError) throw new Error(invError.message || "Failed to create invoice");
+      const invId = invData?.id;
+      if (!invId) throw new Error("No invoice ID returned");
+
+      const invItemsPayload = items.filter((i) => i.medicationId).map((item) => ({
+        invoice_id: invId,
+        description: item.medicationName,
+        quantity: item.quantity || 1,
+        unit_price: priceMap[item.medicationId] ?? 0,
+        total: (priceMap[item.medicationId] ?? 0) * (item.quantity || 1),
+      }));
+
+      const { error: invItemsError } = await (supabase as any).from("invoice_items").insert(invItemsPayload);
+      if (invItemsError) throw new Error(invItemsError.message || "Failed to create invoice items");
+
+      const { error: statusError } = await (supabase as any)
+        .from("prescriptions")
+        .update({ status: "Unpaid" })
+        .eq("id", prescriptionId);
+      if (statusError) throw new Error(statusError.message || "Failed to update prescription status");
+
       return prescriptionId;
     },
     onSuccess: () => {

@@ -61,6 +61,27 @@ begin
 end
 $$;
 
+-- Add Unpaid/Paid to prescriptions status check + prescription_id on invoices
+do $$
+begin
+  alter table public.prescriptions drop constraint if exists prescriptions_status_check;
+  alter table public.prescriptions add constraint prescriptions_status_check
+    check (status in ('Pending','Unpaid','Paid','Dispensed','PartiallyDispensed','Cancelled'));
+exception when others then null;
+end
+$$;
+
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'invoices' and column_name = 'prescription_id'
+  ) then
+    alter table public.invoices add column prescription_id uuid references public.prescriptions(id) on delete set null;
+  end if;
+end
+$$;
+
 drop policy if exists "Authenticated users can insert medications" on public.medications;
 create policy "Authenticated users can insert medications"
   on public.medications for insert

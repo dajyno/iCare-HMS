@@ -9,6 +9,20 @@ const config: Record<OrderStatus, { label: string; text: string; bg: string; glo
     glow: "rgba(6,182,212,0.45)",
     pulse: true,
   },
+  "Unpaid": {
+    label: "Unpaid",
+    text: "text-rose-500",
+    bg: "bg-rose-500/8",
+    glow: "rgba(244,63,94,0.4)",
+    pulse: true,
+  },
+  "Paid": {
+    label: "Paid",
+    text: "text-emerald-500",
+    bg: "bg-emerald-500/8",
+    glow: "rgba(16,185,129,0.45)",
+    pulse: false,
+  },
   "Partially Completed": {
     label: "Partially Completed",
     text: "text-amber-500",
