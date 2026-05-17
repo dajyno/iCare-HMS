@@ -153,11 +153,12 @@ const NewAdmissionWizard = ({
 
   const handleFinalize = () => {
     if (!canFinalize || !selectedPatient) return;
+    const wardName = wardConfiguration.find((w) => w.wardId === selectedWardId)?.name ?? selectedWardId;
     setFinalizing(true);
     setTimeout(() => {
       onFinalize({
         patient: selectedPatient,
-        wardCode: selectedWardId,
+        wardCode: wardName,
         bedNo: selectedBedCode,
         provisionalDiagnosis,
         chiefComplaints,
@@ -361,7 +362,7 @@ const NewAdmissionWizard = ({
                           <SelectContent>
                             {filteredWards.map((w) => (
                               <SelectItem key={w.wardId} value={w.wardId}>
-                                {w.name} ({w.totalBeds} beds)
+                                {w.name} ({w.beds.length} beds)
                               </SelectItem>
                             ))}
                           </SelectContent>

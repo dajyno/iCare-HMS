@@ -153,28 +153,28 @@ const DischargeProcessing = ({
             <div className="flex items-center gap-2">
               <Bed className="w-3.5 h-3.5 text-sky-600" />
               <span className="text-sm text-slate-700">
-                Bed Stay ({billingBreakdown.days} days × ${billingBreakdown.bedRate})
+                Bed Stay ({billingBreakdown.days} days × ₦{billingBreakdown.bedRate})
               </span>
             </div>
             <span className="text-sm font-mono font-bold text-slate-900">
-              ${billingBreakdown.bedStayCost.toLocaleString()}
+              ₦{billingBreakdown.bedStayCost.toLocaleString()}
             </span>
           </div>
           <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-sky-50">
             <div className="flex items-center gap-2">
               <Pill className="w-3.5 h-3.5 text-sky-600" />
               <span className="text-sm text-slate-700">
-                Medications ({billingBreakdown.medItems} admin × $150)
+                Medications ({billingBreakdown.medItems} admin × ₦150)
               </span>
             </div>
             <span className="text-sm font-mono font-bold text-slate-900">
-              ${billingBreakdown.medCost.toLocaleString()}
+              ₦{billingBreakdown.medCost.toLocaleString()}
             </span>
           </div>
           <div className="flex items-center justify-between py-3 px-3 rounded-lg bg-slate-100 border border-slate-200 mt-2">
             <span className="text-sm font-bold text-slate-800">Total Due</span>
             <span className="text-lg font-bold font-mono text-slate-900">
-              ${billingBreakdown.total.toLocaleString()}
+              ₦{billingBreakdown.total.toLocaleString()}
             </span>
           </div>
         </div>

@@ -46,7 +46,7 @@ const LabDetailView = ({
   const [resultValues, setResultValues] = useState<Record<string, string>>({});
   const [units, setUnits] = useState<Record<string, string>>({});
   const [interpretations, setInterpretations] = useState<Record<string, string>>({});
-  const [manualFlags, setManualFlags] = useState<Record<string, boolean>>({});
+
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -376,12 +376,6 @@ const LabDetailView = ({
                           placeholder="e.g. x10^9/L"
                           className="h-10 text-sm"
                         />
-                      </div>
-                      <div className="space-y-1.5 flex flex-col justify-end">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="checkbox" checked={manualFlags[o.id] ?? false} onChange={(e) => setManualFlags((p) => ({ ...p, [o.id]: e.target.checked }))} className="sr-only" />
-                          <span className="text-xs font-medium text-slate-600">Flag Abnormal</span>
-                        </label>
                       </div>
                     </div>
                     <div className="space-y-1.5">

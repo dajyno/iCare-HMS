@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Plus, Settings, Bed, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,7 @@ import InpatientSettings from "./components/InpatientSettings";
 import type { ActiveAdmission } from "./inpatientTypes";
 
 const InpatientOverview = () => {
-  const [selectedPatient, setSelectedPatient] =
-    useState<ActiveAdmission | null>(null);
+  const [selectedAdmissionId, setSelectedAdmissionId] = useState<string | null>(null);
   const [showAdmissionWizard, setShowAdmissionWizard] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -35,15 +34,20 @@ const InpatientOverview = () => {
     setState,
   } = useInpatientState();
 
+  const selectedPatient = useMemo(
+    () => state.activeAdmissions.find((a) => a.admissionId === selectedAdmissionId) ?? null,
+    [state.activeAdmissions, selectedAdmissionId]
+  );
+
   const handleSelectPatient = useCallback(
     (admission: ActiveAdmission) => {
-      setSelectedPatient(admission);
+      setSelectedAdmissionId(admission.admissionId);
     },
     []
   );
 
   const handleCloseWorkspace = useCallback(() => {
-    setSelectedPatient(null);
+    setSelectedAdmissionId(null);
   }, []);
 
   if (loading) {
@@ -171,7 +175,7 @@ const InpatientOverview = () => {
         onFinalize={finalizeAdmission}
       />
 
-      {/* View D: Inpatient Settings Sheet */}
+      {/* View D: Inpatient Settings Dialog */}
       <InpatientSettings
         open={showSettings}
         onClose={() => setShowSettings(false)}

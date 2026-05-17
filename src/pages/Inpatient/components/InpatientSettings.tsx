@@ -19,7 +19,6 @@ import {
   Pencil,
   Check,
   X,
-  DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,7 +77,8 @@ const InpatientSettings = ({
   );
   const occupancyRate = (ward: WardConfig) => {
     const occupied = ward.beds.filter((b) => b.status === "Occupied").length;
-    return ward.totalBeds > 0 ? Math.round((occupied / ward.totalBeds) * 100) : 0;
+    const total = ward.beds.length;
+    return total > 0 ? Math.round((occupied / total) * 100) : 0;
   };
 
   const handleAddWard = () => {
@@ -370,7 +370,7 @@ const InpatientSettings = ({
                                   {ward.name}
                                 </p>
                                 <p className="text-xs text-slate-500 mt-0.5">
-                                  {ward.department} &middot; {ward.totalBeds} beds
+                                  {ward.department} &middot; {ward.beds.length} beds
                                 </p>
                               </div>
                               <div className="text-right shrink-0">
@@ -527,15 +527,15 @@ const InpatientSettings = ({
                               </SelectItem>
                             </SelectContent>
                           </Select>
-                          <div className="w-24 text-right">
+                          <div className="w-32 text-right">
                             {editingBedPrice === bed.bedCode ? (
                               <div className="flex items-center gap-1 justify-end">
-                                <DollarSign className="w-3 h-3 text-slate-400" />
+                                <span className="text-xs text-slate-400">₦</span>
                                 <Input
                                   value={editPrice}
                                   onChange={(e) => setEditPrice(e.target.value)}
                                   type="number"
-                                  className="h-7 w-20 text-xs font-mono"
+                                  className="h-7 w-28 text-xs font-mono"
                                   autoFocus
                                   onKeyDown={(e) => {
                                     if (e.key === "Enter")
@@ -567,7 +567,7 @@ const InpatientSettings = ({
                                 }}
                                 className="flex items-center gap-1 ml-auto text-xs font-mono font-bold text-slate-700 hover:text-sky-600"
                               >
-                                <DollarSign className="w-3 h-3 text-slate-400" />
+                                <span className="text-xs text-slate-400">₦</span>
                                 {bed.price.toLocaleString()}
                               </button>
                             )}

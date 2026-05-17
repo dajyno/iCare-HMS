@@ -8,14 +8,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Save,
-  X,
   Scan,
   Loader2,
   FileText,
@@ -209,9 +207,7 @@ const RadiologyDiagnosticView = ({
                 </DialogDescription>
               </div>
             </div>
-            <DialogClose className="text-slate-400 hover:text-slate-700 transition-colors">
-              <X className="w-4 h-4" />
-            </DialogClose>
+
           </div>
         </DialogHeader>
 

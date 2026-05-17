@@ -58,7 +58,7 @@ export function useInpatientState() {
           wardId: w.id,
           name: w.name,
           department: w.department?.name ?? w.type ?? "General",
-          totalBeds: w.beds_count ?? (w.beds?.length ?? 0),
+          totalBeds: w.beds?.length ?? 0,
           beds: (w.beds || []).map((b: any) => ({
             bedCode: b.bed_number,
             status: (b.status === "Occupied"
@@ -413,7 +413,7 @@ export function useInpatientState() {
           const lineItems = [
             {
               invoice_id: invoice.id,
-              description: `Bed Stay - ${admission.wardCode} ${admission.bedNo} (${bedStayDays} days @ $${bedRatePerDay}/day)`,
+              description: `Bed Stay - ${admission.wardCode} ${admission.bedNo} (${bedStayDays} days @ ₦${bedRatePerDay}/day)`,
               quantity: bedStayDays,
               unit_price: bedRatePerDay,
               total: bedStayCost,
@@ -434,7 +434,7 @@ export function useInpatientState() {
           if (itemsError) throw itemsError;
         }
 
-        console.log(`Invoice ${invoiceNumber} created for $${totalAmount}`);
+        console.log(`Invoice ${invoiceNumber} created for ₦${totalAmount}`);
       } catch (err) {
         console.error("Failed to create invoice in Supabase:", err);
       }
