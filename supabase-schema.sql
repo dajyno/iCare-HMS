@@ -240,6 +240,7 @@ create table public.invoices (
   prescription_id uuid references public.prescriptions(id) on delete set null,
   payment_method  text,
   created_by     uuid references public.users(id),
+  paid_at       timestamptz,
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now()
 );
@@ -1030,4 +1031,9 @@ begin
   end if;
 end;
 $$;
+
+-- ============================================================
+-- MIGRATION: Add paid_at column to invoices (safe to re-run)
+-- ============================================================
+alter table public.invoices add column if not exists paid_at timestamptz;
 

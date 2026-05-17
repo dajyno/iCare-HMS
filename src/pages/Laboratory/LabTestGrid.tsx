@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { motion } from "motion/react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import {
   Search,
@@ -31,6 +31,7 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
   const [customInputs, setCustomInputs] = useState<Record<string, string>>({});
   const [customSaved, setCustomSaved] = useState<Record<string, string[]>>({});
   const [hormoneValues, setHormoneValues] = useState<Record<string, string>>({});
+  const queryClient = useQueryClient();
 
   const { data: patients } = useQuery({
     queryKey: ["patients"],
@@ -233,30 +234,33 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
         .select("id")
         .single();
 
-      if (!invError && invoiceData) {
-        const invoiceId = invoiceData.id;
+      if (invError) throw invError;
 
-        const itemsPayload = createdRequests.map((req: any) => {
-          const info = priceMap.get(req.test_id);
-          return {
-            invoice_id: invoiceId,
-            description: info?.name ?? "Lab Test",
-            quantity: 1,
-            unit_price: info?.price ?? 0,
-            total: info?.price ?? 0,
-          };
-        });
+      const invoiceId = invoiceData.id;
 
-        await supabase.from("invoice_items").insert(itemsPayload);
+      const itemsPayload = createdRequests.map((req: any) => {
+        const info = priceMap.get(req.test_id);
+        return {
+          invoice_id: invoiceId,
+          description: info?.name ?? "Lab Test",
+          quantity: 1,
+          unit_price: info?.price ?? 0,
+          total: info?.price ?? 0,
+        };
+      });
 
-        const requestIds = createdRequests.map((req: any) => req.id);
-        await supabase
-          .from("lab_requests")
-          .update({ invoice_id: invoiceId })
-          .in("id", requestIds);
-      }
+      const { error: itemsError } = await supabase.from("invoice_items").insert(itemsPayload);
+      if (itemsError) throw itemsError;
+
+      const requestIds = createdRequests.map((req: any) => req.id);
+      const { error: linkError } = await supabase
+        .from("lab_requests")
+        .update({ invoice_id: invoiceId })
+        .in("id", requestIds);
+      if (linkError) throw linkError;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
       onBack();
     },
     onError: (err) => {
