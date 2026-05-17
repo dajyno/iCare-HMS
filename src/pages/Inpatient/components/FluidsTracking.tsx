@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, Trash2, Droplets, ArrowUpDown } from "lucide-react";
+import { Plus, Trash2, Droplets, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,37 +8,46 @@ import { cn } from "@/lib/utils";
 import type {
   ActiveAdmission,
   FluidEntry,
-  FluidLedger,
 } from "../inpatientTypes";
 
-const FluidRow = ({
+const FluidCard = ({
   entry,
+  type,
   onRemove,
 }: {
   entry: FluidEntry;
+  type: "intake" | "output";
   onRemove: () => void;
 }) => (
-  <div className="flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-slate-50 group text-sm">
-    <span className="text-[10px] font-mono text-slate-400 w-14 shrink-0">
-      {entry.itemId}
-    </span>
-    <span className="flex-1 text-slate-700 text-xs truncate">
-      {entry.source}
-    </span>
-    <span className="font-mono font-bold text-slate-900 w-20 text-right">
-      {entry.volume} ml
-    </span>
-    <span className="text-[10px] text-slate-400 w-16 text-right shrink-0 hidden sm:block">
-      {new Date(entry.timestamp).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      })}
-    </span>
+  <div className="flex items-center gap-3 p-3 rounded-lg bg-white border border-slate-100 shadow-sm hover:shadow transition-all">
+    <div
+      className={cn(
+        "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+        type === "intake"
+          ? "bg-sky-100 text-sky-600"
+          : "bg-amber-100 text-amber-600"
+      )}
+    >
+      <Droplets className="w-4 h-4" />
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="text-sm font-medium text-slate-900 truncate">
+        {entry.source}
+      </p>
+      <p className="text-[10px] text-slate-400 font-mono">
+        {new Date(entry.timestamp).toLocaleString()}
+      </p>
+    </div>
+    <div className="text-right shrink-0">
+      <p className="text-sm font-bold font-mono text-slate-900">
+        {entry.volume} ml
+      </p>
+    </div>
     <button
       onClick={onRemove}
-      className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-red-500 transition-all"
+      className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-all opacity-0 group-hover:opacity-100"
     >
-      <Trash2 className="w-3 h-3" />
+      <Trash2 className="w-3.5 h-3.5" />
     </button>
   </div>
 );
@@ -93,12 +102,12 @@ const AddFluidForm = ({
         </div>
         <Button
           size="sm"
-          variant="outline"
           onClick={handleSubmit}
           disabled={!source.trim() || !volume}
-          className="h-9 shrink-0"
+          className="h-9 shrink-0 gap-1.5"
         >
-          <Plus className="w-3.5 h-3.5" />
+          <Save className="w-3.5 h-3.5" />
+          Save
         </Button>
       </div>
     </div>
@@ -139,22 +148,31 @@ const FluidsTracking = ({
               Total: <strong className="text-sky-700 font-mono">{totalIntake} ml</strong>
             </span>
           </div>
-          <div className="bg-sky-50/50 rounded-xl border border-sky-200 p-3 space-y-1">
+          <div className="bg-sky-50/50 rounded-xl border border-sky-200 p-3 space-y-2">
             {admission.fluidLedger.intake.length === 0 ? (
               <p className="text-xs text-slate-400 text-center py-4">
                 No intake entries recorded
               </p>
             ) : (
-              admission.fluidLedger.intake.map((entry) => (
-                <div key={entry.itemId}>
-                  <FluidRow
-                    entry={entry}
-                    onRemove={() => {}}
-                  />
-                </div>
-              ))
+              <AnimatePresence>
+                {admission.fluidLedger.intake.map((entry) => (
+                  <motion.div
+                    key={entry.itemId}
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    className="group"
+                  >
+                    <FluidCard
+                      entry={entry}
+                      type="intake"
+                      onRemove={() => {}}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             )}
-            <div className="pt-2 border-t border-sky-200">
+            <div className="pt-3 border-t border-sky-200">
               <AddFluidForm
                 type="intake"
                 onAdd={(source, volume) =>
@@ -175,22 +193,31 @@ const FluidsTracking = ({
               Total: <strong className="text-amber-700 font-mono">{totalOutput} ml</strong>
             </span>
           </div>
-          <div className="bg-amber-50/50 rounded-xl border border-amber-200 p-3 space-y-1">
+          <div className="bg-amber-50/50 rounded-xl border border-amber-200 p-3 space-y-2">
             {admission.fluidLedger.output.length === 0 ? (
               <p className="text-xs text-slate-400 text-center py-4">
                 No output entries recorded
               </p>
             ) : (
-              admission.fluidLedger.output.map((entry) => (
-                <div key={entry.itemId}>
-                  <FluidRow
-                    entry={entry}
-                    onRemove={() => {}}
-                  />
-                </div>
-              ))
+              <AnimatePresence>
+                {admission.fluidLedger.output.map((entry) => (
+                  <motion.div
+                    key={entry.itemId}
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    className="group"
+                  >
+                    <FluidCard
+                      entry={entry}
+                      type="output"
+                      onRemove={() => {}}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             )}
-            <div className="pt-2 border-t border-amber-200">
+            <div className="pt-3 border-t border-amber-200">
               <AddFluidForm
                 type="output"
                 onAdd={(source, volume) =>

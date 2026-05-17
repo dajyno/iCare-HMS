@@ -11,6 +11,7 @@ export interface VitalsRecord {
   pulse: number;
   temp: number;
   spo2: number;
+  observations: string;
 }
 
 export interface AdministrationLogEntry {
@@ -51,11 +52,13 @@ export interface ActiveAdmission {
   vitalsHistory: VitalsRecord[];
   medicationSchedule: MedicationSchedule[];
   fluidLedger: FluidLedger;
+  clinicalNotes: string;
 }
 
 export interface BedUnit {
   bedCode: string;
   status: "Available" | "Occupied" | "Maintenance/Sanitizing";
+  price: number;
 }
 
 export interface WardConfig {

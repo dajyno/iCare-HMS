@@ -11,6 +11,7 @@ import {
   Receipt,
   Bed,
   Pill,
+  StickyNote,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,11 +27,14 @@ interface ChecklistItem {
 const DischargeProcessing = ({
   admission,
   onAuthorizeDischarge,
+  onSaveClinicalNotes,
 }: {
   admission: ActiveAdmission;
   onAuthorizeDischarge: (summary: string) => void;
+  onSaveClinicalNotes?: (notes: string) => void;
 }) => {
   const [summary, setSummary] = useState("");
+  const [clinicalNotes, setClinicalNotes] = useState(admission.clinicalNotes || "");
   const [authorizing, setAuthorizing] = useState(false);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([
     { id: "chart", label: "Medical chart reconciled", checked: true },
@@ -62,6 +66,17 @@ const DischargeProcessing = ({
     const medCost = medItems * 150;
     return { days, bedRate, bedStayCost, medItems, medCost, total: bedStayCost + medCost };
   }, [admission]);
+
+  const handleSaveClinicalNotes = () => {
+    if (onSaveClinicalNotes) {
+      onSaveClinicalNotes(clinicalNotes);
+      setChecklist((prev) =>
+        prev.map((item) =>
+          item.id === "notes" ? { ...item, checked: true } : item
+        )
+      );
+    }
+  };
 
   const handleAuthorize = async () => {
     if (!allChecked || !summary.trim()) return;
@@ -104,6 +119,32 @@ const DischargeProcessing = ({
 
       <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
         <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+          <StickyNote className="w-4 h-4 text-violet-600" />
+          Clinical Discharge Notes
+        </h3>
+        <Textarea
+          value={clinicalNotes}
+          onChange={(e) => setClinicalNotes(e.target.value)}
+          placeholder="Write clinical observations, treatment response, and discharge instructions..."
+          rows={4}
+          className="text-sm"
+        />
+        <div className="flex justify-end">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleSaveClinicalNotes}
+            disabled={clinicalNotes === (admission.clinicalNotes || "")}
+            className="gap-1.5 text-xs"
+          >
+            <StickyNote className="w-3.5 h-3.5" />
+            Save Clinical Notes
+          </Button>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
+        <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
           <Calculator className="w-4 h-4 text-sky-600" />
           Billing Summary
         </h3>
@@ -112,28 +153,28 @@ const DischargeProcessing = ({
             <div className="flex items-center gap-2">
               <Bed className="w-3.5 h-3.5 text-sky-600" />
               <span className="text-sm text-slate-700">
-                Bed Stay ({billingBreakdown.days} days × KES {billingBreakdown.bedRate})
+                Bed Stay ({billingBreakdown.days} days × ${billingBreakdown.bedRate})
               </span>
             </div>
             <span className="text-sm font-mono font-bold text-slate-900">
-              KES {billingBreakdown.bedStayCost.toLocaleString()}
+              ${billingBreakdown.bedStayCost.toLocaleString()}
             </span>
           </div>
           <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-sky-50">
             <div className="flex items-center gap-2">
               <Pill className="w-3.5 h-3.5 text-sky-600" />
               <span className="text-sm text-slate-700">
-                Medications ({billingBreakdown.medItems} admin × KES 150)
+                Medications ({billingBreakdown.medItems} admin × $150)
               </span>
             </div>
             <span className="text-sm font-mono font-bold text-slate-900">
-              KES {billingBreakdown.medCost.toLocaleString()}
+              ${billingBreakdown.medCost.toLocaleString()}
             </span>
           </div>
           <div className="flex items-center justify-between py-3 px-3 rounded-lg bg-slate-100 border border-slate-200 mt-2">
             <span className="text-sm font-bold text-slate-800">Total Due</span>
             <span className="text-lg font-bold font-mono text-slate-900">
-              KES {billingBreakdown.total.toLocaleString()}
+              ${billingBreakdown.total.toLocaleString()}
             </span>
           </div>
         </div>

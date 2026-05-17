@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Plus,
   Settings,
@@ -17,18 +19,11 @@ import {
   Pencil,
   Check,
   X,
+  DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -68,6 +63,9 @@ const InpatientSettings = ({
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editDept, setEditDept] = useState("");
+  const [editingBedPrice, setEditingBedPrice] = useState<string | null>(null);
+  const [editPrice, setEditPrice] = useState("");
+  const [editTotalBeds, setEditTotalBeds] = useState<number | null>(null);
   const [newWard, setNewWard] = useState({
     wardId: "",
     name: "",
@@ -94,6 +92,7 @@ const InpatientSettings = ({
     setEditingWard(ward.wardId);
     setEditName(ward.name);
     setEditDept(ward.department);
+    setEditTotalBeds(ward.totalBeds);
   };
 
   const saveEdit = () => {
@@ -101,6 +100,7 @@ const InpatientSettings = ({
     onUpdateWardConfig(editingWard, {
       name: editName.trim(),
       department: editDept.trim(),
+      totalBeds: editTotalBeds ?? undefined,
     });
     setEditingWard(null);
   };
@@ -109,10 +109,24 @@ const InpatientSettings = ({
     setEditingWard(null);
   };
 
+  const saveBedPrice = (wardId: string, bedCode: string) => {
+    const price = parseInt(editPrice);
+    if (!isNaN(price) && price > 0) {
+      const ward = wardConfiguration.find((w) => w.wardId === wardId);
+      if (ward) {
+        const updatedBeds = ward.beds.map((b) =>
+          b.bedCode === bedCode ? { ...b, price } : b
+        );
+        onUpdateWardConfig(wardId, { beds: updatedBeds });
+      }
+    }
+    setEditingBedPrice(null);
+  };
+
   return (
-    <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-[480px] sm:w-[540px] p-0">
-        <SheetHeader className="px-6 pt-6 pb-4 border-b border-slate-200">
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-200">
           <div className="flex items-center gap-2">
             {drillDownWard ? (
               <button
@@ -124,15 +138,15 @@ const InpatientSettings = ({
             ) : (
               <Settings className="w-5 h-5 text-slate-500" />
             )}
-            <SheetTitle className="text-base">
+            <DialogTitle className="text-base">
               {drillDownWard
                 ? selectedWard?.name ?? "Ward Details"
                 : "Inpatient Settings"}
-            </SheetTitle>
+            </DialogTitle>
           </div>
-        </SheetHeader>
+        </DialogHeader>
 
-        <div className="p-6 overflow-y-auto h-[calc(100vh-80px)]">
+        <div className="p-6 overflow-y-auto flex-1">
           <AnimatePresence mode="wait">
             {!drillDownWard ? (
               <motion.div
@@ -285,7 +299,7 @@ const InpatientSettings = ({
                       >
                         {editingWard === ward.wardId ? (
                           <div className="p-4 rounded-xl border-2 border-sky-300 bg-sky-50 space-y-3">
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-3 gap-3">
                               <div className="space-y-1">
                                 <Label className="text-[10px] font-semibold text-slate-500">
                                   Ward Name
@@ -305,6 +319,20 @@ const InpatientSettings = ({
                                   value={editDept}
                                   onChange={(e) => setEditDept(e.target.value)}
                                   className="h-8 text-xs"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-[10px] font-semibold text-slate-500">
+                                  Total Beds
+                                </Label>
+                                <Input
+                                  value={editTotalBeds ?? ""}
+                                  onChange={(e) =>
+                                    setEditTotalBeds(parseInt(e.target.value) || 0)
+                                  }
+                                  type="number"
+                                  min={1}
+                                  className="h-8 text-xs font-mono"
                                 />
                               </div>
                             </div>
@@ -453,12 +481,17 @@ const InpatientSettings = ({
                     </div>
 
                     <div className="space-y-1">
+                      <div className="flex items-center justify-between px-1 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                        <span className="w-32">Bed</span>
+                        <span className="w-24 text-center">Status</span>
+                        <span className="w-24 text-right">Price / Day</span>
+                      </div>
                       {selectedWard.beds.map((bed) => (
                         <div
                           key={bed.bedCode}
                           className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all"
                         >
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 w-32">
                             <Bed className="w-3.5 h-3.5 text-slate-400" />
                             <span className="text-sm font-mono font-medium text-slate-800">
                               {bed.bedCode}
@@ -494,6 +527,51 @@ const InpatientSettings = ({
                               </SelectItem>
                             </SelectContent>
                           </Select>
+                          <div className="w-24 text-right">
+                            {editingBedPrice === bed.bedCode ? (
+                              <div className="flex items-center gap-1 justify-end">
+                                <DollarSign className="w-3 h-3 text-slate-400" />
+                                <Input
+                                  value={editPrice}
+                                  onChange={(e) => setEditPrice(e.target.value)}
+                                  type="number"
+                                  className="h-7 w-20 text-xs font-mono"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter")
+                                      saveBedPrice(selectedWard.wardId, bed.bedCode);
+                                    if (e.key === "Escape")
+                                      setEditingBedPrice(null);
+                                  }}
+                                />
+                                <button
+                                  onClick={() =>
+                                    saveBedPrice(selectedWard.wardId, bed.bedCode)
+                                  }
+                                  className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"
+                                >
+                                  <Check className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => setEditingBedPrice(null)}
+                                  className="p-1 text-slate-400 hover:bg-slate-100 rounded"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setEditingBedPrice(bed.bedCode);
+                                  setEditPrice(String(bed.price));
+                                }}
+                                className="flex items-center gap-1 ml-auto text-xs font-mono font-bold text-slate-700 hover:text-sky-600"
+                              >
+                                <DollarSign className="w-3 h-3 text-slate-400" />
+                                {bed.price.toLocaleString()}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -503,6 +581,12 @@ const InpatientSettings = ({
             )}
           </AnimatePresence>
         </div>
+
+        <DialogFooter className="px-6 py-4 border-t border-slate-200">
+          <Button variant="outline" size="sm" onClick={onClose}>
+            Close
+          </Button>
+        </DialogFooter>
 
         {/* Delete Confirmation Dialog */}
         <Dialog
@@ -549,8 +633,8 @@ const InpatientSettings = ({
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 };
 

@@ -31,6 +31,8 @@ const InpatientOverview = () => {
     updateBedStatus,
     addWard,
     deleteWard,
+    searchMedications,
+    setState,
   } = useInpatientState();
 
   const handleSelectPatient = useCallback(
@@ -130,6 +132,17 @@ const InpatientOverview = () => {
               onAuthorizeDischarge={(summary) =>
                 authorizeDischarge(selectedPatient.admissionId, summary)
               }
+              onSaveClinicalNotes={(notes) =>
+                setState((prev) => ({
+                  ...prev,
+                  activeAdmissions: prev.activeAdmissions.map((a) =>
+                    a.admissionId === selectedPatient.admissionId
+                      ? { ...a, clinicalNotes: notes }
+                      : a
+                  ),
+                }))
+              }
+              searchMedications={searchMedications}
             />
           </motion.div>
         ) : (

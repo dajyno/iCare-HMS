@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Plus, Pill, X, Clock, Check, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -105,6 +105,7 @@ const MedicationMAR = ({
   admission,
   onAssignMedication,
   onRecordAdministration,
+  searchMedications,
 }: {
   admission: ActiveAdmission;
   onAssignMedication: (med: MedicationSchedule) => void;
@@ -114,9 +115,11 @@ const MedicationMAR = ({
     status: "Administered" | "Missed" | "Skipped",
     note: string
   ) => void;
+  searchMedications?: (query: string) => Promise<{ drugId: string; name: string }[]>;
 }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drugQuery, setDrugQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<{ drugId: string; name: string }[]>([]);
   const [selectedDrug, setSelectedDrug] = useState<{
     drugId: string;
     name: string;
@@ -131,6 +134,20 @@ const MedicationMAR = ({
 
   const allSlots =
     freq === "Custom" ? customSlots : FREQ_PRESETS[freq]?.slots ?? [];
+
+  useEffect(() => {
+    if (!drugQuery.trim() || selectedDrug) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      if (searchMedications) {
+        const results = await searchMedications(drugQuery);
+        setSearchResults(results);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [drugQuery, selectedDrug, searchMedications]);
 
   const handleSaveSchedule = () => {
     if (!selectedDrug || !freq) return;
@@ -158,6 +175,7 @@ const MedicationMAR = ({
     setSelectedDrug(null);
     setFreq("");
     setCustomSlots([]);
+    setSearchResults([]);
   };
 
   const handleSingleClick = useCallback(
@@ -308,30 +326,25 @@ const MedicationMAR = ({
                   placeholder="Search medication..."
                   className="h-9 text-sm"
                 />
-                {drugQuery && !selectedDrug && (
+                {drugQuery && !selectedDrug && searchResults.length > 0 && (
                   <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-36 overflow-y-auto">
-                    {[
-                      { drugId: "D-99", name: "Amoxicillin - 500mg Capsule" },
-                      { drugId: "D-12", name: "Ceftriaxone - 1g Injection" },
-                      { drugId: "D-45", name: "Paracetamol - 500mg Tablet" },
-                      { drugId: "D-78", name: "Metronidazole - 400mg Tablet" },
-                      { drugId: "D-33", name: "Omeprazole - 20mg Capsule" },
-                    ]
-                      .filter((m) =>
-                        m.name.toLowerCase().includes(drugQuery.toLowerCase())
-                      )
-                      .map((m) => (
-                        <button
-                          key={m.drugId}
-                          onClick={() => {
-                            setSelectedDrug(m);
-                            setDrugQuery(m.name);
-                          }}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-sky-50"
-                        >
-                          {m.name}
-                        </button>
-                      ))}
+                    {searchResults.map((m) => (
+                      <button
+                        key={m.drugId}
+                        onClick={() => {
+                          setSelectedDrug(m);
+                          setDrugQuery(m.name);
+                        }}
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-sky-50"
+                      >
+                        {m.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {drugQuery && !selectedDrug && searchResults.length === 0 && (
+                  <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-3 text-xs text-slate-400 text-center">
+                    No medications found
                   </div>
                 )}
               </div>

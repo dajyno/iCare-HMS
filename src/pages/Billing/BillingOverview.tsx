@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { format } from "date-fns";
 import {
@@ -36,11 +36,24 @@ const BillingOverview = () => {
 
   const result = useInvoices();
   const invoices = result.data;
-  const { isLoading, error, refetch } = result;
+  const { isLoading, error, isFetching, refetch } = result;
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   const filteredInvoices = useMemo(() => {
     if (!Array.isArray(invoices)) return [];
-    let list = invoices;
+
+    const seen = new Set<string>();
+    const deduped: InvoiceSummary[] = [];
+    for (const inv of invoices) {
+      if (!seen.has(inv.id)) {
+        seen.add(inv.id);
+        deduped.push(inv);
+      }
+    }
+
+    let list = deduped;
 
     if (showPaidOnly) {
       list = list.filter((inv) => inv.status === "Paid");
@@ -64,6 +77,17 @@ const BillingOverview = () => {
 
     return list;
   }, [invoices, activeFilter, showPaidOnly, searchTerm]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter, showPaidOnly, searchTerm]);
+
+  const paginatedInvoices = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredInvoices.slice(start, start + pageSize);
+  }, [filteredInvoices, currentPage]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / pageSize));
 
   const stats = useMemo(() => {
     const totalOutstanding = Array.isArray(invoices)
@@ -106,12 +130,12 @@ const BillingOverview = () => {
   }, []);
 
   const toggleAll = useCallback(() => {
-    if (selectedIds.size === filteredInvoices.length) {
+    if (selectedIds.size === paginatedInvoices.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filteredInvoices.map((inv) => inv.id)));
+      setSelectedIds(new Set(paginatedInvoices.map((inv) => inv.id)));
     }
-  }, [filteredInvoices, selectedIds]);
+  }, [paginatedInvoices, selectedIds]);
 
   const computeTotal = () => {
     let total = 0;
@@ -160,9 +184,10 @@ const BillingOverview = () => {
             size="sm"
             className="h-9 gap-1.5 text-xs"
             onClick={() => refetch()}
+            disabled={isFetching}
           >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Refresh
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} />
+            {isFetching ? "Refreshing..." : "Refresh"}
           </Button>
           <Button
             size="sm"
@@ -270,6 +295,9 @@ const BillingOverview = () => {
           </div>
           <div className="text-xs text-slate-400 font-medium">
             {filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? "s" : ""}
+            {paginatedInvoices.length < filteredInvoices.length && (
+              <span className="ml-1">(page {currentPage}/{totalPages})</span>
+            )}
           </div>
         </div>
 
@@ -297,7 +325,7 @@ const BillingOverview = () => {
                       onClick={toggleAll}
                       className="flex items-center justify-center w-5 h-5 rounded border border-slate-300 hover:border-slate-500 transition-colors"
                     >
-                      {selectedIds.size === filteredInvoices.length && filteredInvoices.length > 0 ? (
+                      {selectedIds.size === paginatedInvoices.length && paginatedInvoices.length > 0 ? (
                         <Check className="w-3 h-3 text-blue-600" />
                       ) : null}
                     </button>
@@ -331,7 +359,7 @@ const BillingOverview = () => {
                   transition={{ duration: 0.2 }}
                   className="divide-y divide-slate-100"
                 >
-                  {filteredInvoices.length === 0 ? (
+                  {paginatedInvoices.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-6 py-16 text-center text-slate-400 italic">
                         {searchTerm
@@ -340,7 +368,7 @@ const BillingOverview = () => {
                       </td>
                     </tr>
                   ) : (
-                    filteredInvoices.map((inv) => {
+                    paginatedInvoices.map((inv) => {
                       const isChecked = selectedIds.has(inv.id);
                       return (
                         <tr
@@ -414,6 +442,48 @@ const BillingOverview = () => {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {filteredInvoices.length > pageSize && (
+        <div className="flex items-center justify-between px-1">
+          <div className="text-xs text-slate-400">
+            Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredInvoices.length)} of {filteredInvoices.length}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all ${
+                  page === currentPage
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-slate-500 hover:bg-slate-100"
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Floating Bulk Pay Bar */}
       <AnimatePresence>

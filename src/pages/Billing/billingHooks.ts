@@ -429,8 +429,5 @@ export function useUpdateInvoiceStatus() {
         await processPaymentSideEffects(currentInvoice, queryClient);
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invoices"] });
-    },
   });
 }

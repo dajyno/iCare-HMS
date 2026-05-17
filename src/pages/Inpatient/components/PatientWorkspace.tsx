@@ -25,6 +25,8 @@ interface PatientWorkspaceProps {
     entry: Omit<FluidEntry, "itemId" | "timestamp">
   ) => void;
   onAuthorizeDischarge: (summary: string) => void;
+  onSaveClinicalNotes: (notes: string) => void;
+  searchMedications: (query: string) => Promise<{ drugId: string; name: string }[]>;
 }
 
 const PatientWorkspace = ({
@@ -36,6 +38,8 @@ const PatientWorkspace = ({
   onRecordAdministration,
   onRecordFluidEntry,
   onAuthorizeDischarge,
+  onSaveClinicalNotes,
+  searchMedications,
 }: PatientWorkspaceProps) => {
   return (
     <motion.div
@@ -63,7 +67,7 @@ const PatientWorkspace = ({
               className="gap-1.5 data-[state=active]:bg-white text-xs"
             >
               <Pill className="w-3.5 h-3.5" />
-              MAR
+              Medications
             </TabsTrigger>
             <TabsTrigger
               value="fluids"
@@ -85,6 +89,7 @@ const PatientWorkspace = ({
             <JournalVitalsFeed
               admission={admission}
               onCommitVitals={onCommitVitals}
+              onSaveClinicalNotes={onSaveClinicalNotes}
             />
           </TabsContent>
 
@@ -93,6 +98,7 @@ const PatientWorkspace = ({
               admission={admission}
               onAssignMedication={onAssignMedication}
               onRecordAdministration={onRecordAdministration}
+              searchMedications={searchMedications}
             />
           </TabsContent>
 
@@ -108,6 +114,7 @@ const PatientWorkspace = ({
             <DischargeProcessing
               admission={admission}
               onAuthorizeDischarge={onAuthorizeDischarge}
+              onSaveClinicalNotes={onSaveClinicalNotes}
             />
           </TabsContent>
         </Tabs>

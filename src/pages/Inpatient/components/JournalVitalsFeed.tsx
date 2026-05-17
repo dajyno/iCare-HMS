@@ -1,6 +1,6 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Activity, Heart, Thermometer, Droplets } from "lucide-react";
+import { Activity, Heart, Thermometer, Droplets, StickyNote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,7 +39,7 @@ const JournalEntry = ({
   type,
 }: {
   entry: any;
-  type: "admission" | "vitals" | "medication" | "lab" | "fluid";
+  type: "admission" | "vitals" | "medication" | "lab" | "fluid" | "clinical_note";
 }) => {
   const icons: Record<string, any> = {
     admission: Activity,
@@ -47,6 +47,7 @@ const JournalEntry = ({
     medication: Droplets,
     lab: Activity,
     fluid: Droplets,
+    clinical_note: StickyNote,
   };
   const Icon = icons[type] || Activity;
   const colors: Record<string, string> = {
@@ -55,6 +56,7 @@ const JournalEntry = ({
     medication: "bg-amber-100 text-amber-600",
     lab: "bg-purple-100 text-purple-600",
     fluid: "bg-cyan-100 text-cyan-600",
+    clinical_note: "bg-violet-100 text-violet-600",
   };
   return (
     <div className="flex gap-3 group">
@@ -82,14 +84,18 @@ const JournalEntry = ({
 const JournalVitalsFeed = ({
   admission,
   onCommitVitals,
+  onSaveClinicalNotes,
 }: {
   admission: ActiveAdmission;
   onCommitVitals: (vitals: Omit<VitalsRecord, "timestamp">) => void;
+  onSaveClinicalNotes?: (notes: string) => void;
 }) => {
   const [bp, setBp] = useState("");
   const [pulse, setPulse] = useState("");
   const [temp, setTemp] = useState("");
   const [spo2, setSpO2] = useState("");
+  const [observations, setObservations] = useState("");
+  const [clinicalNotes, setClinicalNotes] = useState(admission.clinicalNotes || "");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const journal = useMemo(() => {
@@ -102,9 +108,11 @@ const JournalVitalsFeed = ({
       },
     ];
     admission.vitalsHistory.forEach((v) => {
+      const desc = v.observations ? `Observations: ${v.observations}` : undefined;
       entries.push({
         type: "vitals",
-        title: `Vitals Recorded: BP ${v.bp}, Pulse ${v.pulse}, Temp ${v.temp}°C, SpO2 ${v.spo2}%`,
+        title: `BP ${v.bp}, Pulse ${v.pulse}, Temp ${v.temp}°C, SpO2 ${v.spo2}%`,
+        description: desc,
         timestamp: new Date(v.timestamp).toLocaleString(),
       });
     });
@@ -163,11 +171,19 @@ const JournalVitalsFeed = ({
       pulse: parseInt(pulse),
       temp: parseFloat(temp),
       spo2: parseInt(spo2),
+      observations,
     });
     setBp("");
     setPulse("");
     setTemp("");
     setSpO2("");
+    setObservations("");
+  };
+
+  const handleSaveNotes = () => {
+    if (onSaveClinicalNotes) {
+      onSaveClinicalNotes(clinicalNotes);
+    }
   };
 
   return (
@@ -223,6 +239,18 @@ const JournalVitalsFeed = ({
             />
           </div>
         </div>
+        <div className="mt-3">
+          <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+            Observations / Notes
+          </Label>
+          <textarea
+            value={observations}
+            onChange={(e) => setObservations(e.target.value)}
+            placeholder="Enter observations or notes for this vitals check..."
+            rows={2}
+            className="w-full mt-1 px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
+          />
+        </div>
         <div className="flex items-center justify-between mt-3">
           <div className="flex items-center gap-4 text-[11px] text-slate-400">
             {pulseData.length > 1 && (
@@ -256,7 +284,32 @@ const JournalVitalsFeed = ({
         </div>
       </div>
 
-      <ScrollArea className="max-h-[500px] pr-2">
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Clinical Notes
+          </h3>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleSaveNotes}
+            disabled={clinicalNotes === (admission.clinicalNotes || "")}
+            className="h-7 text-xs gap-1"
+          >
+            <StickyNote className="w-3 h-3" />
+            Save Notes
+          </Button>
+        </div>
+        <textarea
+          value={clinicalNotes}
+          onChange={(e) => setClinicalNotes(e.target.value)}
+          placeholder="Enter clinical notes for this patient..."
+          rows={3}
+          className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
+        />
+      </div>
+
+      <ScrollArea className="max-h-[400px] pr-2">
         <AnimatePresence>
           {journal.map((entry, i) => (
             <motion.div

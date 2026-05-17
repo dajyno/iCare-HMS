@@ -66,6 +66,7 @@ export function useInpatientState() {
               : b.status === "Cleaning" || b.status === "Maintenance"
               ? "Maintenance/Sanitizing"
               : "Available") as BedUnit["status"],
+            price: b.price ?? 2500,
           })),
         }));
       } catch (err) {
@@ -259,7 +260,13 @@ export function useInpatientState() {
         ...prev,
         activeAdmissions: prev.activeAdmissions.map((a) =>
           a.admissionId === admissionId
-            ? { ...a, vitalsHistory: [...a.vitalsHistory, record] }
+            ? {
+                ...a,
+                vitalsHistory: [...a.vitalsHistory, record],
+                clinicalNotes: a.clinicalNotes
+                  ? `${a.clinicalNotes}\n[${new Date().toLocaleString()}] Vitals: BP ${vitals.bp}, Pulse ${vitals.pulse}, Temp ${vitals.temp}°C, SpO2 ${vitals.spo2}%${vitals.observations ? ` — ${vitals.observations}` : ""}`
+                  : `[${new Date().toLocaleString()}] Vitals: BP ${vitals.bp}, Pulse ${vitals.pulse}, Temp ${vitals.temp}°C, SpO2 ${vitals.spo2}%${vitals.observations ? ` — ${vitals.observations}` : ""}`,
+              }
             : a
         ),
       }));
@@ -334,13 +341,26 @@ export function useInpatientState() {
     []
   );
 
+  const getBedPrice = useCallback(
+    (wardCode: string, bedNo: string): number => {
+      for (const ward of state.wardConfiguration) {
+        if (ward.name === wardCode || ward.wardId === wardCode) {
+          const bed = ward.beds.find((b) => b.bedCode === bedNo);
+          if (bed) return bed.price;
+        }
+      }
+      return 2500;
+    },
+    [state.wardConfiguration]
+  );
+
   const authorizeDischarge = useCallback(
     async (admissionId: string, dischargeSummary: string) => {
       const admission = state.activeAdmissions.find((a) => a.admissionId === admissionId);
       if (!admission) return;
 
       const bedStayDays = admission.daysAdmitted;
-      const bedRatePerDay = 2500;
+      const bedRatePerDay = getBedPrice(admission.wardCode, admission.bedNo);
       const bedStayCost = bedStayDays * bedRatePerDay;
 
       const medsTotal = admission.medicationSchedule.reduce((sum, m) => {
@@ -393,7 +413,7 @@ export function useInpatientState() {
           const lineItems = [
             {
               invoice_id: invoice.id,
-              description: `Bed Stay - ${admission.wardCode} ${admission.bedNo} (${bedStayDays} days @ KES ${bedRatePerDay}/day)`,
+              description: `Bed Stay - ${admission.wardCode} ${admission.bedNo} (${bedStayDays} days @ $${bedRatePerDay}/day)`,
               quantity: bedStayDays,
               unit_price: bedRatePerDay,
               total: bedStayCost,
@@ -414,12 +434,12 @@ export function useInpatientState() {
           if (itemsError) throw itemsError;
         }
 
-        console.log(`Invoice ${invoiceNumber} created for KES ${totalAmount}`);
+        console.log(`Invoice ${invoiceNumber} created for $${totalAmount}`);
       } catch (err) {
         console.error("Failed to create invoice in Supabase:", err);
       }
     },
-    [state.activeAdmissions, state.wardConfiguration]
+    [state.activeAdmissions, state.wardConfiguration, getBedPrice]
   );
 
   const updateWardConfig = useCallback(
@@ -463,6 +483,7 @@ export function useInpatientState() {
         beds: Array.from({ length: ward.bedCount }, (_, i) => ({
           bedCode: `${ward.wardId || `WARD-${Date.now()}`}-B${String(i + 1).padStart(2, "0")}`,
           status: "Available" as const,
+          price: 2500,
         })),
       };
       setState((prev) => ({
@@ -506,6 +527,7 @@ export function useInpatientState() {
     updateBedStatus,
     addWard,
     deleteWard,
+    getBedPrice,
     setState,
     attendingDoctors,
   };
