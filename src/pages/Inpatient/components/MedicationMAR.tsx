@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Plus, Pill, X, Clock, Check, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -221,9 +221,15 @@ const MedicationMAR = ({
   };
 
   const meds = admission.medicationSchedule;
-  if (meds.length === 0) {
-    return (
-      <div className="space-y-4">
+  const allSlotsOrdered = useMemo(
+    () =>
+      Array.from(new Set(meds.flatMap((m) => m.assignedSlots))).sort(),
+    [meds]
+  );
+
+  return (
+    <>
+      {meds.length === 0 ? (
         <div className="text-center py-16 bg-slate-50 rounded-xl border border-dashed border-slate-200">
           <Pill className="w-12 h-12 text-slate-200 mx-auto mb-3" />
           <h3 className="text-sm font-semibold text-slate-700">
@@ -241,79 +247,73 @@ const MedicationMAR = ({
             Assign Medication
           </Button>
         </div>
-      </div>
-    );
-  }
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-slate-700">
+              MAR — Medication Administration Record
+            </h3>
+            <Button
+              size="sm"
+              onClick={() => setDrawerOpen(true)}
+              className="gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Assign Medication
+            </Button>
+          </div>
 
-  const allSlotsOrdered = Array.from(
-    new Set(meds.flatMap((m) => m.assignedSlots))
-  ).sort();
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-700">
-          MAR — Medication Administration Record
-        </h3>
-        <Button
-          size="sm"
-          onClick={() => setDrawerOpen(true)}
-          className="gap-1.5"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Assign Medication
-        </Button>
-      </div>
-
-      <div className="overflow-x-auto border border-slate-200 rounded-xl bg-white">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-slate-100">
-              <th className="text-left px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 w-48">
-                Medication
-              </th>
-              {allSlotsOrdered.map((slot) => (
-                <th
-                  key={slot}
-                  className="px-1.5 py-2.5 text-center text-[10px] font-semibold text-slate-500 w-14"
-                >
-                  {slot}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {meds.map((med) => (
-              <tr key={med.drugId} className="border-b border-slate-50 last:border-0">
-                <td className="px-3 py-2.5">
-                  <p className="text-xs font-medium text-slate-900">
-                    {med.name}
-                  </p>
-                  <p className="text-[10px] text-slate-400 font-mono mt-0.5">
-                    {med.frequency}
-                  </p>
-                </td>
-                {allSlotsOrdered.map((slot) => {
-                  const log = med.administrationLog.find(
-                    (l) => l.slot === slot
-                  );
-                  return (
-                    <td key={slot} className="px-1 py-1.5">
-                      <AdministrationBlock
-                        slot={slot}
-                        log={log}
-                        drugId={med.drugId}
-                        onSingleClick={handleSingleClick}
-                        onDoubleClick={handleDoubleClick}
-                      />
+          <div className="overflow-x-auto border border-slate-200 rounded-xl bg-white">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-slate-100">
+                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 w-48">
+                    Medication
+                  </th>
+                  {allSlotsOrdered.map((slot) => (
+                    <th
+                      key={slot}
+                      className="px-1.5 py-2.5 text-center text-[10px] font-semibold text-slate-500 w-14"
+                    >
+                      {slot}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {meds.map((med) => (
+                  <tr key={med.drugId} className="border-b border-slate-50 last:border-0">
+                    <td className="px-3 py-2.5">
+                      <p className="text-xs font-medium text-slate-900">
+                        {med.name}
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                        {med.frequency}
+                      </p>
                     </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                    {allSlotsOrdered.map((slot) => {
+                      const log = med.administrationLog.find(
+                        (l) => l.slot === slot
+                      );
+                      return (
+                        <td key={slot} className="px-1 py-1.5">
+                          <AdministrationBlock
+                            slot={slot}
+                            log={log}
+                            drugId={med.drugId}
+                            onSingleClick={handleSingleClick}
+                            onDoubleClick={handleDoubleClick}
+                          />
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <Dialog open={drawerOpen} onOpenChange={setDrawerOpen}>
         <DialogContent className="sm:max-w-[520px]">
@@ -508,7 +508,7 @@ const MedicationMAR = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 };
 

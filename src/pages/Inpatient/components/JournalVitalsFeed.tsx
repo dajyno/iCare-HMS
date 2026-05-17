@@ -1,6 +1,6 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Activity, Heart, Thermometer, Droplets, StickyNote } from "lucide-react";
+import { Activity, Heart, Thermometer, Droplets, StickyNote, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,7 +39,7 @@ const JournalEntry = ({
   type,
 }: {
   entry: any;
-  type: "admission" | "vitals" | "medication" | "lab" | "fluid" | "clinical_note";
+  type: "admission" | "vitals" | "medication" | "lab" | "fluid" | "observation";
 }) => {
   const icons: Record<string, any> = {
     admission: Activity,
@@ -47,7 +47,7 @@ const JournalEntry = ({
     medication: Droplets,
     lab: Activity,
     fluid: Droplets,
-    clinical_note: StickyNote,
+    observation: StickyNote,
   };
   const Icon = icons[type] || Activity;
   const colors: Record<string, string> = {
@@ -56,7 +56,7 @@ const JournalEntry = ({
     medication: "bg-amber-100 text-amber-600",
     lab: "bg-purple-100 text-purple-600",
     fluid: "bg-cyan-100 text-cyan-600",
-    clinical_note: "bg-violet-100 text-violet-600",
+    observation: "bg-violet-100 text-violet-600",
   };
   return (
     <div className="flex gap-3 group">
@@ -84,24 +84,16 @@ const JournalEntry = ({
 const JournalVitalsFeed = ({
   admission,
   onCommitVitals,
-  onSaveClinicalNotes,
 }: {
   admission: ActiveAdmission;
   onCommitVitals: (vitals: Omit<VitalsRecord, "timestamp">) => void;
-  onSaveClinicalNotes?: (notes: string) => void;
 }) => {
   const [bp, setBp] = useState("");
   const [pulse, setPulse] = useState("");
   const [temp, setTemp] = useState("");
   const [spo2, setSpO2] = useState("");
   const [observations, setObservations] = useState("");
-  const [clinicalNotes, setClinicalNotes] = useState(admission.clinicalNotes || "");
-  const [saved, setSaved] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setClinicalNotes(admission.clinicalNotes || "");
-  }, [admission.clinicalNotes]);
+  const [staffName, setStaffName] = useState("");
 
   const journal = useMemo(() => {
     const entries: any[] = [
@@ -115,7 +107,8 @@ const JournalVitalsFeed = ({
       },
     ];
     admission.vitalsHistory.forEach((v) => {
-      const desc = v.observations ? `Observations: ${v.observations}` : undefined;
+      const desc = v.observations ? `Obs: ${v.observations}` : undefined;
+      const staff = v.observations?.match(/^Staff: (.+)$/);
       entries.push({
         type: "vitals",
         title: `BP ${v.bp}, Pulse ${v.pulse}, Temp ${v.temp}°C, SpO2 ${v.spo2}%`,
@@ -169,14 +162,16 @@ const JournalVitalsFeed = ({
     [admission.vitalsHistory]
   );
 
-  const handleCommit = () => {
-    if (!bp || !pulse || !temp || !spo2) return;
+  const handleSubmit = () => {
+    const hasVitals = bp && pulse && temp && spo2;
+    const hasObs = observations.trim().length > 0;
+    if (!hasVitals && !hasObs) return;
     onCommitVitals({
-      bp,
-      pulse: parseInt(pulse),
-      temp: parseFloat(temp),
-      spo2: parseInt(spo2),
-      observations,
+      bp: bp || "—",
+      pulse: pulse ? parseInt(pulse) : 0,
+      temp: temp ? parseFloat(temp) : 0,
+      spo2: spo2 ? parseInt(spo2) : 0,
+      observations: staffName ? `Staff: ${staffName} — ${observations}` : observations,
     });
     setBp("");
     setPulse("");
@@ -185,78 +180,84 @@ const JournalVitalsFeed = ({
     setObservations("");
   };
 
-  const handleSaveNotes = () => {
-    if (onSaveClinicalNotes) {
-      onSaveClinicalNotes(clinicalNotes);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="sticky top-0 z-10 bg-white pb-4 border-b border-slate-100">
-        <div className="grid grid-cols-4 gap-3">
-          <div className="space-y-1.5">
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <User className="w-3.5 h-3.5 text-slate-400" />
             <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-              BP (mmHg)
+              Recording Staff
             </Label>
             <Input
-              value={bp}
-              onChange={(e) => setBp(e.target.value)}
-              placeholder="120/80"
-              className="h-9 text-sm font-mono"
+              value={staffName}
+              onChange={(e) => setStaffName(e.target.value)}
+              placeholder="Your name..."
+              className="h-8 text-xs flex-1 max-w-[240px]"
             />
           </div>
-          <div className="space-y-1.5">
+          <div className="grid grid-cols-4 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                BP (mmHg)
+              </Label>
+              <Input
+                value={bp}
+                onChange={(e) => setBp(e.target.value)}
+                placeholder="120/80"
+                className="h-9 text-sm font-mono"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                Pulse (bpm)
+              </Label>
+              <Input
+                value={pulse}
+                onChange={(e) => setPulse(e.target.value)}
+                placeholder="72"
+                type="number"
+                className="h-9 text-sm font-mono"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                Temp (°C)
+              </Label>
+              <Input
+                value={temp}
+                onChange={(e) => setTemp(e.target.value)}
+                placeholder="36.8"
+                type="number"
+                step="0.1"
+                className="h-9 text-sm font-mono"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                SpO2 (%)
+              </Label>
+              <Input
+                value={spo2}
+                onChange={(e) => setSpO2(e.target.value)}
+                placeholder="98"
+                type="number"
+                className="h-9 text-sm font-mono"
+              />
+            </div>
+          </div>
+          <div>
             <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-              Pulse (bpm)
+              Observations / Notes
             </Label>
-            <Input
-              value={pulse}
-              onChange={(e) => setPulse(e.target.value)}
-              placeholder="72"
-              type="number"
-              className="h-9 text-sm font-mono"
+            <textarea
+              value={observations}
+              onChange={(e) => setObservations(e.target.value)}
+              placeholder="Enter observations, notes, or updates (can submit without vitals)..."
+              rows={2}
+              className="w-full mt-1 px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
             />
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-              Temp (°C)
-            </Label>
-            <Input
-              value={temp}
-              onChange={(e) => setTemp(e.target.value)}
-              placeholder="36.8"
-              type="number"
-              step="0.1"
-              className="h-9 text-sm font-mono"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-              SpO2 (%)
-            </Label>
-            <Input
-              value={spo2}
-              onChange={(e) => setSpO2(e.target.value)}
-              placeholder="98"
-              type="number"
-              className="h-9 text-sm font-mono"
-            />
-          </div>
-        </div>
-        <div className="mt-3">
-          <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-            Observations / Notes
-          </Label>
-          <textarea
-            value={observations}
-            onChange={(e) => setObservations(e.target.value)}
-            placeholder="Enter observations or notes for this vitals check..."
-            rows={2}
-            className="w-full mt-1 px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
-          />
         </div>
         <div className="flex items-center justify-between mt-3">
           <div className="flex items-center gap-4 text-[11px] text-slate-400">
@@ -281,41 +282,17 @@ const JournalVitalsFeed = ({
           </div>
           <Button
             size="sm"
-            onClick={handleCommit}
-            disabled={!bp || !pulse || !temp || !spo2}
+            onClick={handleSubmit}
+            disabled={!bp && !pulse && !temp && !spo2 && !observations.trim()}
             className="h-9 gap-1.5 text-xs"
           >
             <Activity className="w-3.5 h-3.5" />
-            Commit Vitals
+            Submit Record
           </Button>
         </div>
       </div>
 
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Clinical Notes
-          </h3>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleSaveNotes}
-            className="h-7 text-xs gap-1"
-          >
-            <StickyNote className="w-3 h-3" />
-            {saved ? "Saved!" : "Save Notes"}
-          </Button>
-        </div>
-        <textarea
-          value={clinicalNotes}
-          onChange={(e) => setClinicalNotes(e.target.value)}
-          placeholder="Enter clinical notes for this patient..."
-          rows={3}
-          className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
-        />
-      </div>
-
-      <ScrollArea className="max-h-[400px] pr-2">
+      <ScrollArea className="max-h-[500px] pr-2">
         {journal.length > 0 && (
           <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
             Activity Journal
@@ -333,7 +310,6 @@ const JournalVitalsFeed = ({
             </motion.div>
           ))}
         </AnimatePresence>
-        <div ref={bottomRef} />
       </ScrollArea>
     </div>
   );

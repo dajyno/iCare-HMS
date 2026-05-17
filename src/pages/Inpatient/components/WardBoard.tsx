@@ -121,17 +121,6 @@ const WardBoard = ({
           </span>
         ),
       }),
-      columnHelper.accessor("admissionId", {
-        id: "condition",
-        header: () => (
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Primary Condition
-          </span>
-        ),
-        cell: () => (
-          <span className="text-sm text-slate-600">Under Observation</span>
-        ),
-      }),
       columnHelper.accessor("careStatus", {
         header: () => (
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">

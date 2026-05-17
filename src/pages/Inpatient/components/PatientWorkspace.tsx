@@ -93,7 +93,6 @@ const PatientWorkspace = ({
             <JournalVitalsFeed
               admission={admission}
               onCommitVitals={onCommitVitals}
-              onSaveClinicalNotes={onSaveClinicalNotes}
             />
           </TabsContent>
 
