@@ -194,12 +194,14 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
                         Payment Amount (₦)
                       </Label>
                       <Input
-                        type="number"
-                        min={0}
-                        max={invoice.balance}
-                        step={0.01}
-                        value={payAmount || ""}
-                        onChange={(e) => setPayAmount(Math.min(invoice.balance, Math.max(0, Number(e.target.value) || 0)))}
+                        type="text" inputMode="decimal"
+                        value={payAmount === 0 ? "" : String(payAmount || "")}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (v === "" || /^\d*\.?\d*$/.test(v)) {
+                            setPayAmount(Math.min(invoice.balance, Math.max(0, v === "" ? 0 : parseFloat(v))));
+                          }
+                        }}
                         className="h-9 bg-white font-mono"
                       />
                       <button

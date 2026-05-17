@@ -393,95 +393,6 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
     );
   };
 
-  const renderItemTable = (
-    catalog: CatalogItem[],
-    queries: string[],
-    setQueries: (v: string[]) => void,
-    showResultsList: boolean[],
-    setShowResultsList: (v: boolean[]) => void
-  ) => {
-    return (
-      <div className="space-y-4">
-        <div className="overflow-x-auto border border-slate-200 rounded-xl">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
-              <tr>
-                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider w-14">Code</th>
-                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider">Item / Search</th>
-                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-28">Price (₦)</th>
-                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-16">Qty</th>
-                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-28">Amount (₦)</th>
-                <th className="px-3 py-2.5 text-center w-8" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {form.lineItems.map((item, idx) => (
-                <tr key={`${item.code}-${idx}`} className="hover:bg-slate-50/50">
-                  <td className="px-3 py-2">
-                    <span className="font-mono text-[11px] text-slate-400">{item.code}</span>
-                  </td>
-                  <td className="px-3 py-2 min-w-[200px]">
-                    {renderCatalogSearchRow(idx, catalog, queries[idx] || "", (v) => {
-                      const q = [...queries];
-                      q[idx] = v;
-                      setQueries(q);
-                    }, showResultsList[idx] || false, (v) => {
-                      const s = [...showResultsList];
-                      s[idx] = v;
-                      setShowResultsList(s);
-                    })}
-                  </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      type="number"
-                      min={0}
-                      step={0.01}
-                      value={item.price || ""}
-                      onChange={(e) => updateLineItem(idx, "price", Number(e.target.value) || 0)}
-                      placeholder="0.00"
-                      className="h-8 text-xs text-right bg-transparent border-0 px-1 focus:bg-white focus:border font-mono"
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      type="number"
-                      min={1}
-                      value={item.qty}
-                      onChange={(e) => updateLineItem(idx, "qty", Math.max(1, parseInt(e.target.value) || 1))}
-                      className="h-8 text-xs text-right bg-transparent border-0 px-1 focus:bg-white focus:border font-mono"
-                    />
-                  </td>
-                  <td className="px-3 py-2 text-right font-mono text-sm font-semibold text-slate-900 tabular-nums whitespace-nowrap">
-                    ₦{item.amount.toFixed(2)}
-                  </td>
-                  <td className="px-3 py-2 text-center">
-                    {form.lineItems.length > 1 && (
-                      <button
-                        onClick={() => removeRow(idx)}
-                        className="text-slate-300 hover:text-red-400 transition-colors p-1"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 text-xs gap-1 text-sky-600 hover:text-sky-700 hover:bg-sky-50"
-          onClick={addRow}
-        >
-          <Plus className="w-3 h-3" />
-          Add Item Row
-        </Button>
-      </div>
-    );
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -715,21 +626,24 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                       <div>
                         <Label className={LABEL_CLS}>Fee Amount (₦)</Label>
                         <Input
-                          type="number" min={0} step={0.01}
-                          value={form.metaData.folderFee || ""}
+                          type="text" inputMode="decimal"
+                          value={form.metaData.folderFee === 0 ? "" : String(form.metaData.folderFee || "")}
                           onChange={(e) => {
-                            const val = Number(e.target.value);
-                            setForm((prev) => ({
-                              ...prev,
-                              metaData: { ...prev.metaData, folderFee: val },
-                              lineItems: [{
-                                code: "ADM-01",
-                                name: "Medical Record Folder Creation Fee",
-                                type: "Service" as const,
-                                date: new Date().toISOString().split("T")[0],
-                                price: val, qty: 1, amount: val,
-                              }],
-                            }));
+                            const v = e.target.value;
+                            if (v === "" || /^\d*\.?\d*$/.test(v)) {
+                              const val = v === "" ? 0 : parseFloat(v);
+                              setForm((prev) => ({
+                                ...prev,
+                                metaData: { ...prev.metaData, folderFee: val },
+                                lineItems: [{
+                                  code: "ADM-01",
+                                  name: "Medical Record Folder Creation Fee",
+                                  type: "Service" as const,
+                                  date: new Date().toISOString().split("T")[0],
+                                  price: val, qty: 1, amount: val,
+                                }],
+                              }));
+                            }
                           }}
                           placeholder="0.00"
                           className="h-9 w-48 bg-white"
@@ -768,14 +682,16 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                       <div>
                         <Label className={LABEL_CLS}>Consultation Fee (₦)</Label>
                         <Input
-                          type="number" min={0} step={0.01}
-                          value={form.metaData.consultationFee || ""}
+                          type="text" inputMode="decimal"
+                          value={form.metaData.consultationFee === 0 ? "" : String(form.metaData.consultationFee || "")}
                           onChange={(e) => {
-                            const val = Number(e.target.value);
-                            setForm((prev) => ({
-                              ...prev,
-                              metaData: { ...prev.metaData, consultationFee: val },
-                            }));
+                            const v = e.target.value;
+                            if (v === "" || /^\d*\.?\d*$/.test(v)) {
+                              setForm((prev) => ({
+                                ...prev,
+                                metaData: { ...prev.metaData, consultationFee: v === "" ? 0 : parseFloat(v) },
+                              }));
+                            }
                           }}
                           placeholder="0.00"
                           className="h-9 w-48 bg-white"
@@ -806,24 +722,34 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                         <div>
                           <Label className={LABEL_CLS}>Admission Days</Label>
                           <Input
-                            type="number" min={1}
-                            value={form.metaData.admissionDays}
-                            onChange={(e) => setForm((prev) => ({
-                              ...prev,
-                              metaData: { ...prev.metaData, admissionDays: Math.max(1, parseInt(e.target.value) || 1) },
-                            }))}
+                            type="text" inputMode="numeric"
+                            value={String(form.metaData.admissionDays)}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (v === "" || /^\d+$/.test(v)) {
+                                setForm((prev) => ({
+                                  ...prev,
+                                  metaData: { ...prev.metaData, admissionDays: v === "" ? 1 : Math.max(1, parseInt(v, 10)) },
+                                }));
+                              }
+                            }}
                             className="h-9 bg-white"
                           />
                         </div>
                         <div>
                           <Label className={LABEL_CLS}>Daily Bed Rate (₦)</Label>
                           <Input
-                            type="number" min={0} step={0.01}
-                            value={form.metaData.dailyBedRate || ""}
-                            onChange={(e) => setForm((prev) => ({
-                              ...prev,
-                              metaData: { ...prev.metaData, dailyBedRate: Number(e.target.value) || 0 },
-                            }))}
+                            type="text" inputMode="decimal"
+                            value={form.metaData.dailyBedRate === 0 ? "" : String(form.metaData.dailyBedRate || "")}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (v === "" || /^\d*\.?\d*$/.test(v)) {
+                                setForm((prev) => ({
+                                  ...prev,
+                                  metaData: { ...prev.metaData, dailyBedRate: v === "" ? 0 : parseFloat(v) },
+                                }));
+                              }
+                            }}
                             placeholder="0.00"
                             className="h-9 bg-white"
                           />
@@ -952,25 +878,6 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
     );
   }
 
-  function PharmacyLabContent({ catalog }: { catalog: CatalogItem[] }) {
-    const [searchQueries, setSearchQueries] = useState<string[]>(form.lineItems.map(() => ""));
-    const [showResultsList, setShowResultsList] = useState<boolean[]>(form.lineItems.map(() => false));
-
-    return (
-      <TileContent key="catalog">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-700">
-            {catalog === MOCK_MEDICATIONS ? "Pharmacy Items" : "Lab & Radiology Items"}
-          </h3>
-        </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-4">
-          {renderItemTable(catalog, searchQueries, setSearchQueries, showResultsList, setShowResultsList)}
-        </div>
-        {renderAddToInvoiceButton()}
-      </TileContent>
-    );
-  }
-
   function GeneralContent() {
     return (
       <TileContent key="general">
@@ -1036,9 +943,14 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                       </td>
                       <td className="px-3 py-2">
                         <Input
-                          type="number" min={0} step={0.01}
-                          value={item.price}
-                          onChange={(e) => updateLineItem(idx, "price", Number(e.target.value) || 0)}
+                          type="text" inputMode="decimal"
+                          value={item.price === 0 ? "" : String(item.price)}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            if (v === "" || /^\d*\.?\d*$/.test(v)) {
+                              updateLineItem(idx, "price", v === "" ? 0 : parseFloat(v));
+                            }
+                          }}
                           onBlur={() => { if (isNaN(item.price) || item.price < 0) updateLineItem(idx, "price", 0); }}
                           placeholder="0.00"
                           className="h-8 text-xs text-right border-0 bg-transparent px-1 focus:bg-white focus:border font-mono w-full min-w-[90px]"
@@ -1046,9 +958,14 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                       </td>
                       <td className="px-3 py-2">
                         <Input
-                          type="number" min={1}
-                          value={item.qty}
-                          onChange={(e) => updateLineItem(idx, "qty", parseInt(e.target.value) || 0)}
+                          type="text" inputMode="numeric"
+                          value={item.qty === 0 ? "" : String(item.qty)}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            if (v === "" || /^\d+$/.test(v)) {
+                              updateLineItem(idx, "qty", v === "" ? 0 : parseInt(v, 10));
+                            }
+                          }}
                           onBlur={() => { if (isNaN(item.qty) || item.qty < 1) updateLineItem(idx, "qty", 1); }}
                           className="h-8 text-xs text-right border-0 bg-transparent px-1 focus:bg-white focus:border font-mono w-full min-w-[60px]"
                         />
@@ -1114,6 +1031,15 @@ function PharmacyLabContent({
 }) {
   const [searchQueries, setSearchQueries] = useState<string[]>(() => form.lineItems.map(() => ""));
   const [showResultsList, setShowResultsList] = useState<boolean[]>(() => form.lineItems.map(() => false));
+  const [priceTexts, setPriceTexts] = useState<string[]>(() => form.lineItems.map(() => ""));
+  const [qtyTexts, setQtyTexts] = useState<string[]>(() => form.lineItems.map(() => ""));
+
+  const syncPriceText = (idx: number, val: string) => {
+    setPriceTexts((prev) => { const n = [...prev]; n[idx] = val; return n; });
+  };
+  const syncQtyText = (idx: number, val: string) => {
+    setQtyTexts((prev) => { const n = [...prev]; n[idx] = val; return n; });
+  };
 
   const renderCatalogSearchRow = (
     rowIdx: number,
@@ -1130,7 +1056,7 @@ function PharmacyLabContent({
       : [];
 
     return (
-      <div className="relative">
+      <div className="relative" style={{ position: "relative" }}>
         <Input
           value={medQuery}
           onChange={(e) => {
@@ -1146,7 +1072,10 @@ function PharmacyLabContent({
           className="h-8 text-xs bg-white"
         />
         {showResults && medQuery.trim().length >= 1 && matches.length > 0 && (
-          <div className="absolute z-50 top-full left-0 right-0 mt-1 border border-slate-200 rounded-lg bg-white shadow-lg max-h-40 overflow-y-auto">
+          <div
+            style={{ position: "absolute", zIndex: 9999, top: "100%", left: 0, right: 0, marginTop: "4px" }}
+            className="border border-slate-200 rounded-lg bg-white shadow-lg max-h-40 overflow-y-auto"
+          >
             {matches.map((c) => (
               <button
                 key={c.id}
@@ -1154,11 +1083,10 @@ function PharmacyLabContent({
                 className="w-full px-3 py-2 text-left text-xs hover:bg-sky-50 flex items-center justify-between transition-colors"
                 onClick={() => {
                   setMedQuery(c.name);
-                  const items = [...form.lineItems];
-                  items[rowIdx] = { ...items[rowIdx], name: c.name, price: c.price, amount: computeLineItemAmount(c.price, items[rowIdx]?.qty || 1) };
                   updateLineItem(rowIdx, "name", c.name);
                   updateLineItem(rowIdx, "price", c.price);
                   updateLineItem(rowIdx, "amount", computeLineItemAmount(c.price, form.lineItems[rowIdx]?.qty || 1));
+                  syncPriceText(rowIdx, String(c.price));
                   setShowResults(false);
                 }}
               >
@@ -1173,75 +1101,89 @@ function PharmacyLabContent({
   };
 
   const renderItemTable = () => (
-    <div className="space-y-4">
-      <div className="border border-slate-200 rounded-xl min-w-0">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
-              <tr>
-                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider w-14">Code</th>
-                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider">Item / Search</th>
-                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-36">Price (₦)</th>
-                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-20">Qty</th>
-                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-28">Amount (₦)</th>
-                <th className="px-3 py-2.5 text-center w-8" />
+    <div className="space-y-4" style={{ position: "static" }}>
+      <div className="border border-slate-200 rounded-xl" style={{ overflow: "visible" }}>
+        <table className="w-full text-sm" style={{ minWidth: 0 }}>
+          <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+            <tr>
+              <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider w-14">Code</th>
+              <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider">Item / Search</th>
+              <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-36">Price (₦)</th>
+              <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-20">Qty</th>
+              <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-28">Amount (₦)</th>
+              <th className="px-3 py-2.5 text-center w-8" />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {form.lineItems.map((item, idx) => (
+              <tr key={`${item.code}-${idx}`} className="hover:bg-slate-50/50">
+                <td className="px-3 py-2">
+                  <span className="font-mono text-[11px] text-slate-400">{item.code}</span>
+                </td>
+                <td className="px-3 py-2 min-w-[200px]">
+                  {renderCatalogSearchRow(idx, searchQueries[idx] || "", (v) => {
+                    const q = [...searchQueries];
+                    q[idx] = v;
+                    setSearchQueries(q);
+                  }, showResultsList[idx] || false, (v) => {
+                    const s = [...showResultsList];
+                    s[idx] = v;
+                    setShowResultsList(s);
+                  })}
+                </td>
+                <td className="px-3 py-2">
+                  <Input
+                    type="text" inputMode="decimal"
+                    value={item.price === 0 && priceTexts[idx] === "" ? "" : (priceTexts[idx] || String(item.price || ""))}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "" || /^\d*\.?\d*$/.test(v)) {
+                        syncPriceText(idx, v);
+                        updateLineItem(idx, "price", v === "" ? 0 : parseFloat(v));
+                      }
+                    }}
+                    onBlur={() => {
+                      syncPriceText(idx, "");
+                      const p = form.lineItems[idx]?.price;
+                      if (isNaN(p) || p < 0) updateLineItem(idx, "price", 0);
+                    }}
+                    placeholder="0.00"
+                    className="h-8 text-xs text-right bg-transparent border-0 px-1 focus:bg-white focus:border font-mono"
+                  />
+                </td>
+                <td className="px-3 py-2">
+                  <Input
+                    type="text" inputMode="numeric"
+                    value={qtyTexts[idx] || String(item.qty)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "" || /^\d+$/.test(v)) {
+                        syncQtyText(idx, v);
+                        updateLineItem(idx, "qty", v === "" ? 0 : parseInt(v, 10));
+                      }
+                    }}
+                    onBlur={() => {
+                      syncQtyText(idx, "");
+                      const q = form.lineItems[idx]?.qty;
+                      if (isNaN(q) || q < 1) updateLineItem(idx, "qty", 1);
+                    }}
+                    className="h-8 text-xs text-right bg-transparent border-0 px-1 focus:bg-white focus:border font-mono"
+                  />
+                </td>
+                <td className="px-3 py-2 text-right font-mono text-sm font-semibold text-slate-900 tabular-nums whitespace-nowrap">
+                  ₦{item.amount.toFixed(2)}
+                </td>
+                <td className="px-3 py-2 text-center">
+                  {form.lineItems.length > 1 && (
+                    <button onClick={() => removeRow(idx)} className="text-slate-300 hover:text-red-400 transition-colors p-1">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {form.lineItems.map((item, idx) => (
-                <tr key={`${item.code}-${idx}`} className="hover:bg-slate-50/50">
-                  <td className="px-3 py-2">
-                    <span className="font-mono text-[11px] text-slate-400">{item.code}</span>
-                  </td>
-                  <td className="px-3 py-2 min-w-[200px]">
-                    {renderCatalogSearchRow(idx, searchQueries[idx] || "", (v) => {
-                      const q = [...searchQueries];
-                      q[idx] = v;
-                      setSearchQueries(q);
-                    }, showResultsList[idx] || false, (v) => {
-                      const s = [...showResultsList];
-                      s[idx] = v;
-                      setShowResultsList(s);
-                    })}
-                  </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      type="number" min={0} step={0.01}
-                      value={item.price}
-                      onChange={(e) => updateLineItem(idx, "price", Number(e.target.value) || 0)}
-                      onBlur={() => {
-                        if (isNaN(item.price) || item.price < 0) updateLineItem(idx, "price", 0);
-                      }}
-                      placeholder="0.00"
-                      className="h-8 text-xs text-right bg-transparent border-0 px-1 focus:bg-white focus:border font-mono"
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      type="number" min={1}
-                      value={item.qty}
-                      onChange={(e) => updateLineItem(idx, "qty", parseInt(e.target.value) || 0)}
-                      onBlur={() => {
-                        if (isNaN(item.qty) || item.qty < 1) updateLineItem(idx, "qty", 1);
-                      }}
-                      className="h-8 text-xs text-right bg-transparent border-0 px-1 focus:bg-white focus:border font-mono"
-                    />
-                  </td>
-                  <td className="px-3 py-2 text-right font-mono text-sm font-semibold text-slate-900 tabular-nums whitespace-nowrap">
-                    ₦{item.amount.toFixed(2)}
-                  </td>
-                  <td className="px-3 py-2 text-center">
-                    {form.lineItems.length > 1 && (
-                      <button onClick={() => removeRow(idx)} className="text-slate-300 hover:text-red-400 transition-colors p-1">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
       <Button variant="ghost" size="sm" className="h-8 text-xs gap-1 text-sky-600 hover:text-sky-700 hover:bg-sky-50" onClick={addRow}>
         <Plus className="w-3 h-3" />
@@ -1263,7 +1205,7 @@ function PharmacyLabContent({
           {catalog === MOCK_MEDICATIONS ? "Pharmacy Items" : "Lab & Radiology Items"}
         </h3>
       </div>
-      <div className="bg-white rounded-xl border border-slate-200 p-4 overflow-visible">
+      <div className="bg-white rounded-xl border border-slate-200 p-4" style={{ overflow: "visible" }}>
         {renderItemTable()}
       </div>
       <Button
