@@ -208,6 +208,8 @@ create table public.lab_requests (
   consultation_id uuid references public.consultations(id),
   batch_id        text,
   status          text not null default 'Requested' check (status in ('Requested','SampleCollected','InProgress','AwaitingValidation','Completed','Cancelled')),
+  payment_status  text not null default 'Unpaid' check (payment_status in ('Unpaid','Paid')),
+  invoice_id      uuid references public.invoices(id) on delete set null,
   created_at      timestamptz not null default now()
 );
 
@@ -911,6 +913,8 @@ create table if not exists public.radiology_requests (
   folder_no text,
   batch_id text,
   status text not null default 'Requested' check (status in ('Requested','InProgress','Completed','Cancelled')),
+  payment_status text not null default 'Unpaid' check (payment_status in ('Unpaid','Paid')),
+  invoice_id uuid references public.invoices(id) on delete set null,
   requested_by_id uuid,
   radiologist_id uuid,
   notes text,
@@ -983,4 +987,47 @@ insert into public.radiology_exams (name, category_id, price, description, prepa
   ('Spine MRI', (select id from public.radiology_categories where name = 'MRI'), 450.0, 'Spine MRI series', 'Remove all metal, inform if claustrophobic'),
   ('Knee MRI', (select id from public.radiology_categories where name = 'MRI'), 380.0, 'Knee MRI', 'Remove all metal, wear loose clothing')
 on conflict do nothing;
+
+-- ============================================================
+-- MIGRATION: Add payment_status and invoice_id (safe to re-run)
+-- ============================================================
+alter table public.lab_requests add column if not exists payment_status text not null default 'Unpaid';
+alter table public.lab_requests add column if not exists invoice_id uuid;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'lab_requests_payment_status_check'
+  ) then
+    alter table public.lab_requests add constraint lab_requests_payment_status_check
+      check (payment_status in ('Unpaid','Paid'));
+  end if;
+  if not exists (
+    select 1 from pg_constraint where conname = 'lab_requests_invoice_id_fkey'
+  ) then
+    alter table public.lab_requests add constraint lab_requests_invoice_id_fkey
+      foreign key (invoice_id) references public.invoices(id) on delete set null;
+  end if;
+end;
+$$;
+
+alter table public.radiology_requests add column if not exists payment_status text not null default 'Unpaid';
+alter table public.radiology_requests add column if not exists invoice_id uuid;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'radiology_requests_payment_status_check'
+  ) then
+    alter table public.radiology_requests add constraint radiology_requests_payment_status_check
+      check (payment_status in ('Unpaid','Paid'));
+  end if;
+  if not exists (
+    select 1 from pg_constraint where conname = 'radiology_requests_invoice_id_fkey'
+  ) then
+    alter table public.radiology_requests add constraint radiology_requests_invoice_id_fkey
+      foreign key (invoice_id) references public.invoices(id) on delete set null;
+  end if;
+end;
+$$;
 

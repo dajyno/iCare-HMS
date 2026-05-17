@@ -172,16 +172,78 @@ const RadiologyNewExam = ({ onBack }: { onBack: () => void }) => {
           folder_no: folderNo || null,
           batch_id: batchId,
           status: "Requested" as const,
+          payment_status: "Unpaid",
         }));
 
       if (validRequests.length === 0) {
         throw new Error("No examinations could be registered.");
       }
 
-      const { error: reqError } = await supabase
+      const { data: createdRequests, error: reqError } = await supabase
         .from("radiology_requests")
-        .insert(validRequests);
+        .insert(validRequests)
+        .select();
       if (reqError) throw reqError;
+
+      // Auto-create invoice for the radiology requests
+      const examIds = allSelectedExamNames
+        .filter((name) => examIdMap.has(name))
+        .map((name) => examIdMap.get(name))
+        .filter(Boolean);
+      const { data: examPrices } = await supabase
+        .from("radiology_exams")
+        .select("id, name, price")
+        .in("id", examIds);
+
+      const priceMap = new Map<string, { name: string; price: number }>();
+      if (examPrices) {
+        for (const e of examPrices) {
+          priceMap.set(e.id, { name: e.name, price: Number(e.price ?? 0) });
+        }
+      }
+
+      const invoiceNumber = `INV-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+      const totalAmount = createdRequests.reduce((sum: number, req: any) => {
+        const info = priceMap.get(req.exam_id);
+        return sum + (info?.price ?? 0);
+      }, 0);
+
+      const { data: invoiceData, error: invError } = await supabase
+        .from("invoices")
+        .insert({
+          invoice_number: invoiceNumber,
+          patient_id: patientId,
+          total_amount: totalAmount,
+          amount_paid: 0,
+          balance: totalAmount,
+          status: "Unpaid",
+          source_type: "Lab & Radiology",
+        })
+        .select("id")
+        .single();
+
+      if (!invError && invoiceData) {
+        const invoiceId = invoiceData.id;
+
+        const itemsPayload = createdRequests.map((req: any) => {
+          const info = priceMap.get(req.exam_id);
+          return {
+            invoice_id: invoiceId,
+            description: info?.name ?? "Radiology Exam",
+            quantity: 1,
+            unit_price: info?.price ?? 0,
+            total: info?.price ?? 0,
+          };
+        });
+
+        await supabase.from("invoice_items").insert(itemsPayload);
+
+        const requestIds = createdRequests.map((req: any) => req.id);
+        await supabase
+          .from("radiology_requests")
+          .update({ invoice_id: invoiceId })
+          .in("id", requestIds);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["radiology-requests"] });

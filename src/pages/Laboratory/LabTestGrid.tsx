@@ -190,12 +190,71 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
         consultation_id: batchConsultationId,
         batch_id: batchId,
         status: "Requested" as const,
+        payment_status: "Unpaid",
       }));
 
-      const { error: reqError } = await supabase
+      const { data: createdRequests, error: reqError } = await supabase
         .from("lab_requests")
-        .insert(validRequests);
+        .insert(validRequests)
+        .select();
       if (reqError) throw reqError;
+
+      // Auto-create invoice for the lab requests
+      const testIds = validNames.map((name) => testIdMap.get(name)).filter(Boolean);
+      const { data: testPrices } = await supabase
+        .from("lab_tests")
+        .select("id, name, price")
+        .in("id", testIds);
+
+      const priceMap = new Map<string, { name: string; price: number }>();
+      if (testPrices) {
+        for (const t of testPrices) {
+          priceMap.set(t.id, { name: t.name, price: t.price ?? 0 });
+        }
+      }
+
+      const invoiceNumber = `INV-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+      const totalAmount = createdRequests.reduce((sum: number, req: any) => {
+        const info = priceMap.get(req.test_id);
+        return sum + (info?.price ?? 0);
+      }, 0);
+
+      const { data: invoiceData, error: invError } = await supabase
+        .from("invoices")
+        .insert({
+          invoice_number: invoiceNumber,
+          patient_id: patientId,
+          total_amount: totalAmount,
+          amount_paid: 0,
+          balance: totalAmount,
+          status: "Unpaid",
+          source_type: "Lab & Radiology",
+        })
+        .select("id")
+        .single();
+
+      if (!invError && invoiceData) {
+        const invoiceId = invoiceData.id;
+
+        const itemsPayload = createdRequests.map((req: any) => {
+          const info = priceMap.get(req.test_id);
+          return {
+            invoice_id: invoiceId,
+            description: info?.name ?? "Lab Test",
+            quantity: 1,
+            unit_price: info?.price ?? 0,
+            total: info?.price ?? 0,
+          };
+        });
+
+        await supabase.from("invoice_items").insert(itemsPayload);
+
+        const requestIds = createdRequests.map((req: any) => req.id);
+        await supabase
+          .from("lab_requests")
+          .update({ invoice_id: invoiceId })
+          .in("id", requestIds);
+      }
     },
     onSuccess: () => {
       onBack();

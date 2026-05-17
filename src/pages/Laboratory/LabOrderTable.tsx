@@ -31,6 +31,20 @@ import Pagination from "@/components/ui/pagination";
 import StatusBadge from "./StatusBadge";
 import useSmoothScroll from "./useSmoothScroll";
 
+const PaymentBadge = ({ status }: { status: string }) => {
+  const isPaid = status === "Paid";
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase ${
+      isPaid
+        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+        : "bg-amber-50 text-amber-700 border border-amber-200"
+    }`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${isPaid ? "bg-emerald-500" : "bg-amber-500"}`} />
+      {status}
+    </span>
+  );
+};
+
 const mapStatus = (dbStatus: string) => {
   const map: Record<string, string> = {
     Requested: "To Do",
@@ -54,6 +68,7 @@ interface LabOrder {
   prescribedBy: string;
   status: string;
   dbStatus: string;
+  paymentStatus: string;
   raw: any;
   isBatch?: boolean;
 }
@@ -102,6 +117,7 @@ const LabOrderTable = ({
         seen.add(key);
         const batch = groups.get(key)!;
         const anyAvail = batch.some((b: any) => b.status === "Requested");
+        const allPaid = batch.every((b: any) => b.paymentStatus === "Paid");
         const testNames = batch.map((b: any) => b.test?.name ?? "").filter(Boolean);
         result.push({
           id: key,
@@ -114,6 +130,7 @@ const LabOrderTable = ({
           prescribedBy: o.consultation?.doctor?.fullName ?? "—",
           status: anyAvail ? "To Do" : mapStatus(batch[0]?.status),
           dbStatus: anyAvail ? "Requested" : batch[0]?.status,
+          paymentStatus: allPaid ? "Paid" : "Unpaid",
           raw: batch.length > 1 ? batch : batch[0],
           isBatch: batch.length > 1,
         });
@@ -129,6 +146,7 @@ const LabOrderTable = ({
           prescribedBy: o.consultation?.doctor?.fullName ?? "—",
           status: mapStatus(o.status),
           dbStatus: o.status,
+          paymentStatus: o.paymentStatus ?? "Unpaid",
           raw: o,
           isBatch: false,
         });
@@ -146,7 +164,8 @@ const LabOrderTable = ({
         r.testName.toLowerCase().includes(q) ||
         r.patientName.toLowerCase().includes(q) ||
         r.prescribedBy.toLowerCase().includes(q) ||
-        r.status.toLowerCase().includes(q)
+        r.status.toLowerCase().includes(q) ||
+        r.paymentStatus.toLowerCase().includes(q)
     );
   }, [data, globalFilter]);
 
@@ -180,6 +199,10 @@ const LabOrderTable = ({
           <span className="text-sm text-slate-500">{info.getValue()}</span>
         ),
       }),
+      columnHelper.accessor("paymentStatus", {
+        header: "Payment",
+        cell: (info) => <PaymentBadge status={info.getValue()} />,
+      }),
       columnHelper.accessor("status", {
         header: "Status",
         cell: (info) => <StatusBadge status={info.getValue()} />,
@@ -189,8 +212,19 @@ const LabOrderTable = ({
         header: "",
         cell: ({ row }) => {
           if (row.original.isBatch) return null;
-          if (row.original.dbStatus !== "Requested") return null;
           const id = row.original.id;
+          const isUnpaid = row.original.paymentStatus !== "Paid";
+
+          if (isUnpaid) {
+            return (
+              <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-amber-50 text-amber-600 border border-amber-200 whitespace-nowrap">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                UNPAID — Awaiting Payment
+              </span>
+            );
+          }
+
+          if (row.original.dbStatus !== "Requested") return null;
           return (
             <Button
               size="sm"

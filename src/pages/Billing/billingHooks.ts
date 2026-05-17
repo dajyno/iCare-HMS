@@ -339,9 +339,8 @@ async function processPaymentSideEffects(
     try {
       await (supabase as any)
         .from("lab_requests")
-        .update({ status: "Authorized" })
-        .eq("patient_id", patientId)
-        .eq("status", "Requested");
+        .update({ payment_status: "Paid" })
+        .eq("invoice_id", invoice.id);
     } catch {
       // Local fallback
     }
@@ -350,9 +349,8 @@ async function processPaymentSideEffects(
     try {
       await (supabase as any)
         .from("radiology_requests")
-        .update({ status: "Authorized" })
-        .eq("patient_id", patientId)
-        .eq("status", "Requested");
+        .update({ payment_status: "Paid" })
+        .eq("invoice_id", invoice.id);
     } catch {
       // Local fallback
     }

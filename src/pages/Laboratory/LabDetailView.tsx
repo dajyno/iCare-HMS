@@ -70,6 +70,7 @@ const LabDetailView = ({
 
   const orders = siblingOrders ?? [order];
   const isCompleted = orders.every((o: any) => o?.status === "Completed");
+  const isPaid = orders.every((o: any) => o?.paymentStatus === "Paid");
   const [viewMode, setViewMode] = useState<"view" | "edit">(
     isCompleted ? "view" : "edit"
   );
@@ -227,7 +228,8 @@ const LabDetailView = ({
                   variant="outline"
                   className="h-9 px-4 gap-1.5 text-xs font-semibold"
                   onClick={() => saveDraftMutation.mutate()}
-                  disabled={saveDraftMutation.isPending}
+                  disabled={saveDraftMutation.isPending || !isPaid}
+                  title={!isPaid ? "Cannot save results until payment is confirmed" : undefined}
                 >
                   <Save className="w-3.5 h-3.5" />
                   {saveDraftMutation.isPending ? "Saving..." : "Save Draft"}
@@ -236,7 +238,8 @@ const LabDetailView = ({
                   size="sm"
                   className="bg-emerald-600 hover:bg-emerald-700 text-white h-9 px-5 gap-2 font-semibold text-xs"
                   onClick={() => completeMutation.mutate()}
-                  disabled={completeMutation.isPending}
+                  disabled={completeMutation.isPending || !isPaid}
+                  title={!isPaid ? "Cannot complete until payment is confirmed" : undefined}
                 >
                   {completeMutation.isPending ? (
                     <span className="flex items-center gap-1.5">
@@ -254,6 +257,18 @@ const LabDetailView = ({
             )}
           </div>
         </div>
+
+      {!isPaid && (
+        <div className="flex items-center gap-3 px-5 py-3 rounded-xl border border-amber-200 bg-amber-50">
+          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+          <div>
+            <p className="text-sm font-bold text-amber-800">UNPAID — Awaiting Payment</p>
+            <p className="text-xs text-amber-700">
+              Lab tests cannot be started until payment is confirmed by the billing department.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-2 space-y-6">

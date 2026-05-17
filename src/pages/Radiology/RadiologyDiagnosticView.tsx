@@ -54,6 +54,7 @@ const RadiologyDiagnosticView = ({
 }) => {
   const queryClient = useQueryClient();
   const allCompleted = requests.every((r: any) => r.status === "Completed");
+  const isPaid = requests.every((r: any) => r.paymentStatus === "Paid");
 
   const [findingsMap, setFindingsMap] = useState<Record<string, string>>({});
   const [conclusionMap, setConclusionMap] = useState<Record<string, string>>({});
@@ -329,6 +330,21 @@ const RadiologyDiagnosticView = ({
           </table>
         </div>
 
+        {/* Unpaid Banner */}
+        {!isPaid && (
+          <div className="shrink-0 border-t border-amber-200 bg-amber-50 px-6 py-3 flex items-center gap-3">
+            <div className="w-5 h-5 rounded-full bg-amber-200 flex items-center justify-center shrink-0">
+              <span className="text-amber-700 text-xs font-bold">!</span>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-amber-800">UNPAID — Awaiting Payment</p>
+              <p className="text-xs text-amber-700">
+                Examination cannot be completed until payment is confirmed by the billing department.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Footer Toolbar */}
         <div className="shrink-0 border-t border-slate-200 bg-white px-6 py-3 flex items-center justify-end gap-2">
           {allCompleted ? (
@@ -347,7 +363,8 @@ const RadiologyDiagnosticView = ({
                 variant="outline"
                 className="h-9 px-4 gap-1.5 text-xs font-semibold"
                 onClick={handleSave}
-                disabled={saveMutation.isPending}
+                disabled={saveMutation.isPending || !isPaid}
+                title={!isPaid ? "Cannot save results until payment is confirmed" : undefined}
               >
                 <Save className="w-3.5 h-3.5" />
                 {saveMutation.isPending ? "Saving..." : "Save Draft"}
@@ -356,7 +373,8 @@ const RadiologyDiagnosticView = ({
                 size="sm"
                 className="bg-emerald-600 hover:bg-emerald-700 text-white h-9 px-5 gap-2 font-semibold text-xs"
                 onClick={handleComplete}
-                disabled={completeMutation.isPending}
+                disabled={completeMutation.isPending || !isPaid}
+                title={!isPaid ? "Cannot complete until payment is confirmed" : undefined}
               >
                 {completeMutation.isPending ? (
                   <span className="flex items-center gap-1.5">

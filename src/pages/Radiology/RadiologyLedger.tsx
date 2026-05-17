@@ -30,6 +30,20 @@ import {
 } from "@/components/ui/table";
 import Pagination from "@/components/ui/pagination";
 
+const PaymentBadge = ({ status }: { status: string }) => {
+  const isPaid = status === "Paid";
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase ${
+      isPaid
+        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+        : "bg-amber-50 text-amber-700 border border-amber-200"
+    }`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${isPaid ? "bg-emerald-500" : "bg-amber-500"}`} />
+      {status}
+    </span>
+  );
+};
+
 const statusConfig: Record<string, { label: string; bg: string; text: string }> = {
   Requested: { label: "Requested", bg: "bg-purple-50", text: "text-purple-700" },
   InProgress: { label: "In Progress", bg: "bg-amber-50", text: "text-amber-700" },
@@ -63,6 +77,7 @@ interface BatchRow {
   patientName: string;
   testTypes: string;
   status: string;
+  paymentStatus: string;
   requests: any[];
 }
 
@@ -92,6 +107,7 @@ const RadiologyLedger = ({
     }
     return Object.entries(groups).map(([batchId, batchReqs]) => {
       const first = batchReqs[0];
+      const allPaid = batchReqs.every((r: any) => r.paymentStatus === "Paid");
       return {
         batchId,
         dateTime: first.createdAt
@@ -107,6 +123,7 @@ const RadiologyLedger = ({
         patientName: `${first.patient?.firstName ?? ""} ${first.patient?.lastName ?? ""}`.trim() || "—",
         testTypes: batchReqs.map((r: any) => r.exam?.name ?? "—").join(", "),
         status: computeBatchStatus(batchReqs),
+        paymentStatus: allPaid ? "Paid" : "Unpaid",
         requests: batchReqs,
       };
     }).sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
@@ -120,7 +137,8 @@ const RadiologyLedger = ({
         r.folderNo.toLowerCase().includes(q) ||
         r.patientName.toLowerCase().includes(q) ||
         r.testTypes.toLowerCase().includes(q) ||
-        r.status.toLowerCase().includes(q)
+        r.status.toLowerCase().includes(q) ||
+        r.paymentStatus.toLowerCase().includes(q)
     );
   }, [batches, globalFilter]);
 
@@ -153,6 +171,10 @@ const RadiologyLedger = ({
       columnHelper.accessor("status", {
         header: "Status",
         cell: (info) => <StatusBadge status={info.getValue()} />,
+      }),
+      columnHelper.accessor("paymentStatus", {
+        header: "Payment",
+        cell: (info) => <PaymentBadge status={info.getValue()} />,
       }),
     ],
     []
