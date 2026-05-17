@@ -137,6 +137,7 @@ const MedicationMAR = ({
   } | null>(null);
   const [freq, setFreq] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const [unitPrice, setUnitPrice] = useState(150);
   const [customSlots, setCustomSlots] = useState<string[]>([]);
   const [verifyDialog, setVerifyDialog] = useState<{
     drugId: string;
@@ -173,6 +174,7 @@ const MedicationMAR = ({
     setSelectedDrug(null);
     setFreq("");
     setQuantity(1);
+    setUnitPrice(150);
     setCustomSlots([]);
     setSearchResults([]);
     setDrawerOpen(true);
@@ -183,7 +185,8 @@ const MedicationMAR = ({
     setSelectedDrug({ drugId: med.drugId, name: med.name });
     setDrugQuery(med.name);
     setFreq(med.frequency);
-    setQuantity(med.quantity);
+    setQuantity(med.quantity || 1);
+    setUnitPrice(med.unitPrice || 150);
     if (med.frequency === "Custom") {
       setCustomSlots(med.assignedSlots);
     } else {
@@ -201,7 +204,8 @@ const MedicationMAR = ({
     const med: MedicationSchedule = {
       drugId,
       name: selectedDrug.name,
-      quantity,
+      quantity: quantity || 1,
+      unitPrice: unitPrice || 150,
       frequency: freq as MedicationSchedule["frequency"],
       assignedSlots: slots,
       administrationLog: slots.map((s) => {
@@ -451,7 +455,7 @@ const MedicationMAR = ({
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">
                 <Label className="text-xs font-semibold">Quantity</Label>
                 <Input
@@ -459,6 +463,17 @@ const MedicationMAR = ({
                   min={1}
                   value={quantity}
                   onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="h-9 text-sm"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold">Unit Price (₦)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={unitPrice}
+                  onChange={(e) => setUnitPrice(Math.max(0, parseInt(e.target.value) || 0))}
                   className="h-9 text-sm"
                 />
               </div>

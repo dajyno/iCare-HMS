@@ -297,7 +297,7 @@ export function useInpatientState() {
           a.admissionId === admissionId
             ? {
                 ...a,
-                vitalsHistory: hasVitals ? [...a.vitalsHistory, record] : a.vitalsHistory,
+                vitalsHistory: [...a.vitalsHistory, record],
                 clinicalNotes: a.clinicalNotes
                   ? `${a.clinicalNotes}\n${noteEntry}`
                   : noteEntry,
@@ -440,7 +440,7 @@ export function useInpatientState() {
         const adminCount = m.administrationLog.filter(
           (l) => l.status === "Administered"
         ).length;
-        return sum + adminCount * 150;
+        return sum + adminCount * (m.unitPrice || 150);
       }, 0);
 
       const totalAmount = bedStayCost + medsTotal || 0;

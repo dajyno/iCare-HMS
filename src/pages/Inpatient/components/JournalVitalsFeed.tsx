@@ -110,18 +110,28 @@ const JournalVitalsFeed = ({
       },
     ];
     admission.vitalsHistory.forEach((v) => {
-      const staff = v.observations?.match(/^Staff: (.+?) — (.+)$/);
-      const desc = staff
-        ? `${staff[1]} — ${staff[2]}`
+      const hasVitalsData = v.bp && v.bp !== "—" && v.pulse > 0;
+      const staffMatch = v.observations?.match(/^Staff: (.+?) — (.+)$/);
+      const desc = staffMatch
+        ? `${staffMatch[1]} — ${staffMatch[2]}`
         : v.observations
-        ? `Obs: ${v.observations}`
+        ? v.observations
         : undefined;
-      entries.push({
-        type: "vitals",
-        title: `BP ${v.bp}, Pulse ${v.pulse}, Temp ${v.temp}°C, SpO2 ${v.spo2}%`,
-        description: desc,
-        timestamp: v.timestamp,
-      });
+      if (hasVitalsData) {
+        const staffTitle = staffMatch ? `${staffMatch[1]} — ` : "";
+        entries.push({
+          type: "vitals",
+          title: `${staffTitle}BP ${v.bp}, Pulse ${v.pulse}, Temp ${v.temp}°C, SpO2 ${v.spo2}%`,
+          description: desc,
+          timestamp: v.timestamp,
+        });
+      } else if (desc) {
+        entries.push({
+          type: "observation",
+          title: desc,
+          timestamp: v.timestamp,
+        });
+      }
     });
     admission.medicationSchedule.forEach((m) => {
       m.administrationLog
@@ -254,7 +264,7 @@ const JournalVitalsFeed = ({
             <textarea
               value={observations}
               onChange={(e) => setObservations(e.target.value)}
-              placeholder="Enter observations, notes, or updates (can submit without vitals)..."
+              placeholder="Enter clinical observations, nursing notes, or updates on patient's condition"
               rows={2}
               className="w-full mt-1 px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
             />
