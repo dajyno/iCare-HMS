@@ -13,6 +13,7 @@ import {
   Edit3,
   CheckCircle2,
   Loader2,
+  Syringe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -172,6 +173,28 @@ const LabDetailView = ({
     },
   });
 
+  const hasUncollected = orders.some((o: any) => o?.status === "Requested");
+
+  const markCollectedMutation = useMutation({
+    mutationFn: async () => {
+      const uncollected = orders.filter((o: any) => o?.status === "Requested");
+      for (const o of uncollected) {
+        const { error } = await supabase
+          .from("lab_requests")
+          .update({ status: "SampleCollected" })
+          .eq("id", o.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["batch-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
+    },
+    onError: (err) => {
+      alert("Mark as collected failed: " + err.message);
+    },
+  });
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
@@ -223,6 +246,19 @@ const LabDetailView = ({
               </>
             ) : (
               <>
+                {hasUncollected && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-9 px-4 gap-1.5 text-xs font-semibold border-sky-200 text-sky-700 hover:border-sky-400 hover:bg-sky-50"
+                    onClick={() => markCollectedMutation.mutate()}
+                    disabled={markCollectedMutation.isPending || !isPaid}
+                    title={!isPaid ? "Cannot collect samples until payment is confirmed" : undefined}
+                  >
+                    <Syringe className="w-3.5 h-3.5" />
+                    {markCollectedMutation.isPending ? "Collecting..." : "Mark as Collected"}
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant="outline"
