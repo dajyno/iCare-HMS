@@ -81,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error("Account not found. Please contact your system administrator.");
       }
 
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -96,8 +96,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         );
       }
 
+      // signUp returns a session when email confirmation is OFF
+      if (signUpData?.session) {
+        await fetchProfile(signUpData.session.user.id, signUpData.session.user);
+        return;
+      }
+
       const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
       if (loginError) throw loginError;
+
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) {
+        await fetchProfile(data.session.user.id, data.session.user);
+      }
+      return;
     } else if (error) {
       throw error;
     }
