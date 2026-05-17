@@ -100,24 +100,13 @@ export function useDoctors() {
   return useQuery({
     queryKey: ["doctors"],
     queryFn: async () => {
-      const local: { id: string; fullName: string }[] = [
-        { id: "doc-1", fullName: "Adebayo" },
-        { id: "doc-2", fullName: "Okonkwo" },
-        { id: "doc-3", fullName: "Nnamdi" },
-      ];
-
-      try {
-        const { data, error } = await (supabase as any)
-          .from("users")
-          .select("id, full_name")
-          .eq("role", "Doctor")
-          .eq("status", "active");
-        if (error) return local;
-        const results = toCamel(data) as { id: string; fullName: string }[];
-        return results.length > 0 ? results : local;
-      } catch {
-        return local;
-      }
+      const { data, error } = await supabase
+        .from("users")
+        .select("id, full_name")
+        .eq("role", "Doctor")
+        .eq("status", "active");
+      if (error) throw error;
+      return (toCamel(data) || []) as { id: string; fullName: string }[];
     },
   });
 }

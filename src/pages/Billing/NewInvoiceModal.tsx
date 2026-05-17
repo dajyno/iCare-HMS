@@ -320,7 +320,8 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                 <span className="font-mono text-slate-800 ml-2">₦{item.amount.toFixed(2)}</span>
                 <button
                   onClick={() => removeAccumulatedItem(idx)}
-                  className="ml-2 text-slate-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="ml-2 text-slate-400 hover:text-red-400 transition-colors"
+                  title="Remove item"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -683,6 +684,7 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                         <Label className={LABEL_CLS}>Consultation Fee (₦)</Label>
                         <Input
                           type="text" inputMode="decimal"
+                          autoComplete="off"
                           value={form.metaData.consultationFee === 0 ? "" : String(form.metaData.consultationFee || "")}
                           onChange={(e) => {
                             const v = e.target.value;
@@ -723,6 +725,7 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                           <Label className={LABEL_CLS}>Admission Days</Label>
                           <Input
                             type="text" inputMode="numeric"
+                            autoComplete="off"
                             value={String(form.metaData.admissionDays)}
                             onChange={(e) => {
                               const v = e.target.value;
@@ -740,6 +743,7 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                           <Label className={LABEL_CLS}>Daily Bed Rate (₦)</Label>
                           <Input
                             type="text" inputMode="decimal"
+                            autoComplete="off"
                             value={form.metaData.dailyBedRate === 0 ? "" : String(form.metaData.dailyBedRate || "")}
                             onChange={(e) => {
                               const v = e.target.value;
