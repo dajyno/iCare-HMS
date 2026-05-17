@@ -33,17 +33,6 @@ const InpatientOverview = () => {
     deleteWard,
   } = useInpatientState();
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-32">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 text-sky-600 animate-spin" />
-          <p className="text-sm text-slate-400">Loading inpatient data...</p>
-        </div>
-      </div>
-    );
-  }
-
   const handleSelectPatient = useCallback(
     (admission: ActiveAdmission) => {
       setSelectedPatient(admission);
@@ -54,6 +43,17 @@ const InpatientOverview = () => {
   const handleCloseWorkspace = useCallback(() => {
     setSelectedPatient(null);
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 text-sky-600 animate-spin" />
+          <p className="text-sm text-slate-400">Loading inpatient data...</p>
+        </div>
+      </div>
+    );
+  }
 
   const selectedFluidBalance = selectedPatient
     ? computeFluidBalance(selectedPatient.admissionId)
