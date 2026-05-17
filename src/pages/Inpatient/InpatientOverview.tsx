@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Plus, Settings, Bed } from "lucide-react";
+import { Plus, Settings, Bed, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useInpatientState } from "./useInpatientState";
 import WardBoard from "./components/WardBoard";
@@ -17,6 +17,7 @@ const InpatientOverview = () => {
 
   const {
     state,
+    loading,
     computeFluidBalance,
     searchPatients,
     attendingDoctors,
@@ -29,7 +30,19 @@ const InpatientOverview = () => {
     updateWardConfig,
     updateBedStatus,
     addWard,
+    deleteWard,
   } = useInpatientState();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 text-sky-600 animate-spin" />
+          <p className="text-sm text-slate-400">Loading inpatient data...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSelectPatient = useCallback(
     (admission: ActiveAdmission) => {
@@ -153,6 +166,7 @@ const InpatientOverview = () => {
         onUpdateWardConfig={updateWardConfig}
         onUpdateBedStatus={updateBedStatus}
         onAddWard={addWard}
+        onDeleteWard={deleteWard}
       />
     </div>
   );

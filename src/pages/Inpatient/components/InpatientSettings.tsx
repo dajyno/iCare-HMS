@@ -13,10 +13,22 @@ import {
   Building2,
   ChevronRight,
   ArrowLeft,
+  Trash2,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -40,6 +52,7 @@ const InpatientSettings = ({
   onUpdateWardConfig,
   onUpdateBedStatus,
   onAddWard,
+  onDeleteWard,
 }: {
   open: boolean;
   onClose: () => void;
@@ -47,9 +60,14 @@ const InpatientSettings = ({
   onUpdateWardConfig: (wardId: string, updates: Partial<WardConfig>) => void;
   onUpdateBedStatus: (wardId: string, bedCode: string, status: BedUnit["status"]) => void;
   onAddWard: (ward: Omit<WardConfig, "beds"> & { bedCount: number }) => void;
+  onDeleteWard: (wardId: string) => void;
 }) => {
   const [drillDownWard, setDrillDownWard] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingWard, setEditingWard] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDept, setEditDept] = useState("");
   const [newWard, setNewWard] = useState({
     wardId: "",
     name: "",
@@ -70,6 +88,25 @@ const InpatientSettings = ({
     onAddWard(newWard);
     setNewWard({ wardId: "", name: "", department: "", bedCount: 10 });
     setShowAddForm(false);
+  };
+
+  const startEditing = (ward: WardConfig) => {
+    setEditingWard(ward.wardId);
+    setEditName(ward.name);
+    setEditDept(ward.department);
+  };
+
+  const saveEdit = () => {
+    if (!editingWard || !editName.trim() || !editDept.trim()) return;
+    onUpdateWardConfig(editingWard, {
+      name: editName.trim(),
+      department: editDept.trim(),
+    });
+    setEditingWard(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingWard(null);
   };
 
   return (
@@ -229,36 +266,117 @@ const InpatientSettings = ({
                   )}
                 </AnimatePresence>
 
-                <div className="space-y-2">
-                  {wardConfiguration.map((ward) => (
-                    <button
-                      key={ward.wardId}
-                      onClick={() => setDrillDownWard(ward.wardId)}
-                      className="w-full flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-sky-300 hover:bg-sky-50/50 transition-all text-left group"
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-sky-100 transition-colors">
-                        <Building2 className="w-5 h-5 text-slate-500" />
+                {wardConfiguration.length === 0 && !showAddForm ? (
+                  <div className="text-center py-16">
+                    <Building2 className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+                    <p className="text-sm text-slate-500">
+                      No wards configured
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Click "Add New Ward" above to get started
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {wardConfiguration.map((ward) => (
+                      <div
+                        key={ward.wardId}
+                        className="group"
+                      >
+                        {editingWard === ward.wardId ? (
+                          <div className="p-4 rounded-xl border-2 border-sky-300 bg-sky-50 space-y-3">
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1">
+                                <Label className="text-[10px] font-semibold text-slate-500">
+                                  Ward Name
+                                </Label>
+                                <Input
+                                  value={editName}
+                                  onChange={(e) => setEditName(e.target.value)}
+                                  className="h-8 text-xs"
+                                  autoFocus
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-[10px] font-semibold text-slate-500">
+                                  Department
+                                </Label>
+                                <Input
+                                  value={editDept}
+                                  onChange={(e) => setEditDept(e.target.value)}
+                                  className="h-8 text-xs"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={cancelEdit}
+                                className="text-xs h-7 gap-1"
+                              >
+                                <X className="w-3 h-3" />
+                                Cancel
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={saveEdit}
+                                className="text-xs h-7 gap-1"
+                              >
+                                <Check className="w-3 h-3" />
+                                Save
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 hover:border-sky-300 hover:bg-sky-50/50 transition-all">
+                            <button
+                              onClick={() => setDrillDownWard(ward.wardId)}
+                              className="flex items-center gap-4 flex-1 min-w-0 text-left"
+                            >
+                              <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-sky-100 transition-colors">
+                                <Building2 className="w-5 h-5 text-slate-500" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-slate-900">
+                                  {ward.name}
+                                </p>
+                                <p className="text-xs text-slate-500 mt-0.5">
+                                  {ward.department} &middot; {ward.totalBeds} beds
+                                </p>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <p className="text-sm font-bold text-slate-900">
+                                  {occupancyRate(ward)}%
+                                </p>
+                                <p className="text-[10px] text-slate-400">
+                                  Occupied
+                                </p>
+                              </div>
+                              <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-sky-500 transition-colors" />
+                            </button>
+                            <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => startEditing(ward)}
+                                className="p-1.5 rounded-md text-slate-400 hover:text-sky-600 hover:bg-sky-100"
+                                title="Edit ward"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirm(ward.wardId)}
+                                className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                title="Delete ward"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-900">
-                          {ward.name}
-                        </p>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          {ward.department} &middot; {ward.totalBeds} beds
-                        </p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-sm font-bold text-slate-900">
-                          {occupancyRate(ward)}%
-                        </p>
-                        <p className="text-[10px] text-slate-400">
-                          Occupied
-                        </p>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-sky-500 transition-colors" />
-                    </button>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </motion.div>
             ) : (
               <motion.div
@@ -279,6 +397,25 @@ const InpatientSettings = ({
                           {selectedWard.department} &middot;{" "}
                           {selectedWard.totalBeds} total beds
                         </p>
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => {
+                            setDrillDownWard(null);
+                            startEditing(selectedWard);
+                          }}
+                          className="p-1.5 rounded-md text-slate-400 hover:text-sky-600 hover:bg-sky-100"
+                          title="Edit ward"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(selectedWard.wardId)}
+                          className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50"
+                          title="Delete ward"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
 
@@ -366,6 +503,52 @@ const InpatientSettings = ({
             )}
           </AnimatePresence>
         </div>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog
+          open={!!deleteConfirm}
+          onOpenChange={(o) => !o && setDeleteConfirm(null)}
+        >
+          <DialogContent className="sm:max-w-[380px]">
+            <DialogHeader>
+              <DialogTitle className="text-base flex items-center gap-2">
+                <Trash2 className="w-4 h-4 text-red-500" />
+                Delete Ward
+              </DialogTitle>
+              <DialogDescription className="text-sm text-slate-600 pt-2">
+                Are you sure you want to delete{" "}
+                <strong>
+                  {wardConfiguration.find((w) => w.wardId === deleteConfirm)
+                    ?.name ?? "this ward"}
+                </strong>
+                ? This action cannot be undone. All beds and associated
+                admissions will be removed from the local configuration.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDeleteConfirm(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => {
+                  if (deleteConfirm) onDeleteWard(deleteConfirm);
+                  setDeleteConfirm(null);
+                  setDrillDownWard(null);
+                }}
+                className="gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete Ward
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </SheetContent>
     </Sheet>
   );

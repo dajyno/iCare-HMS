@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback } from "react";
-import { supabase } from "@/src/lib/supabase";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { supabase, toCamel } from "@/src/lib/supabase";
 import type {
   InpatientMasterState,
   ActiveAdmission,
@@ -10,200 +10,10 @@ import type {
   BedUnit,
 } from "./inpatientTypes";
 
-const INITIAL_STATE: InpatientMasterState = {
-  activeAdmissions: [
-    {
-      admissionId: "ADM-2026-0041",
-      wardCode: "ICU-A",
-      bedNo: "Bed-03",
-      patient: {
-        folderNo: "MD/0016/23",
-        name: "Jerel Kevin Parocha",
-        age: 37,
-        allergies: ["Penicillin"],
-      },
-      attendingPhysician: "Dr. Eric Lieberman",
-      daysAdmitted: 4,
-      careStatus: "Meds Due",
-      vitalsHistory: [
-        {
-          timestamp: "2026-05-16T08:00:00Z",
-          bp: "120/80",
-          pulse: 72,
-          temp: 36.8,
-          spo2: 98,
-        },
-      ],
-      medicationSchedule: [
-        {
-          drugId: "D-99",
-          name: "Amoxicillin - 500mg Capsule",
-          frequency: "TDS",
-          assignedSlots: ["08:00", "14:00", "22:00"],
-          administrationLog: [
-            { slot: "08:00", status: "Administered", loggedAt: "2026-05-16T08:05:00Z", note: "" },
-            { slot: "14:00", status: "Pending", loggedAt: null, note: "" },
-            { slot: "22:00", status: "Pending", loggedAt: null, note: "" },
-          ],
-        },
-      ],
-      fluidLedger: {
-        intake: [
-          { itemId: "IN-01", timestamp: "2026-05-16T09:00:00Z", source: "IV Saline", volume: 500 },
-        ],
-        output: [
-          { itemId: "OUT-01", timestamp: "2026-05-16T10:15:00Z", source: "Urine Output", volume: 350 },
-        ],
-      },
-    },
-    {
-      admissionId: "ADM-2026-0042",
-      wardCode: "GEN-A",
-      bedNo: "Bed-07",
-      patient: {
-        folderNo: "MD/0023/24",
-        name: "Sarah Mwangi",
-        age: 52,
-        allergies: ["Sulfa", "Codeine"],
-      },
-      attendingPhysician: "Dr. Jane Wanjiku",
-      daysAdmitted: 2,
-      careStatus: "Critical Observation",
-      vitalsHistory: [
-        {
-          timestamp: "2026-05-16T06:30:00Z",
-          bp: "160/95",
-          pulse: 104,
-          temp: 38.5,
-          spo2: 91,
-        },
-      ],
-      medicationSchedule: [
-        {
-          drugId: "D-12",
-          name: "Ceftriaxone - 1g Injection",
-          frequency: "BD",
-          assignedSlots: ["08:00", "20:00"],
-          administrationLog: [
-            { slot: "08:00", status: "Administered", loggedAt: "2026-05-16T08:10:00Z", note: "" },
-            { slot: "20:00", status: "Pending", loggedAt: null, note: "" },
-          ],
-        },
-      ],
-      fluidLedger: {
-        intake: [
-          { itemId: "IN-02", timestamp: "2026-05-16T07:00:00Z", source: "IV Ringer's Lactate", volume: 1000 },
-        ],
-        output: [
-          { itemId: "OUT-02", timestamp: "2026-05-16T08:30:00Z", source: "Urine Output", volume: 200 },
-          { itemId: "OUT-03", timestamp: "2026-05-16T09:00:00Z", source: "Surgical Drain", volume: 150 },
-        ],
-      },
-    },
-    {
-      admissionId: "ADM-2026-0040",
-      wardCode: "GEN-B",
-      bedNo: "Bed-12",
-      patient: {
-        folderNo: "MD/0008/24",
-        name: "Peter Kamau",
-        age: 45,
-        allergies: [],
-      },
-      attendingPhysician: "Dr. Grace Ochieng",
-      daysAdmitted: 7,
-      careStatus: "Stable",
-      vitalsHistory: [
-        {
-          timestamp: "2026-05-16T07:45:00Z",
-          bp: "118/76",
-          pulse: 68,
-          temp: 36.6,
-          spo2: 99,
-        },
-      ],
-      medicationSchedule: [],
-      fluidLedger: {
-        intake: [],
-        output: [],
-      },
-    },
-  ],
-  wardConfiguration: [
-    {
-      wardId: "W-ICU",
-      name: "Intensive Care Unit",
-      department: "Critical Care",
-      totalBeds: 12,
-      beds: [
-        { bedCode: "ICU-B01", status: "Occupied" },
-        { bedCode: "ICU-B02", status: "Available" },
-        { bedCode: "ICU-B03", status: "Maintenance/Sanitizing" },
-        { bedCode: "ICU-B04", status: "Available" },
-        { bedCode: "ICU-B05", status: "Occupied" },
-        { bedCode: "ICU-B06", status: "Available" },
-      ],
-    },
-    {
-      wardId: "W-GEN-A",
-      name: "General Ward A",
-      department: "General Medicine",
-      totalBeds: 20,
-      beds: [
-        { bedCode: "GEN-A-B01", status: "Occupied" },
-        { bedCode: "GEN-A-B02", status: "Occupied" },
-        { bedCode: "GEN-A-B03", status: "Available" },
-        { bedCode: "GEN-A-B04", status: "Available" },
-        { bedCode: "GEN-A-B05", status: "Available" },
-        { bedCode: "GEN-A-B06", status: "Maintenance/Sanitizing" },
-        { bedCode: "GEN-A-B07", status: "Occupied" },
-        { bedCode: "GEN-A-B08", status: "Available" },
-        { bedCode: "GEN-A-B09", status: "Available" },
-        { bedCode: "GEN-A-B10", status: "Occupied" },
-      ],
-    },
-    {
-      wardId: "W-GEN-B",
-      name: "General Ward B",
-      department: "General Medicine",
-      totalBeds: 20,
-      beds: [
-        { bedCode: "GEN-B-B01", status: "Available" },
-        { bedCode: "GEN-B-B02", status: "Occupied" },
-        { bedCode: "GEN-B-B03", status: "Available" },
-        { bedCode: "GEN-B-B04", status: "Available" },
-        { bedCode: "GEN-B-B05", status: "Maintenance/Sanitizing" },
-        { bedCode: "GEN-B-B06", status: "Occupied" },
-      ],
-    },
-    {
-      wardId: "W-MAT",
-      name: "Maternity Ward",
-      department: "Obstetrics & Gynecology",
-      totalBeds: 15,
-      beds: [
-        { bedCode: "MAT-B01", status: "Occupied" },
-        { bedCode: "MAT-B02", status: "Occupied" },
-        { bedCode: "MAT-B03", status: "Available" },
-        { bedCode: "MAT-B04", status: "Available" },
-        { bedCode: "MAT-B05", status: "Available" },
-      ],
-    },
-  ],
+export const INITIAL_STATE: InpatientMasterState = {
+  activeAdmissions: [],
+  wardConfiguration: [],
 };
-
-const mockPatients = [
-  { folderNo: "MD/0016/23", name: "Jerel Kevin Parocha", age: 37, allergies: ["Penicillin"] },
-  { folderNo: "MD/0023/24", name: "Sarah Mwangi", age: 52, allergies: ["Sulfa", "Codeine"] },
-  { folderNo: "MD/0008/24", name: "Peter Kamau", age: 45, allergies: [] },
-  { folderNo: "MD/0031/24", name: "Alice Nyambura", age: 29, allergies: ["Aspirin"] },
-  { folderNo: "MD/0045/23", name: "James Omondi", age: 61, allergies: ["Penicillin", "Tetracycline"] },
-  { folderNo: "MD/0052/24", name: "Grace Wanjiku", age: 33, allergies: [] },
-  { folderNo: "MD/0067/23", name: "David Muthomi", age: 48, allergies: ["Sulfa"] },
-  { folderNo: "MD/0073/24", name: "Ruth Chebet", age: 25, allergies: [] },
-  { folderNo: "MD/0089/23", name: "Samuel Kiprop", age: 55, allergies: ["Iodine"] },
-  { folderNo: "MD/0094/24", name: "Faith Akinyi", age: 41, allergies: [] },
-];
 
 const attendingDoctors = [
   "Dr. Eric Lieberman",
@@ -214,8 +24,98 @@ const attendingDoctors = [
   "Dr. Kevin Kimani",
 ];
 
+function computeDaysAdmitted(admissionDate: string): number {
+  const admitted = new Date(admissionDate);
+  const now = new Date();
+  const diff = now.getTime() - admitted.getTime();
+  return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+}
+
 export function useInpatientState() {
   const [state, setState] = useState<InpatientMasterState>(INITIAL_STATE);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchInitialData() {
+      setLoading(true);
+
+      try {
+        const [wardsResult, admissionsResult] = await Promise.all([
+          supabase
+            .from("wards")
+            .select("*, department:departments(name), beds(*)")
+            .order("name", { ascending: true }),
+          supabase
+            .from("admissions")
+            .select("*, patient:patients(*), ward:wards(name), bed:beds(bed_number), admitting_doctor:users(full_name)")
+            .eq("status", "Admitted")
+            .order("admission_date", { ascending: false }),
+        ]);
+
+        if (cancelled) return;
+
+        let wardConfig: WardConfig[] = [];
+        let activeAdmissions: ActiveAdmission[] = [];
+
+        if (!wardsResult.error && wardsResult.data) {
+          wardConfig = wardsResult.data.map((w: any) => ({
+            wardId: w.id,
+            name: w.name,
+            department: w.department?.name ?? w.type ?? "General",
+            totalBeds: w.beds_count ?? (w.beds?.length ?? 0),
+            beds: (w.beds || []).map((b: any) => ({
+              bedCode: b.bed_number,
+              status: (b.status === "Occupied"
+                ? "Occupied"
+                : b.status === "Cleaning" || b.status === "Maintenance"
+                ? "Maintenance/Sanitizing"
+                : "Available") as BedUnit["status"],
+            })),
+          }));
+        }
+
+        if (!admissionsResult.error && admissionsResult.data) {
+          activeAdmissions = admissionsResult.data.map((a: any) => ({
+            admissionId: a.id,
+            wardCode: a.ward?.name ?? "Unknown",
+            bedNo: a.bed?.bed_number ?? "Unknown",
+            patient: {
+              folderNo: a.patient?.patient_id ?? "",
+              name: `${a.patient?.first_name ?? ""} ${a.patient?.last_name ?? ""}`.trim(),
+              age: a.patient?.date_of_birth
+                ? Math.floor(
+                    (Date.now() - new Date(a.patient.date_of_birth).getTime()) /
+                      (1000 * 60 * 60 * 24 * 365.25)
+                  )
+                : 0,
+              allergies: a.patient?.allergies
+                ? a.patient.allergies.split(",").map((s: string) => s.trim()).filter(Boolean)
+                : [],
+            },
+            attendingPhysician: a.admitting_doctor?.full_name ?? "Unassigned",
+            daysAdmitted: computeDaysAdmitted(a.admission_date),
+            careStatus: "Stable",
+            vitalsHistory: [],
+            medicationSchedule: [],
+            fluidLedger: { intake: [], output: [] },
+          }));
+        }
+
+        if (!cancelled) {
+          setState({ wardConfiguration: wardConfig, activeAdmissions });
+        }
+      } catch (err) {
+        console.error("Failed to fetch inpatient data from Supabase:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    fetchInitialData();
+    return () => { cancelled = true; };
+  }, []);
 
   const wards = useMemo(
     () =>
@@ -240,14 +140,33 @@ export function useInpatientState() {
   );
 
   const searchPatients = useCallback(
-    (query: string) => {
-      if (!query.trim()) return mockPatients;
-      const q = query.toLowerCase();
-      return mockPatients.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.folderNo.toLowerCase().includes(q)
-      );
+    async (query: string) => {
+      if (!query.trim()) return [];
+      try {
+        const { data, error } = await supabase
+          .from("patients")
+          .select("patient_id, first_name, last_name, date_of_birth, allergies")
+          .or(
+            `first_name.ilike.%${query}%,last_name.ilike.%${query}%,patient_id.ilike.%${query}%`
+          )
+          .limit(10);
+        if (error) throw error;
+        return (data || []).map((p: any) => ({
+          folderNo: p.patient_id,
+          name: `${p.first_name} ${p.last_name}`.trim(),
+          age: p.date_of_birth
+            ? Math.floor(
+                (Date.now() - new Date(p.date_of_birth).getTime()) /
+                  (1000 * 60 * 60 * 24 * 365.25)
+              )
+            : 0,
+          allergies: p.allergies
+            ? p.allergies.split(",").map((s: string) => s.trim()).filter(Boolean)
+            : [],
+        }));
+      } catch {
+        return [];
+      }
     },
     []
   );
@@ -289,7 +208,7 @@ export function useInpatientState() {
       attendingPhysician: string;
     }) => {
       const newAdmission: ActiveAdmission = {
-        admissionId: `ADM-2026-${String(state.activeAdmissions.length + 1).padStart(4, "0")}`,
+        admissionId: `ADM-${Date.now()}`,
         wardCode: payload.wardCode,
         bedNo: payload.bedNo,
         patient: payload.patient,
@@ -312,7 +231,7 @@ export function useInpatientState() {
         })),
       }));
     },
-    [state.activeAdmissions.length]
+    []
   );
 
   const commitVitals = useCallback(
@@ -522,9 +441,12 @@ export function useInpatientState() {
   const addWard = useCallback(
     (ward: Omit<WardConfig, "beds"> & { bedCount: number }) => {
       const newWard: WardConfig = {
-        ...ward,
+        wardId: ward.wardId || `WARD-${Date.now()}`,
+        name: ward.name,
+        department: ward.department,
+        totalBeds: ward.bedCount,
         beds: Array.from({ length: ward.bedCount }, (_, i) => ({
-          bedCode: `${ward.wardId}-B${String(i + 1).padStart(2, "0")}`,
+          bedCode: `${ward.wardId || `WARD-${Date.now()}`}-B${String(i + 1).padStart(2, "0")}`,
           status: "Available" as const,
         })),
       };
@@ -536,11 +458,26 @@ export function useInpatientState() {
     []
   );
 
-  const debugGetState = useCallback(() => state, [state]);
+  const deleteWard = useCallback(
+    (wardId: string) => {
+      setState((prev) => ({
+        ...prev,
+        wardConfiguration: prev.wardConfiguration.filter((w) => w.wardId !== wardId),
+        activeAdmissions: prev.activeAdmissions.filter(
+          (a) => {
+            const ward = prev.wardConfiguration.find((w) => w.wardId === wardId);
+            return ward ? a.wardCode !== ward.name : true;
+          }
+        ),
+      }));
+    },
+    []
+  );
 
   return {
     state,
     wards,
+    loading,
     computeFluidBalance,
     searchPatients,
     searchMedications,
@@ -553,9 +490,8 @@ export function useInpatientState() {
     updateWardConfig,
     updateBedStatus,
     addWard,
-    debugGetState,
+    deleteWard,
     setState,
-    mockPatients,
     attendingDoctors,
   };
 }

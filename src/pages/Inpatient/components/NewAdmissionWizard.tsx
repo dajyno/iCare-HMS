@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Search,
@@ -24,13 +24,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type { WardConfig, BedUnit } from "../inpatientTypes";
+import type { WardConfig } from "../inpatientTypes";
 
 interface NewAdmissionWizardProps {
   open: boolean;
   onClose: () => void;
   wardConfiguration: WardConfig[];
-  searchPatients: (query: string) => any[];
+  searchPatients: (query: string) => Promise<any[]>;
   attendingDoctors: string[];
   onFinalize: (payload: {
     patient: any;
@@ -42,13 +42,7 @@ interface NewAdmissionWizardProps {
   }) => void;
 }
 
-const StepIndicator = ({
-  step,
-  total,
-}: {
-  step: number;
-  total: number;
-}) => (
+const StepIndicator = ({ step, total }: { step: number; total: number }) => (
   <div className="flex items-center justify-center gap-2 mb-6">
     {Array.from({ length: total }, (_, i) => (
       <div key={i} className="flex items-center gap-2">
@@ -66,10 +60,7 @@ const StepIndicator = ({
         </div>
         {i < total - 1 && (
           <div
-            className={cn(
-              "w-12 h-0.5 rounded",
-              i < step ? "bg-sky-600" : "bg-slate-200"
-            )}
+            className={cn("w-12 h-0.5 rounded", i < step ? "bg-sky-600" : "bg-slate-200")}
           />
         )}
       </div>
@@ -88,7 +79,10 @@ const NewAdmissionWizard = ({
   const [step, setStep] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
+  const [results, setResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const [selectedDepartment, setSelectedDepartment] = useState("");
   const [selectedWardId, setSelectedWardId] = useState("");
@@ -99,7 +93,28 @@ const NewAdmissionWizard = ({
   const [selectedDoctor, setSelectedDoctor] = useState("");
   const [finalizing, setFinalizing] = useState(false);
 
-  const results = searchPatients(searchQuery);
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!searchQuery.trim() || selectedPatient) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await searchPatients(searchQuery);
+        setResults(res);
+      } catch {
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchQuery, selectedPatient, searchPatients]);
 
   const departments = Array.from(
     new Set(wardConfiguration.map((w) => w.department))
@@ -124,6 +139,7 @@ const NewAdmissionWizard = ({
   const handleClose = useCallback(() => {
     setStep(0);
     setSearchQuery("");
+    setResults([]);
     setSelectedPatient(null);
     setSelectedDepartment("");
     setSelectedWardId("");
@@ -201,52 +217,61 @@ const NewAdmissionWizard = ({
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);
+                      setSelectedPatient(null);
                       setShowDropdown(true);
                     }}
                     onFocus={() => setShowDropdown(true)}
                     placeholder="Type patient name or folder number..."
                     className="pl-9 h-10"
                   />
-                  {showDropdown && searchQuery.trim() && (
-                    <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-52 overflow-y-auto">
-                      {results.length === 0 ? (
-                        <div className="p-3 text-sm text-slate-400 text-center">
-                          No matching patients found
-                        </div>
-                      ) : (
-                        results.map((p: any) => (
-                          <button
-                            key={p.folderNo}
-                            onClick={() => {
-                              setSelectedPatient(p);
-                              setSearchQuery(`${p.name} (${p.folderNo})`);
-                              setShowDropdown(false);
-                            }}
-                            className={cn(
-                              "w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-sky-50 transition-colors",
-                              selectedPatient?.folderNo === p.folderNo &&
-                                "bg-sky-50"
-                            )}
-                          >
-                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">
-                              {p.name
-                                .split(" ")
-                                .map((n: string) => n[0])
-                                .join("")}
-                            </div>
-                            <div>
-                              <p className="font-medium text-slate-900">
-                                {p.name}
-                              </p>
-                              <p className="text-xs text-slate-400 font-mono">
-                                {p.folderNo} | Age: {p.age}
-                              </p>
-                            </div>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  )}
+                  {(searching || results.length > 0) &&
+                    showDropdown &&
+                    searchQuery.trim() && (
+                      <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-52 overflow-y-auto">
+                        {searching ? (
+                          <div className="p-3 text-sm text-slate-400 text-center flex items-center justify-center gap-2">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            Searching...
+                          </div>
+                        ) : results.length === 0 ? (
+                          <div className="p-3 text-sm text-slate-400 text-center">
+                            No matching patients found
+                          </div>
+                        ) : (
+                          results.map((p: any) => (
+                            <button
+                              key={p.folderNo}
+                              onClick={() => {
+                                setSelectedPatient(p);
+                                setSearchQuery(`${p.name} (${p.folderNo})`);
+                                setResults([]);
+                                setShowDropdown(false);
+                              }}
+                              className={cn(
+                                "w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 hover:bg-sky-50 transition-colors",
+                                selectedPatient?.folderNo === p.folderNo &&
+                                  "bg-sky-50"
+                              )}
+                            >
+                              <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 shrink-0">
+                                {p.name
+                                  .split(" ")
+                                  .map((n: string) => n[0])
+                                  .join("")}
+                              </div>
+                              <div>
+                                <p className="font-medium text-slate-900">
+                                  {p.name}
+                                </p>
+                                <p className="text-xs text-slate-400 font-mono">
+                                  {p.folderNo} | Age: {p.age}
+                                </p>
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
                 </div>
                 {selectedPatient && (
                   <div className="p-3 rounded-lg bg-sky-50 border border-sky-200 flex items-center gap-3">
@@ -281,96 +306,110 @@ const NewAdmissionWizard = ({
                 transition={{ duration: 0.2 }}
                 className="space-y-4"
               >
-                <div className="space-y-3">
-                  <Label className="text-sm font-semibold text-slate-700">
-                    Department
-                  </Label>
-                  <Select
-                    value={selectedDepartment}
-                    onValueChange={(v) => {
-                      setSelectedDepartment(v);
-                      setSelectedWardId("");
-                      setSelectedBedCode("");
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select department..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {departments.map((dept) => (
-                        <SelectItem key={dept} value={dept}>
-                          {dept}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {selectedDepartment && (
-                  <div className="space-y-3">
-                    <Label className="text-sm font-semibold text-slate-700">
-                      Ward
-                    </Label>
-                    <Select
-                      value={selectedWardId}
-                      onValueChange={(v) => {
-                        setSelectedWardId(v);
-                        setSelectedBedCode("");
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select ward..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {filteredWards.map((w) => (
-                          <SelectItem key={w.wardId} value={w.wardId}>
-                            {w.name} ({w.totalBeds} beds)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                {wardConfiguration.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Bed className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+                    <p className="text-sm text-slate-500">
+                      No wards configured yet.
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Go to Inpatient Settings to add wards first.
+                    </p>
                   </div>
-                )}
-
-                {selectedWardId && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
+                ) : (
+                  <>
+                    <div className="space-y-3">
                       <Label className="text-sm font-semibold text-slate-700">
-                        Select Bed
+                        Department
                       </Label>
-                      <span className="text-xs text-slate-400">
-                        {availableBeds?.length ?? 0} available
-                      </span>
+                      <Select
+                        value={selectedDepartment}
+                        onValueChange={(v) => {
+                          setSelectedDepartment(v);
+                          setSelectedWardId("");
+                          setSelectedBedCode("");
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select department..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {departments.map((dept) => (
+                            <SelectItem key={dept} value={dept}>
+                              {dept}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <div className="grid grid-cols-5 sm:grid-cols-6 gap-2">
-                      {selectedWard?.beds.map((bed) => {
-                        const isAvailable = bed.status === "Available";
-                        const isSelected = selectedBedCode === bed.bedCode;
-                        return (
-                          <button
-                            key={bed.bedCode}
-                            disabled={!isAvailable}
-                            onClick={() =>
-                              isAvailable && setSelectedBedCode(bed.bedCode)
-                            }
-                            className={cn(
-                              "aspect-square rounded-lg border-2 text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5",
-                              isSelected
-                                ? "border-sky-500 bg-sky-50 text-sky-700 ring-2 ring-sky-200"
-                                : isAvailable
-                                ? "border-slate-200 bg-white text-slate-700 hover:border-sky-300 hover:bg-sky-50/50 cursor-pointer"
-                                : "border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed opacity-60"
-                            )}
-                          >
-                            <Bed className="w-3.5 h-3.5" />
-                            <span className="text-[9px] leading-tight text-center mt-0.5">
-                              {bed.bedCode.split("-").pop()}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+
+                    {selectedDepartment && (
+                      <div className="space-y-3">
+                        <Label className="text-sm font-semibold text-slate-700">
+                          Ward
+                        </Label>
+                        <Select
+                          value={selectedWardId}
+                          onValueChange={(v) => {
+                            setSelectedWardId(v);
+                            setSelectedBedCode("");
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select ward..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {filteredWards.map((w) => (
+                              <SelectItem key={w.wardId} value={w.wardId}>
+                                {w.name} ({w.totalBeds} beds)
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {selectedWardId && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-semibold text-slate-700">
+                            Select Bed
+                          </Label>
+                          <span className="text-xs text-slate-400">
+                            {availableBeds?.length ?? 0} available
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-5 sm:grid-cols-6 gap-2">
+                          {selectedWard?.beds.map((bed) => {
+                            const isAvailable = bed.status === "Available";
+                            const isSelected = selectedBedCode === bed.bedCode;
+                            return (
+                              <button
+                                key={bed.bedCode}
+                                disabled={!isAvailable}
+                                onClick={() =>
+                                  isAvailable && setSelectedBedCode(bed.bedCode)
+                                }
+                                className={cn(
+                                  "aspect-square rounded-lg border-2 text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5",
+                                  isSelected
+                                    ? "border-sky-500 bg-sky-50 text-sky-700 ring-2 ring-sky-200"
+                                    : isAvailable
+                                    ? "border-slate-200 bg-white text-slate-700 hover:border-sky-300 hover:bg-sky-50/50 cursor-pointer"
+                                    : "border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed opacity-60"
+                                )}
+                              >
+                                <Bed className="w-3.5 h-3.5" />
+                                <span className="text-[9px] leading-tight text-center mt-0.5">
+                                  {bed.bedCode.split("-").pop()}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 <div className="flex justify-between pt-2">
