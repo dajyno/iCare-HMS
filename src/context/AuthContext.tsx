@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase, toCamel } from "../lib/supabase";
+import type { StaffRecord } from "../pages/Staff/types";
 import { getCustomAccounts } from "../lib/accountsStore";
 import type { User } from "../lib/types";
 
@@ -75,8 +76,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error?.message?.includes("Invalid login credentials")) {
-      const allAccounts = { ...DEFAULT_ACCOUNTS, ...getCustomAccounts() };
-      const account = allAccounts[email.toLowerCase()];
+      let account = { ...DEFAULT_ACCOUNTS, ...getCustomAccounts() }[email.toLowerCase()];
+
+      // Fallback: look up in persisted staff records
+      if (!account) {
+        try {
+          const staffRecords: StaffRecord[] = JSON.parse(
+            localStorage.getItem("icare-staff-records") || "[]"
+          );
+          const match = staffRecords.find(
+            (r) =>
+              r.email?.toLowerCase() === email.toLowerCase() &&
+              r.password === password &&
+              r.canLogin
+          );
+          if (match) {
+            const role: string =
+              match.position === "Medical Doctors" ? "Doctor" :
+              match.position === "Nursing" ? "Nurse" :
+              match.position === "Pharmacy" ? "Pharmacist" :
+              match.position === "Laboratory" ? "LabTechnician" :
+              "HospitalAdmin";
+            account = { name: match.name, role };
+          }
+        } catch {
+          // staff records missing or corrupted — ignore, fall through to error
+        }
+      }
+
       if (!account) {
         throw new Error("Account not found. Please contact your system administrator.");
       }

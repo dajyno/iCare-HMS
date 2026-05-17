@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ChangeEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import {
@@ -32,7 +32,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/src/lib/supabase";
 import { useAuth } from "@/src/context/AuthContext";
 import { saveCustomAccount, removeCustomAccount } from "@/src/lib/accountsStore";
 import { useStaff } from "./StaffContext";
@@ -116,7 +115,7 @@ export default function StaffProfile() {
     staff.position === "Laboratory" ? "LabTechnician" :
     "HospitalAdmin";
 
-  const handlePictureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePictureUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -157,7 +156,7 @@ export default function StaffProfile() {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const handleSaveSettings = async () => {
+  const handleSaveSettings = () => {
     updateRecord(staff.staff_id, {
       canLogin,
       password: canLogin ? password : "",
@@ -165,22 +164,6 @@ export default function StaffProfile() {
     });
     if (canLogin && password.length >= 6 && staff.email) {
       saveCustomAccount(staff.email, { name: staff.name, role: staffRole });
-      try {
-        const { data: { session: adminSession } } = await supabase.auth.getSession();
-        const { error: signUpError } = await supabase.auth.signUp({
-          email: staff.email,
-          password,
-          options: { data: { full_name: staff.name, role: staffRole } },
-        });
-        if (signUpError && !signUpError.message?.includes("already registered")) {
-          console.error("Supabase user creation error:", signUpError.message);
-        }
-        if (adminSession) {
-          await supabase.auth.setSession(adminSession);
-        }
-      } catch (err) {
-        console.error("Account creation error:", err);
-      }
     } else if (!canLogin && staff.email) {
       removeCustomAccount(staff.email);
     }
