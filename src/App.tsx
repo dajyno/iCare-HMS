@@ -21,9 +21,11 @@ import RadiologyModule from "./pages/Radiology/RadiologyModule";
 import AccountingPage from "./pages/Accounting/AccountingPage";
 import Settings from "./pages/Dashboard/Settings";
 import Profile from "./pages/Dashboard/Profile";
+import StaffLayout from "./pages/Staff/StaffLayout";
+import StaffList from "./pages/Staff/StaffList";
+import StaffProfile from "./pages/Staff/StaffProfile";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const StaffList = () => <div className="p-6">Staff List Placeholder</div>;
 const ReportsOverview = () => <div className="p-6">Reports Overview Placeholder</div>;
 const IndividualPatients = () => <PatientList defaultCategory="Individual" />;
 const CorporatePatients = () => <PatientList defaultCategory="Corporate" />;
@@ -227,10 +229,13 @@ export default function App() {
               path="/staff"
               element={
                 <ProtectedRoute>
-                  <StaffList />
+                  <StaffLayout />
                 </ProtectedRoute>
               }
-            />
+            >
+              <Route index element={<StaffList />} />
+              <Route path=":id" element={<StaffProfile />} />
+            </Route>
             <Route
               path="/reports"
               element={
