@@ -24,16 +24,29 @@ export function useInvoices() {
         const raw = localStorage.getItem(localKey);
         const localInvoices: InvoiceSummary[] = raw ? JSON.parse(raw) : [];
 
+        const mergedLocal = [...localInvoices];
         if (!hasSupabaseData && supabaseInvoices.length === 0) {
-          return [...MOCK_INVOICES, ...localInvoices];
+          const combined = [...MOCK_INVOICES];
+          for (const loc of mergedLocal) {
+            const i = combined.findIndex((m) => m.id === loc.id);
+            if (i !== -1) combined[i] = loc;
+            else combined.push(loc);
+          }
+          return combined;
         }
 
-        return [...supabaseInvoices, ...localInvoices];
+        return [...supabaseInvoices, ...mergedLocal];
       } catch {
         const localKey = "icare_billing_local";
         const raw = localStorage.getItem(localKey);
         const localInvoices: InvoiceSummary[] = raw ? JSON.parse(raw) : [];
-        return [...MOCK_INVOICES, ...localInvoices];
+        const combined = [...MOCK_INVOICES];
+        for (const loc of localInvoices) {
+          const i = combined.findIndex((m) => m.id === loc.id);
+          if (i !== -1) combined[i] = loc;
+          else combined.push(loc);
+        }
+        return combined;
       }
     },
     staleTime: 1000 * 30,
@@ -397,15 +410,13 @@ export function useUpdateInvoiceStatus() {
         const raw = localStorage.getItem(localKey);
         const existing: InvoiceSummary[] = raw ? JSON.parse(raw) : [];
         const idx = existing.findIndex((inv) => inv.id === id);
+        const updatedInvoice = { ...currentInvoice, amountPaid: newAmountPaid, balance: newBalance, status, paymentMethod, paidAt, updatedAt: new Date().toISOString() };
         if (idx !== -1) {
-          existing[idx].amountPaid = newAmountPaid;
-          existing[idx].balance = newBalance;
-          existing[idx].status = status;
-          existing[idx].paymentMethod = paymentMethod;
-          existing[idx].paidAt = paidAt;
-          existing[idx].updatedAt = new Date().toISOString();
-          localStorage.setItem(localKey, JSON.stringify(existing));
+          existing[idx] = updatedInvoice;
+        } else {
+          existing.push(updatedInvoice);
         }
+        localStorage.setItem(localKey, JSON.stringify(existing));
       }
 
       if (cache) {

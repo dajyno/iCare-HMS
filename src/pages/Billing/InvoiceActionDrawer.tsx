@@ -41,11 +41,14 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
 
   const handleProcessPayment = () => {
     if (!invoice || payAmount <= 0) return;
-    updateStatus.mutate({
-      id: invoice.id,
-      amountPaid: payAmount,
-      paymentMethod,
-    });
+    updateStatus.mutate(
+      {
+        id: invoice.id,
+        amountPaid: payAmount,
+        paymentMethod,
+      },
+      { onSuccess: () => onClose() }
+    );
   };
 
   const handleGeneratePrint = () => {
