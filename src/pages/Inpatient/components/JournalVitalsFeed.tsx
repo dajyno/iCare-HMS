@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Activity, Heart, Thermometer, Droplets, StickyNote, User } from "lucide-react";
+import { Activity, Heart, Thermometer, Droplets, StickyNote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/src/context/AuthContext";
 import type { VitalsRecord, ActiveAdmission } from "../inpatientTypes";
 
 const Sparkline = ({ data, color }: { data: number[]; color: string }) => {
@@ -88,12 +89,14 @@ const JournalVitalsFeed = ({
   admission: ActiveAdmission;
   onCommitVitals: (vitals: Omit<VitalsRecord, "timestamp">) => void;
 }) => {
+  const { user } = useAuth();
+  const staffName = user?.fullName ?? "Unknown Staff";
+
   const [bp, setBp] = useState("");
   const [pulse, setPulse] = useState("");
   const [temp, setTemp] = useState("");
   const [spo2, setSpO2] = useState("");
   const [observations, setObservations] = useState("");
-  const [staffName, setStaffName] = useState("");
 
   const journal = useMemo(() => {
     const entries: any[] = [
@@ -107,8 +110,12 @@ const JournalVitalsFeed = ({
       },
     ];
     admission.vitalsHistory.forEach((v) => {
-      const desc = v.observations ? `Obs: ${v.observations}` : undefined;
-      const staff = v.observations?.match(/^Staff: (.+)$/);
+      const staff = v.observations?.match(/^Staff: (.+?) — (.+)$/);
+      const desc = staff
+        ? `${staff[1]} — ${staff[2]}`
+        : v.observations
+        ? `Obs: ${v.observations}`
+        : undefined;
       entries.push({
         type: "vitals",
         title: `BP ${v.bp}, Pulse ${v.pulse}, Temp ${v.temp}°C, SpO2 ${v.spo2}%`,
@@ -122,7 +129,7 @@ const JournalVitalsFeed = ({
         .forEach((l) => {
           entries.push({
             type: "medication",
-            title: `${m.name} administered`,
+            title: `${m.name} administered (Qty: ${m.quantity})`,
             description: `Slot: ${l.slot}`,
             timestamp: l.loggedAt ?? "",
           });
@@ -171,7 +178,9 @@ const JournalVitalsFeed = ({
       pulse: pulse ? parseInt(pulse) : 0,
       temp: temp ? parseFloat(temp) : 0,
       spo2: spo2 ? parseInt(spo2) : 0,
-      observations: staffName ? `Staff: ${staffName} — ${observations}` : observations,
+      observations: observations
+        ? `Staff: ${staffName} — ${observations}`
+        : `Staff: ${staffName}`,
     });
     setBp("");
     setPulse("");
@@ -184,17 +193,9 @@ const JournalVitalsFeed = ({
     <div className="space-y-6">
       <div className="sticky top-0 z-10 bg-white pb-4 border-b border-slate-100">
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <User className="w-3.5 h-3.5 text-slate-400" />
-            <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-              Recording Staff
-            </Label>
-            <Input
-              value={staffName}
-              onChange={(e) => setStaffName(e.target.value)}
-              placeholder="Your name..."
-              className="h-8 text-xs flex-1 max-w-[240px]"
-            />
+          <div className="flex items-center gap-2 text-[10px] text-slate-400">
+            <span className="font-semibold uppercase tracking-wider">Recording Staff:</span>
+            <span className="text-slate-700 font-medium">{staffName}</span>
           </div>
           <div className="grid grid-cols-4 gap-3">
             <div className="space-y-1.5">

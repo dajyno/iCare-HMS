@@ -323,6 +323,44 @@ export function useInpatientState() {
     []
   );
 
+  const updateMedication = useCallback(
+    (admissionId: string, drugId: string, updated: MedicationSchedule) => {
+      setState((prev) => ({
+        ...prev,
+        activeAdmissions: prev.activeAdmissions.map((a) =>
+          a.admissionId === admissionId
+            ? {
+                ...a,
+                medicationSchedule: a.medicationSchedule.map((m) =>
+                  m.drugId === drugId ? updated : m
+                ),
+              }
+            : a
+        ),
+      }));
+    },
+    []
+  );
+
+  const removeMedication = useCallback(
+    (admissionId: string, drugId: string) => {
+      setState((prev) => ({
+        ...prev,
+        activeAdmissions: prev.activeAdmissions.map((a) =>
+          a.admissionId === admissionId
+            ? {
+                ...a,
+                medicationSchedule: a.medicationSchedule.filter(
+                  (m) => m.drugId !== drugId
+                ),
+              }
+            : a
+        ),
+      }));
+    },
+    []
+  );
+
   const recordAdministration = useCallback(
     (admissionId: string, drugId: string, slot: string, status: "Administered" | "Missed" | "Skipped", note: string) => {
       setState((prev) => ({
@@ -563,6 +601,8 @@ export function useInpatientState() {
     finalizeAdmission,
     commitVitals,
     assignMedication,
+    updateMedication,
+    removeMedication,
     recordAdministration,
     recordFluidEntry,
     authorizeDischarge,

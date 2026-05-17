@@ -24,6 +24,7 @@ export interface AdministrationLogEntry {
 export interface MedicationSchedule {
   drugId: string;
   name: string;
+  quantity: number;
   frequency: "OD" | "BD" | "TDS" | "PRN" | "Custom";
   assignedSlots: string[];
   administrationLog: AdministrationLogEntry[];

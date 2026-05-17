@@ -23,6 +23,8 @@ const InpatientOverview = () => {
     finalizeAdmission,
     commitVitals,
     assignMedication,
+    updateMedication,
+    removeMedication,
     recordAdministration,
     recordFluidEntry,
     authorizeDischarge,
@@ -122,6 +124,12 @@ const InpatientOverview = () => {
               }
               onAssignMedication={(med) =>
                 assignMedication(selectedPatient.admissionId, med)
+              }
+              onUpdateMedication={(drugId, med) =>
+                updateMedication(selectedPatient.admissionId, drugId, med)
+              }
+              onRemoveMedication={(drugId) =>
+                removeMedication(selectedPatient.admissionId, drugId)
               }
               onRecordAdministration={(drugId, slot, status, note) =>
                 recordAdministration(

@@ -15,6 +15,8 @@ interface PatientWorkspaceProps {
   onBack: () => void;
   onCommitVitals: (vitals: Omit<VitalsRecord, "timestamp">) => void;
   onAssignMedication: (med: MedicationSchedule) => void;
+  onUpdateMedication: (drugId: string, med: MedicationSchedule) => void;
+  onRemoveMedication: (drugId: string) => void;
   onRecordAdministration: (
     drugId: string,
     slot: string,
@@ -38,6 +40,8 @@ const PatientWorkspace = ({
   onBack,
   onCommitVitals,
   onAssignMedication,
+  onUpdateMedication,
+  onRemoveMedication,
   onRecordAdministration,
   onRecordFluidEntry,
   onAuthorizeDischarge,
@@ -100,6 +104,8 @@ const PatientWorkspace = ({
             <MedicationMAR
               admission={admission}
               onAssignMedication={onAssignMedication}
+              onUpdateMedication={onUpdateMedication}
+              onRemoveMedication={onRemoveMedication}
               onRecordAdministration={onRecordAdministration}
               searchMedications={searchMedications}
             />

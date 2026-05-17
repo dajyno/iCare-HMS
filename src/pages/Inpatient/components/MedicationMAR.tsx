@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, Pill, X, Clock, Check, AlertTriangle, Loader2 } from "lucide-react";
+import { Plus, Pill, X, Clock, Check, AlertTriangle, Loader2, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,15 +44,20 @@ const AdministrationBlock = ({
   slot,
   log,
   drugId,
+  assigned,
   onSingleClick,
   onDoubleClick,
 }: {
   slot: string;
   log?: AdministrationLogEntry;
   drugId: string;
+  assigned: boolean;
   onSingleClick: (drugId: string, slot: string) => void;
   onDoubleClick: (drugId: string, slot: string) => void;
 }) => {
+  if (!assigned) {
+    return <div className="w-full h-9" />;
+  }
   const status = log?.status ?? "Pending";
   const styles: Record<string, string> = {
     Administered: "bg-emerald-200 text-emerald-800 border-emerald-400",
@@ -104,11 +109,15 @@ const TimeAllocator = ({
 const MedicationMAR = ({
   admission,
   onAssignMedication,
+  onUpdateMedication,
+  onRemoveMedication,
   onRecordAdministration,
   searchMedications,
 }: {
   admission: ActiveAdmission;
   onAssignMedication: (med: MedicationSchedule) => void;
+  onUpdateMedication: (drugId: string, med: MedicationSchedule) => void;
+  onRemoveMedication: (drugId: string) => void;
   onRecordAdministration: (
     drugId: string,
     slot: string,
@@ -118,6 +127,7 @@ const MedicationMAR = ({
   searchMedications: (query: string) => Promise<{ drugId: string; name: string }[]>;
 }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingDrugId, setEditingDrugId] = useState<string | null>(null);
   const [drugQuery, setDrugQuery] = useState("");
   const [searchResults, setSearchResults] = useState<{ drugId: string; name: string }[]>([]);
   const [searching, setSearching] = useState(false);
@@ -126,6 +136,7 @@ const MedicationMAR = ({
     name: string;
   } | null>(null);
   const [freq, setFreq] = useState("");
+  const [quantity, setQuantity] = useState(1);
   const [customSlots, setCustomSlots] = useState<string[]>([]);
   const [verifyDialog, setVerifyDialog] = useState<{
     drugId: string;
@@ -156,33 +167,59 @@ const MedicationMAR = ({
     return () => clearTimeout(timer);
   }, [drugQuery, selectedDrug, searchMedications]);
 
+  const openNewDialog = () => {
+    setEditingDrugId(null);
+    setDrugQuery("");
+    setSelectedDrug(null);
+    setFreq("");
+    setQuantity(1);
+    setCustomSlots([]);
+    setSearchResults([]);
+    setDrawerOpen(true);
+  };
+
+  const openEditDialog = (med: MedicationSchedule) => {
+    setEditingDrugId(med.drugId);
+    setSelectedDrug({ drugId: med.drugId, name: med.name });
+    setDrugQuery(med.name);
+    setFreq(med.frequency);
+    setQuantity(med.quantity);
+    if (med.frequency === "Custom") {
+      setCustomSlots(med.assignedSlots);
+    } else {
+      setCustomSlots([]);
+    }
+    setSearchResults([]);
+    setDrawerOpen(true);
+  };
+
   const handleSaveSchedule = () => {
     if (!selectedDrug || !freq) return;
     const slots =
       freq === "Custom" ? customSlots : FREQ_PRESETS[freq]?.slots ?? [];
+    const drugId = selectedDrug.drugId;
     const med: MedicationSchedule = {
-      drugId: selectedDrug.drugId,
+      drugId,
       name: selectedDrug.name,
+      quantity,
       frequency: freq as MedicationSchedule["frequency"],
       assignedSlots: slots,
-      administrationLog: slots.map((s) => ({
-        slot: s,
-        status: "Pending" as const,
-        loggedAt: null,
-        note: "",
-      })),
+      administrationLog: slots.map((s) => {
+        if (editingDrugId === drugId) {
+          const existing = admission.medicationSchedule
+            .find((m) => m.drugId === drugId)
+            ?.administrationLog.find((l) => l.slot === s);
+          return existing ?? { slot: s, status: "Pending" as const, loggedAt: null, note: "" };
+        }
+        return { slot: s, status: "Pending" as const, loggedAt: null, note: "" };
+      }),
     };
-    onAssignMedication(med);
+    if (editingDrugId) {
+      onUpdateMedication(editingDrugId, med);
+    } else {
+      onAssignMedication(med);
+    }
     setDrawerOpen(false);
-    resetDrawer();
-  };
-
-  const resetDrawer = () => {
-    setDrugQuery("");
-    setSelectedDrug(null);
-    setFreq("");
-    setCustomSlots([]);
-    setSearchResults([]);
   };
 
   const handleSingleClick = useCallback(
@@ -220,6 +257,13 @@ const MedicationMAR = ({
     setVerifyNote("");
   };
 
+  const handleDeleteMedication = useCallback(
+    (drugId: string) => {
+      onRemoveMedication(drugId);
+    },
+    [onRemoveMedication]
+  );
+
   const meds = admission.medicationSchedule;
   const allSlotsOrdered = useMemo(
     () =>
@@ -240,7 +284,7 @@ const MedicationMAR = ({
           </p>
           <Button
             size="sm"
-            onClick={() => setDrawerOpen(true)}
+            onClick={openNewDialog}
             className="mt-4 gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -255,7 +299,7 @@ const MedicationMAR = ({
             </h3>
             <Button
               size="sm"
-              onClick={() => setDrawerOpen(true)}
+              onClick={openNewDialog}
               className="gap-1.5"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -270,6 +314,9 @@ const MedicationMAR = ({
                   <th className="text-left px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 w-48">
                     Medication
                   </th>
+                  <th className="text-center px-2 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 w-12">
+                    Qty
+                  </th>
                   {allSlotsOrdered.map((slot) => (
                     <th
                       key={slot}
@@ -278,6 +325,9 @@ const MedicationMAR = ({
                       {slot}
                     </th>
                   ))}
+                  <th className="text-center px-2 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 w-16">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -291,22 +341,45 @@ const MedicationMAR = ({
                         {med.frequency}
                       </p>
                     </td>
+                    <td className="px-2 py-2.5 text-center font-mono text-slate-700">
+                      {med.quantity}
+                    </td>
                     {allSlotsOrdered.map((slot) => {
                       const log = med.administrationLog.find(
                         (l) => l.slot === slot
                       );
+                      const assigned = med.assignedSlots.includes(slot);
                       return (
                         <td key={slot} className="px-1 py-1.5">
                           <AdministrationBlock
                             slot={slot}
                             log={log}
                             drugId={med.drugId}
+                            assigned={assigned}
                             onSingleClick={handleSingleClick}
                             onDoubleClick={handleDoubleClick}
                           />
                         </td>
                       );
                     })}
+                    <td className="px-2 py-1.5">
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => openEditDialog(med)}
+                          className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-sky-600 transition-colors"
+                          title="Edit medication"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteMedication(med.drugId)}
+                          className="p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors"
+                          title="Delete medication"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -320,7 +393,7 @@ const MedicationMAR = ({
           <DialogHeader>
             <DialogTitle className="text-base flex items-center gap-2">
               <Pill className="w-4 h-4" />
-              Assign Medication
+              {editingDrugId ? "Edit Medication" : "Assign Medication"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
@@ -378,20 +451,33 @@ const MedicationMAR = ({
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold">Frequency Preset</Label>
-              <Select value={freq} onValueChange={setFreq}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select frequency..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(FREQ_PRESETS).map(([key, val]) => (
-                    <SelectItem key={key} value={key}>
-                      {val.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold">Quantity</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="h-9 text-sm"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold">Frequency Preset</Label>
+                <Select value={freq} onValueChange={setFreq}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select frequency..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(FREQ_PRESETS).map(([key, val]) => (
+                      <SelectItem key={key} value={key}>
+                        {val.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <AnimatePresence>
@@ -439,7 +525,6 @@ const MedicationMAR = ({
               size="sm"
               onClick={() => {
                 setDrawerOpen(false);
-                resetDrawer();
               }}
             >
               Cancel
@@ -451,7 +536,7 @@ const MedicationMAR = ({
               className="gap-1.5"
             >
               <Check className="w-3.5 h-3.5" />
-              Save Schedule
+              {editingDrugId ? "Update Schedule" : "Save Schedule"}
             </Button>
           </DialogFooter>
         </DialogContent>
