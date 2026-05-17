@@ -32,6 +32,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/src/context/AuthContext";
 import { useStaff } from "./StaffContext";
 import PermissionsMatrix from "./PermissionsMatrix";
 import type { StaffPosition } from "./types";
@@ -54,6 +55,7 @@ const POSITION_OPTIONS: StaffPosition[] = [
 export default function StaffProfile() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { records, updateRecord, updatePermissions, deleteRecord } = useStaff();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -112,10 +114,12 @@ export default function StaffProfile() {
       const dataUrl = ev.target?.result as string;
       setProfilePicture(dataUrl);
       updateRecord(staff.staff_id, { profilePicture: dataUrl });
-      localStorage.setItem("staff_profile_picture", dataUrl);
-      window.dispatchEvent(
-        new CustomEvent("profile-picture-updated", { detail: dataUrl })
-      );
+      if (user?.email === staff.email) {
+        localStorage.setItem("staff_profile_picture", dataUrl);
+        window.dispatchEvent(
+          new CustomEvent("profile-picture-updated", { detail: dataUrl })
+        );
+      }
     };
     reader.readAsDataURL(file);
   };
