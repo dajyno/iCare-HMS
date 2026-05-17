@@ -18,10 +18,15 @@ const STATUS_STYLES: Record<CareStatus, { bg: string; text: string; dot: string;
     text: "text-emerald-700",
     dot: "bg-emerald-500",
   },
+  Discharged: {
+    bg: "bg-slate-100",
+    text: "text-slate-500",
+    dot: "bg-slate-400",
+  },
 };
 
 const StatusBadge = ({ status }: { status: CareStatus }) => {
-  const style = STATUS_STYLES[status];
+  const style = STATUS_STYLES[status] ?? STATUS_STYLES.Stable;
   return (
     <span
       className={cn(

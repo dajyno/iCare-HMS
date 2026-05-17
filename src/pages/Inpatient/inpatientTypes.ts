@@ -48,7 +48,7 @@ export interface ActiveAdmission {
   patient: Patient;
   attendingPhysician: string;
   daysAdmitted: number;
-  careStatus: "Meds Due" | "Critical Observation" | "Stable";
+  careStatus: "Meds Due" | "Critical Observation" | "Stable" | "Discharged";
   vitalsHistory: VitalsRecord[];
   medicationSchedule: MedicationSchedule[];
   fluidLedger: FluidLedger;

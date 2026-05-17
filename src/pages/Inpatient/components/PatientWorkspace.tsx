@@ -1,7 +1,7 @@
 import { motion } from "motion/react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClipboardList, Pill, Droplets, LogOut } from "lucide-react";
-import type { ActiveAdmission, VitalsRecord, FluidEntry, MedicationSchedule } from "../inpatientTypes";
+import type { ActiveAdmission, VitalsRecord, FluidEntry, MedicationSchedule, WardConfig } from "../inpatientTypes";
 import PatientBanner from "./PatientBanner";
 import JournalVitalsFeed from "./JournalVitalsFeed";
 import MedicationMAR from "./MedicationMAR";
@@ -12,6 +12,7 @@ interface PatientWorkspaceProps {
   admission: ActiveAdmission;
   fluidBalance: number;
   onClose: () => void;
+  onBack: () => void;
   onCommitVitals: (vitals: Omit<VitalsRecord, "timestamp">) => void;
   onAssignMedication: (med: MedicationSchedule) => void;
   onRecordAdministration: (
@@ -27,12 +28,14 @@ interface PatientWorkspaceProps {
   onAuthorizeDischarge: (summary: string) => void;
   onSaveClinicalNotes: (notes: string) => void;
   searchMedications: (query: string) => Promise<{ drugId: string; name: string }[]>;
+  getBedPrice: (wardCode: string, bedNo: string) => number;
 }
 
 const PatientWorkspace = ({
   admission,
   fluidBalance,
   onClose,
+  onBack,
   onCommitVitals,
   onAssignMedication,
   onRecordAdministration,
@@ -40,6 +43,7 @@ const PatientWorkspace = ({
   onAuthorizeDischarge,
   onSaveClinicalNotes,
   searchMedications,
+  getBedPrice,
 }: PatientWorkspaceProps) => {
   return (
     <motion.div
@@ -50,7 +54,7 @@ const PatientWorkspace = ({
       transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
       className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm"
     >
-      <PatientBanner admission={admission} onClose={onClose} />
+      <PatientBanner admission={admission} onClose={onClose} onBack={onBack} />
 
       <div className="p-6">
         <Tabs defaultValue="journal" className="space-y-4">
@@ -115,6 +119,7 @@ const PatientWorkspace = ({
               admission={admission}
               onAuthorizeDischarge={onAuthorizeDischarge}
               onSaveClinicalNotes={onSaveClinicalNotes}
+              getBedPrice={getBedPrice}
             />
           </TabsContent>
         </Tabs>

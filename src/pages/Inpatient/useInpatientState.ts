@@ -234,6 +234,7 @@ export function useInpatientState() {
         vitalsHistory: [],
         medicationSchedule: [],
         fluidLedger: { intake: [], output: [] },
+        clinicalNotes: "",
       };
 
       setState((prev) => ({
@@ -374,13 +375,21 @@ export function useInpatientState() {
 
       setState((prev) => ({
         ...prev,
-        activeAdmissions: prev.activeAdmissions.filter(
-          (a) => a.admissionId !== admissionId
+        activeAdmissions: prev.activeAdmissions.map((a) =>
+          a.admissionId === admissionId
+            ? {
+                ...a,
+                careStatus: "Discharged" as const,
+                clinicalNotes: a.clinicalNotes
+                  ? `${a.clinicalNotes}\n[${new Date().toLocaleString()}] Discharged: ${dischargeSummary}`
+                  : `[${new Date().toLocaleString()}] Discharged: ${dischargeSummary}`,
+              }
+            : a
         ),
         wardConfiguration: prev.wardConfiguration.map((ward) => ({
           ...ward,
           beds: ward.beds.map((bed) =>
-            bed.bedCode === admission.bedNo ? { ...bed, status: "Maintenance/Sanitizing" as const } : bed
+            bed.bedCode === admission.bedNo ? { ...bed, status: "Available" as const } : bed
           ),
         })),
       }));

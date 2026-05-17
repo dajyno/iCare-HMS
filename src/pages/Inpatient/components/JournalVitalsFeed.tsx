@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Activity, Heart, Thermometer, Droplets, StickyNote } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -96,7 +96,12 @@ const JournalVitalsFeed = ({
   const [spo2, setSpO2] = useState("");
   const [observations, setObservations] = useState("");
   const [clinicalNotes, setClinicalNotes] = useState(admission.clinicalNotes || "");
+  const [saved, setSaved] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setClinicalNotes(admission.clinicalNotes || "");
+  }, [admission.clinicalNotes]);
 
   const journal = useMemo(() => {
     const entries: any[] = [
@@ -104,7 +109,9 @@ const JournalVitalsFeed = ({
         type: "admission",
         title: `Admitted to ${admission.wardCode} / ${admission.bedNo}`,
         description: `Attending: ${admission.attendingPhysician}`,
-        timestamp: `${admission.daysAdmitted} days ago`,
+        timestamp: admission.admissionId.startsWith("ADM-")
+          ? new Date(parseInt(admission.admissionId.replace("ADM-", ""))).toISOString()
+          : new Date(0).toISOString(),
       },
     ];
     admission.vitalsHistory.forEach((v) => {
@@ -113,7 +120,7 @@ const JournalVitalsFeed = ({
         type: "vitals",
         title: `BP ${v.bp}, Pulse ${v.pulse}, Temp ${v.temp}°C, SpO2 ${v.spo2}%`,
         description: desc,
-        timestamp: new Date(v.timestamp).toLocaleString(),
+        timestamp: v.timestamp,
       });
     });
     admission.medicationSchedule.forEach((m) => {
@@ -124,9 +131,7 @@ const JournalVitalsFeed = ({
             type: "medication",
             title: `${m.name} administered`,
             description: `Slot: ${l.slot}`,
-            timestamp: l.loggedAt
-              ? new Date(l.loggedAt).toLocaleString()
-              : "",
+            timestamp: l.loggedAt ?? "",
           });
         });
     });
@@ -134,14 +139,14 @@ const JournalVitalsFeed = ({
       entries.push({
         type: "fluid",
         title: `Intake: ${f.volume}ml — ${f.source}`,
-        timestamp: new Date(f.timestamp).toLocaleString(),
+        timestamp: f.timestamp,
       });
     });
     admission.fluidLedger.output.forEach((f) => {
       entries.push({
         type: "fluid",
         title: `Output: ${f.volume}ml — ${f.source}`,
-        timestamp: new Date(f.timestamp).toLocaleString(),
+        timestamp: f.timestamp,
       });
     });
     entries.sort(
@@ -183,6 +188,8 @@ const JournalVitalsFeed = ({
   const handleSaveNotes = () => {
     if (onSaveClinicalNotes) {
       onSaveClinicalNotes(clinicalNotes);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
     }
   };
 
@@ -293,11 +300,10 @@ const JournalVitalsFeed = ({
             size="sm"
             variant="outline"
             onClick={handleSaveNotes}
-            disabled={clinicalNotes === (admission.clinicalNotes || "")}
             className="h-7 text-xs gap-1"
           >
             <StickyNote className="w-3 h-3" />
-            Save Notes
+            {saved ? "Saved!" : "Save Notes"}
           </Button>
         </div>
         <textarea
@@ -310,6 +316,11 @@ const JournalVitalsFeed = ({
       </div>
 
       <ScrollArea className="max-h-[400px] pr-2">
+        {journal.length > 0 && (
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
+            Activity Journal
+          </h3>
+        )}
         <AnimatePresence>
           {journal.map((entry, i) => (
             <motion.div

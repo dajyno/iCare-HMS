@@ -31,6 +31,7 @@ const InpatientOverview = () => {
     addWard,
     deleteWard,
     searchMedications,
+    getBedPrice,
     setState,
   } = useInpatientState();
 
@@ -115,6 +116,7 @@ const InpatientOverview = () => {
               admission={selectedPatient}
               fluidBalance={selectedFluidBalance}
               onClose={handleCloseWorkspace}
+              onBack={handleCloseWorkspace}
               onCommitVitals={(vitals) =>
                 commitVitals(selectedPatient.admissionId, vitals)
               }
@@ -147,6 +149,7 @@ const InpatientOverview = () => {
                 }))
               }
               searchMedications={searchMedications}
+              getBedPrice={getBedPrice}
             />
           </motion.div>
         ) : (

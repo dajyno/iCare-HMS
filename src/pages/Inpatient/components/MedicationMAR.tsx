@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, Pill, X, Clock, Check, AlertTriangle } from "lucide-react";
+import { Plus, Pill, X, Clock, Check, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -115,11 +115,12 @@ const MedicationMAR = ({
     status: "Administered" | "Missed" | "Skipped",
     note: string
   ) => void;
-  searchMedications?: (query: string) => Promise<{ drugId: string; name: string }[]>;
+  searchMedications: (query: string) => Promise<{ drugId: string; name: string }[]>;
 }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drugQuery, setDrugQuery] = useState("");
   const [searchResults, setSearchResults] = useState<{ drugId: string; name: string }[]>([]);
+  const [searching, setSearching] = useState(false);
   const [selectedDrug, setSelectedDrug] = useState<{
     drugId: string;
     name: string;
@@ -138,12 +139,18 @@ const MedicationMAR = ({
   useEffect(() => {
     if (!drugQuery.trim() || selectedDrug) {
       setSearchResults([]);
+      setSearching(false);
       return;
     }
+    setSearching(true);
     const timer = setTimeout(async () => {
-      if (searchMedications) {
+      try {
         const results = await searchMedications(drugQuery);
         setSearchResults(results);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
       }
     }, 300);
     return () => clearTimeout(timer);
@@ -326,25 +333,31 @@ const MedicationMAR = ({
                   placeholder="Search medication..."
                   className="h-9 text-sm"
                 />
-                {drugQuery && !selectedDrug && searchResults.length > 0 && (
-                  <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-36 overflow-y-auto">
-                    {searchResults.map((m) => (
-                      <button
-                        key={m.drugId}
-                        onClick={() => {
-                          setSelectedDrug(m);
-                          setDrugQuery(m.name);
-                        }}
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-sky-50"
-                      >
-                        {m.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {drugQuery && !selectedDrug && searchResults.length === 0 && (
-                  <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-3 text-xs text-slate-400 text-center">
-                    No medications found
+                {drugQuery && !selectedDrug && (
+                  <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto">
+                    {searching ? (
+                      <div className="p-3 text-sm text-slate-400 text-center flex items-center justify-center gap-2">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Searching...
+                      </div>
+                    ) : searchResults.length === 0 ? (
+                      <div className="p-3 text-sm text-slate-400 text-center">
+                        No medications found
+                      </div>
+                    ) : (
+                      searchResults.map((m) => (
+                        <button
+                          key={m.drugId}
+                          onClick={() => {
+                            setSelectedDrug(m);
+                            setDrugQuery(m.name);
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-sky-50"
+                        >
+                          {m.name}
+                        </button>
+                      ))
+                    )}
                   </div>
                 )}
               </div>

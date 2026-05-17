@@ -28,10 +28,12 @@ const DischargeProcessing = ({
   admission,
   onAuthorizeDischarge,
   onSaveClinicalNotes,
+  getBedPrice,
 }: {
   admission: ActiveAdmission;
   onAuthorizeDischarge: (summary: string) => void;
   onSaveClinicalNotes?: (notes: string) => void;
+  getBedPrice?: (wardCode: string, bedNo: string) => number;
 }) => {
   const [summary, setSummary] = useState("");
   const [clinicalNotes, setClinicalNotes] = useState(admission.clinicalNotes || "");
@@ -55,7 +57,9 @@ const DischargeProcessing = ({
 
   const billingBreakdown = useMemo(() => {
     const days = admission.daysAdmitted;
-    const bedRate = 2500;
+    const bedRate = getBedPrice
+      ? getBedPrice(admission.wardCode, admission.bedNo)
+      : 2500;
     const bedStayCost = days * bedRate;
     const medItems = admission.medicationSchedule.reduce((sum, m) => {
       const adminCount = m.administrationLog.filter(
@@ -65,7 +69,7 @@ const DischargeProcessing = ({
     }, 0);
     const medCost = medItems * 150;
     return { days, bedRate, bedStayCost, medItems, medCost, total: bedStayCost + medCost };
-  }, [admission]);
+  }, [admission, getBedPrice]);
 
   const handleSaveClinicalNotes = () => {
     if (onSaveClinicalNotes) {
@@ -197,7 +201,7 @@ const DischargeProcessing = ({
       <div className="flex justify-end">
         <Button
           size="lg"
-          disabled={!allChecked || !summary.trim() || authorizing}
+          disabled={!allChecked || !summary.trim() || authorizing || admission.careStatus === "Discharged"}
           onClick={handleAuthorize}
           className={cn(
             "gap-2 px-8 text-sm font-bold",
@@ -208,6 +212,11 @@ const DischargeProcessing = ({
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
               Processing Discharge...
+            </>
+          ) : admission.careStatus === "Discharged" ? (
+            <>
+              <CheckCircle2 className="w-4 h-4" />
+              Already Discharged
             </>
           ) : (
             <>

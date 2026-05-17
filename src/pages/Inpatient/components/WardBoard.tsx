@@ -17,6 +17,7 @@ import {
   ArrowDown,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import type { ActiveAdmission } from "../inpatientTypes";
 import StatusBadge from "./StatusBadge";
 
@@ -159,7 +160,7 @@ const WardBoard = ({
       <div className="text-center py-24 bg-white rounded-xl border border-dashed border-slate-300">
         <Bed className="w-16 h-16 text-slate-200 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-slate-900">
-          No Active Admissions
+          No Admissions
         </h3>
         <p className="text-sm text-slate-500 mt-1">
           Click "+ New Admission" to admit a patient
@@ -209,9 +210,12 @@ const WardBoard = ({
                 key={admission.admissionId}
                 layoutId={`patient-row-${admission.admissionId}`}
                 onClick={() => onSelectPatient(admission)}
-                className="group cursor-pointer transition-colors hover:bg-sky-50/50 border-b border-slate-50 last:border-0"
+                className={cn(
+                  "group cursor-pointer transition-colors hover:bg-sky-50/50 border-b border-slate-50 last:border-0",
+                  admission.careStatus === "Discharged" && "opacity-60 hover:opacity-80"
+                )}
                 initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
+                animate={{ opacity: admission.careStatus === "Discharged" ? 0.6 : 1, y: 0 }}
                 transition={{ delay: index * 0.03, duration: 0.2 }}
               >
                 {row.getVisibleCells().map((cell) => (
@@ -228,8 +232,12 @@ const WardBoard = ({
 
       <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between text-xs text-slate-400">
         <span>
-          {table.getRowModel().rows.length} of {admissions.length} active
-          admissions
+          {admissions.filter((a) => a.careStatus !== "Discharged").length} active
+          {admissions.some((a) => a.careStatus === "Discharged") && (
+            <span className="text-slate-300 ml-1">
+              &middot; {admissions.filter((a) => a.careStatus === "Discharged").length} discharged
+            </span>
+          )}
         </span>
         <span className="text-[10px] text-slate-300">
           Click a row to open diagnostics workspace
