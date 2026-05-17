@@ -850,12 +850,22 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
 
                 {selectedTile === "Pharmacy" && (
                   <motion.div key="pharmacy" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
-                    <PharmacyLabContent catalog={MOCK_MEDICATIONS} />
+                    <PharmacyLabContent
+                      form={form} updateLineItem={updateLineItem} addRow={addRow} removeRow={removeRow}
+                      catalog={MOCK_MEDICATIONS}
+                      onAddToInvoice={handleAddToInvoice}
+                      hasItems={form.lineItems.some((i) => i.name.trim() && i.price > 0)}
+                    />
                   </motion.div>
                 )}
                 {selectedTile === "Lab & Radiology" && (
                   <motion.div key="lab" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
-                    <PharmacyLabContent catalog={MOCK_LAB_TESTS} />
+                    <PharmacyLabContent
+                      form={form} updateLineItem={updateLineItem} addRow={addRow} removeRow={removeRow}
+                      catalog={MOCK_LAB_TESTS}
+                      onAddToInvoice={handleAddToInvoice}
+                      hasItems={form.lineItems.some((i) => i.name.trim() && i.price > 0)}
+                    />
                   </motion.div>
                 )}
                 {selectedTile === "General" && (
@@ -977,8 +987,8 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                   <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider">Item Name</th>
                   <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider w-24">Type</th>
                   <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider w-28">Date</th>
-                  <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-28">Price (₦)</th>
-                  <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-16">Qty</th>
+                  <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-36">Price (₦)</th>
+                  <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-20">Qty</th>
                   <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-28">Amount (₦)</th>
                   <th className="px-3 py-2.5 text-center w-8" />
                 </tr>
@@ -1027,18 +1037,20 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                       <td className="px-3 py-2">
                         <Input
                           type="number" min={0} step={0.01}
-                          value={item.price || ""}
+                          value={item.price}
                           onChange={(e) => updateLineItem(idx, "price", Number(e.target.value) || 0)}
+                          onBlur={() => { if (isNaN(item.price) || item.price < 0) updateLineItem(idx, "price", 0); }}
                           placeholder="0.00"
-                          className="h-8 text-xs text-right border-0 bg-transparent px-1 focus:bg-white focus:border font-mono w-full min-w-[80px]"
+                          className="h-8 text-xs text-right border-0 bg-transparent px-1 focus:bg-white focus:border font-mono w-full min-w-[90px]"
                         />
                       </td>
                       <td className="px-3 py-2">
                         <Input
                           type="number" min={1}
                           value={item.qty}
-                          onChange={(e) => updateLineItem(idx, "qty", Math.max(1, parseInt(e.target.value) || 1))}
-                          className="h-8 text-xs text-right border-0 bg-transparent px-1 focus:bg-white focus:border font-mono w-full min-w-[50px]"
+                          onChange={(e) => updateLineItem(idx, "qty", parseInt(e.target.value) || 0)}
+                          onBlur={() => { if (isNaN(item.qty) || item.qty < 1) updateLineItem(idx, "qty", 1); }}
+                          className="h-8 text-xs text-right border-0 bg-transparent px-1 focus:bg-white focus:border font-mono w-full min-w-[60px]"
                         />
                       </td>
                       <td className="px-3 py-2 text-right font-mono text-sm font-semibold text-slate-900 tabular-nums whitespace-nowrap min-w-[90px]">
@@ -1086,6 +1098,185 @@ interface MiniTileProps {
   onClick: () => void;
   hasItems: boolean;
   itemCount: number;
+}
+
+function PharmacyLabContent({
+  form, updateLineItem, addRow, removeRow, catalog,
+  onAddToInvoice, hasItems,
+}: {
+  form: NewInvoiceFormState;
+  updateLineItem: (idx: number, field: keyof LineItem, value: any) => void;
+  addRow: () => void;
+  removeRow: (idx: number) => void;
+  catalog: CatalogItem[];
+  onAddToInvoice: () => void;
+  hasItems: boolean;
+}) {
+  const [searchQueries, setSearchQueries] = useState<string[]>(() => form.lineItems.map(() => ""));
+  const [showResultsList, setShowResultsList] = useState<boolean[]>(() => form.lineItems.map(() => false));
+
+  const renderCatalogSearchRow = (
+    rowIdx: number,
+    medQuery: string,
+    setMedQuery: (v: string) => void,
+    showResults: boolean,
+    setShowResults: (v: boolean) => void
+  ) => {
+    const item = form.lineItems[rowIdx];
+    if (!item) return null;
+
+    const matches = medQuery.trim().length >= 1
+      ? catalog.filter((c) => c.name.toLowerCase().includes(medQuery.toLowerCase()))
+      : [];
+
+    return (
+      <div className="relative">
+        <Input
+          value={medQuery}
+          onChange={(e) => {
+            setMedQuery(e.target.value);
+            setShowResults(true);
+            if (!e.target.value) {
+              updateLineItem(rowIdx, "name", "");
+              updateLineItem(rowIdx, "price", 0);
+            }
+          }}
+          onFocus={() => setShowResults(true)}
+          placeholder="Search and select..."
+          className="h-8 text-xs bg-white"
+        />
+        {showResults && medQuery.trim().length >= 1 && matches.length > 0 && (
+          <div className="absolute z-50 top-full left-0 right-0 mt-1 border border-slate-200 rounded-lg bg-white shadow-lg max-h-40 overflow-y-auto">
+            {matches.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                className="w-full px-3 py-2 text-left text-xs hover:bg-sky-50 flex items-center justify-between transition-colors"
+                onClick={() => {
+                  setMedQuery(c.name);
+                  const items = [...form.lineItems];
+                  items[rowIdx] = { ...items[rowIdx], name: c.name, price: c.price, amount: computeLineItemAmount(c.price, items[rowIdx]?.qty || 1) };
+                  updateLineItem(rowIdx, "name", c.name);
+                  updateLineItem(rowIdx, "price", c.price);
+                  updateLineItem(rowIdx, "amount", computeLineItemAmount(c.price, form.lineItems[rowIdx]?.qty || 1));
+                  setShowResults(false);
+                }}
+              >
+                <span className="font-medium text-slate-800">{c.name}</span>
+                <span className="font-mono text-slate-500">₦{c.price.toFixed(2)}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderItemTable = () => (
+    <div className="space-y-4">
+      <div className="border border-slate-200 rounded-xl min-w-0">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+              <tr>
+                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider w-14">Code</th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider">Item / Search</th>
+                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-36">Price (₦)</th>
+                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-20">Qty</th>
+                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-28">Amount (₦)</th>
+                <th className="px-3 py-2.5 text-center w-8" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {form.lineItems.map((item, idx) => (
+                <tr key={`${item.code}-${idx}`} className="hover:bg-slate-50/50">
+                  <td className="px-3 py-2">
+                    <span className="font-mono text-[11px] text-slate-400">{item.code}</span>
+                  </td>
+                  <td className="px-3 py-2 min-w-[200px]">
+                    {renderCatalogSearchRow(idx, searchQueries[idx] || "", (v) => {
+                      const q = [...searchQueries];
+                      q[idx] = v;
+                      setSearchQueries(q);
+                    }, showResultsList[idx] || false, (v) => {
+                      const s = [...showResultsList];
+                      s[idx] = v;
+                      setShowResultsList(s);
+                    })}
+                  </td>
+                  <td className="px-3 py-2">
+                    <Input
+                      type="number" min={0} step={0.01}
+                      value={item.price}
+                      onChange={(e) => updateLineItem(idx, "price", Number(e.target.value) || 0)}
+                      onBlur={() => {
+                        if (isNaN(item.price) || item.price < 0) updateLineItem(idx, "price", 0);
+                      }}
+                      placeholder="0.00"
+                      className="h-8 text-xs text-right bg-transparent border-0 px-1 focus:bg-white focus:border font-mono"
+                    />
+                  </td>
+                  <td className="px-3 py-2">
+                    <Input
+                      type="number" min={1}
+                      value={item.qty}
+                      onChange={(e) => updateLineItem(idx, "qty", parseInt(e.target.value) || 0)}
+                      onBlur={() => {
+                        if (isNaN(item.qty) || item.qty < 1) updateLineItem(idx, "qty", 1);
+                      }}
+                      className="h-8 text-xs text-right bg-transparent border-0 px-1 focus:bg-white focus:border font-mono"
+                    />
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono text-sm font-semibold text-slate-900 tabular-nums whitespace-nowrap">
+                    ₦{item.amount.toFixed(2)}
+                  </td>
+                  <td className="px-3 py-2 text-center">
+                    {form.lineItems.length > 1 && (
+                      <button onClick={() => removeRow(idx)} className="text-slate-300 hover:text-red-400 transition-colors p-1">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <Button variant="ghost" size="sm" className="h-8 text-xs gap-1 text-sky-600 hover:text-sky-700 hover:bg-sky-50" onClick={addRow}>
+        <Plus className="w-3 h-3" />
+        Add Item Row
+      </Button>
+    </div>
+  );
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.2 }}
+      className="space-y-4"
+    >
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-slate-700">
+          {catalog === MOCK_MEDICATIONS ? "Pharmacy Items" : "Lab & Radiology Items"}
+        </h3>
+      </div>
+      <div className="bg-white rounded-xl border border-slate-200 p-4 overflow-visible">
+        {renderItemTable()}
+      </div>
+      <Button
+        size="sm"
+        className="h-8 text-xs gap-1.5 w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+        onClick={onAddToInvoice}
+        disabled={!hasItems}
+      >
+        <ShoppingCart className="w-3 h-3" />
+        Add to Invoice
+      </Button>
+    </motion.div>
+  );
 }
 
 const miniColorMap: Record<string, { bg: string; border: string; icon: string }> = {

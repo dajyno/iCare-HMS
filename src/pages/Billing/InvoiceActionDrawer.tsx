@@ -119,7 +119,7 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
                   <div className="pt-1">
                     <Badge
                       variant="outline"
-                      className={`text-[10px] font-semibold ${SOURCE_STYLES[invoice.sourceType] ?? "bg-slate-50 text-slate-600"}`}
+                      className={`text-[10px] font-semibold whitespace-normal text-left max-w-[200px] h-auto leading-tight py-1 ${SOURCE_STYLES[invoice.sourceType] ?? "bg-slate-50 text-slate-600"}`}
                     >
                       {invoice.sourceType}
                     </Badge>
