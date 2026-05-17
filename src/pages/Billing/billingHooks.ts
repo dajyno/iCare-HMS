@@ -24,18 +24,17 @@ export function useInvoices() {
         const raw = localStorage.getItem(localKey);
         const localInvoices: InvoiceSummary[] = raw ? JSON.parse(raw) : [];
 
-        const mergedLocal = [...localInvoices];
         if (!hasSupabaseData && supabaseInvoices.length === 0) {
           const combined = [...MOCK_INVOICES];
-          for (const loc of mergedLocal) {
+          for (const loc of localInvoices) {
             const i = combined.findIndex((m) => m.id === loc.id);
             if (i !== -1) combined[i] = loc;
             else combined.push(loc);
           }
-          return combined;
+          return combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         }
 
-        return [...supabaseInvoices, ...mergedLocal];
+        return [...supabaseInvoices, ...localInvoices].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       } catch {
         const localKey = "icare_billing_local";
         const raw = localStorage.getItem(localKey);
@@ -46,7 +45,7 @@ export function useInvoices() {
           if (i !== -1) combined[i] = loc;
           else combined.push(loc);
         }
-        return combined;
+        return combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       }
     },
     staleTime: 1000 * 30,

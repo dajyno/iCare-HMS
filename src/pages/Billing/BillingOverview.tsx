@@ -28,6 +28,7 @@ type FilterTab = (typeof SOURCE_TABS)[number];
 const BillingOverview = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterTab>("All");
+  const [showPaidOnly, setShowPaidOnly] = useState(false);
   const [showNewInvoice, setShowNewInvoice] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceSummary | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -41,7 +42,9 @@ const BillingOverview = () => {
     if (!Array.isArray(invoices)) return [];
     let list = invoices;
 
-    if (activeFilter !== "All") {
+    if (showPaidOnly) {
+      list = list.filter((inv) => inv.status === "Paid");
+    } else if (activeFilter !== "All") {
       list = list.filter(
         (inv) => inv.sourceType?.toLowerCase() === activeFilter.toLowerCase()
       );
@@ -60,7 +63,7 @@ const BillingOverview = () => {
     }
 
     return list;
-  }, [invoices, activeFilter, searchTerm]);
+  }, [invoices, activeFilter, showPaidOnly, searchTerm]);
 
   const stats = useMemo(() => {
     const totalOutstanding = Array.isArray(invoices)
@@ -229,7 +232,7 @@ const BillingOverview = () => {
         {SOURCE_TABS.map((tab) => (
           <button
             key={tab}
-            onClick={() => { setActiveFilter(tab); clearSelection(); }}
+            onClick={() => { setActiveFilter(tab); setShowPaidOnly(false); clearSelection(); }}
             className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               activeFilter === tab
                 ? "bg-blue-50 text-blue-700 border border-blue-200 shadow-sm"
@@ -239,6 +242,18 @@ const BillingOverview = () => {
             {tab === "All" ? "All Sources" : tab}
           </button>
         ))}
+        <div className="w-px h-6 bg-slate-200 mx-1" />
+        <button
+          onClick={() => { setShowPaidOnly(!showPaidOnly); setActiveFilter("All"); clearSelection(); }}
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            showPaidOnly
+              ? "bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-300"
+              : "text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100"
+          }`}
+        >
+          <Check className="w-3 h-3 inline mr-1 -mt-0.5" />
+          Paid Invoices
+        </button>
       </div>
 
       {/* Invoice Table */}
