@@ -100,13 +100,17 @@ export function useDoctors() {
   return useQuery({
     queryKey: ["doctors"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("users")
-        .select("id, full_name")
-        .eq("role", "Doctor")
-        .eq("status", "active");
-      if (error) throw error;
-      return (toCamel(data) || []) as { id: string; fullName: string }[];
+      try {
+        const { data, error } = await (supabase as any)
+          .from("users")
+          .select("id, full_name")
+          .eq("role", "Doctor")
+          .eq("status", "active");
+        if (error) return [];
+        return (toCamel(data) || []) as { id: string; fullName: string }[];
+      } catch {
+        return [];
+      }
     },
   });
 }

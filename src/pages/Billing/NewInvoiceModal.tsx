@@ -72,6 +72,11 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
   const [addedFeedback, setAddedFeedback] = useState("");
   const searchTimeout = useRef<any>(null);
 
+  const [folderFeeText, setFolderFeeText] = useState("");
+  const [consultFeeText, setConsultFeeText] = useState("");
+  const [admissionDaysText, setAdmissionDaysText] = useState("");
+  const [bedRateText, setBedRateText] = useState("");
+
   const { data: patientResults, isLoading: searchingPatients } = usePatients(patientQuery);
   const { data: doctors } = useDoctors();
 
@@ -82,6 +87,10 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
     setSelectedTile(null);
     setAccumulatedItems([]);
     setAddedFeedback("");
+    setFolderFeeText("");
+    setConsultFeeText("");
+    setAdmissionDaysText("");
+    setBedRateText("");
   }, []);
 
   const handleClose = useCallback(() => {
@@ -628,9 +637,11 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                         <Label className={LABEL_CLS}>Fee Amount (₦)</Label>
                         <Input
                           type="text" inputMode="decimal"
-                          value={form.metaData.folderFee === 0 ? "" : String(form.metaData.folderFee || "")}
+                          autoComplete="off"
+                          value={folderFeeText || (form.metaData.folderFee === 0 ? "" : String(form.metaData.folderFee))}
                           onChange={(e) => {
                             const v = e.target.value;
+                            setFolderFeeText(v);
                             if (v === "" || /^\d*\.?\d*$/.test(v)) {
                               const val = v === "" ? 0 : parseFloat(v);
                               setForm((prev) => ({
@@ -685,9 +696,10 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                         <Input
                           type="text" inputMode="decimal"
                           autoComplete="off"
-                          value={form.metaData.consultationFee === 0 ? "" : String(form.metaData.consultationFee || "")}
+                          value={consultFeeText || (form.metaData.consultationFee === 0 ? "" : String(form.metaData.consultationFee))}
                           onChange={(e) => {
                             const v = e.target.value;
+                            setConsultFeeText(v);
                             if (v === "" || /^\d*\.?\d*$/.test(v)) {
                               setForm((prev) => ({
                                 ...prev,
@@ -726,9 +738,10 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                           <Input
                             type="text" inputMode="numeric"
                             autoComplete="off"
-                            value={String(form.metaData.admissionDays)}
+                            value={admissionDaysText || String(form.metaData.admissionDays)}
                             onChange={(e) => {
                               const v = e.target.value;
+                              setAdmissionDaysText(v);
                               if (v === "" || /^\d+$/.test(v)) {
                                 setForm((prev) => ({
                                   ...prev,
@@ -744,9 +757,10 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                           <Input
                             type="text" inputMode="decimal"
                             autoComplete="off"
-                            value={form.metaData.dailyBedRate === 0 ? "" : String(form.metaData.dailyBedRate || "")}
+                            value={bedRateText || (form.metaData.dailyBedRate === 0 ? "" : String(form.metaData.dailyBedRate))}
                             onChange={(e) => {
                               const v = e.target.value;
+                              setBedRateText(v);
                               if (v === "" || /^\d*\.?\d*$/.test(v)) {
                                 setForm((prev) => ({
                                   ...prev,
@@ -800,7 +814,11 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                 )}
                 {selectedTile === "General" && (
                   <motion.div key="general" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
-                    <GeneralContent />
+                    <GeneralContent
+                      form={form} updateLineItem={updateLineItem} addRow={addRow} removeRow={removeRow}
+                      onAddToInvoice={handleAddToInvoice}
+                      hasItems={form.lineItems.some((i) => i.name.trim() && i.price > 0)}
+                    />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -879,134 +897,6 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
       >
         {children}
       </motion.div>
-    );
-  }
-
-  function GeneralContent() {
-    return (
-      <TileContent key="general">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-700">General Billings Ledger</h3>
-          </div>
-
-          <div className="overflow-x-auto border border-slate-200 rounded-xl">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
-                <tr>
-                  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider w-14">Code</th>
-                  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider">Item Name</th>
-                  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider w-24">Type</th>
-                  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider w-28">Date</th>
-                  <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-36">Price (₦)</th>
-                  <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-20">Qty</th>
-                  <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-28">Amount (₦)</th>
-                  <th className="px-3 py-2.5 text-center w-8" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                <AnimatePresence>
-                  {form.lineItems.map((item, idx) => (
-                    <motion.tr
-                      key={`${item.code}-${idx}`}
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="hover:bg-slate-50/50"
-                    >
-                      <td className="px-3 py-2">
-                        <span className="font-mono text-[11px] text-slate-400">{item.code}</span>
-                      </td>
-                      <td className="px-3 py-2">
-                        <Input
-                          value={item.name}
-                          onChange={(e) => updateLineItem(idx, "name", e.target.value)}
-                          placeholder="Item name"
-                          className="h-8 text-xs border-0 bg-transparent px-1 focus:bg-white focus:border"
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <select
-                          value={item.type}
-                          onChange={(e) => updateLineItem(idx, "type", e.target.value)}
-                          className="h-8 text-xs rounded-lg border border-slate-200 bg-white px-2 w-full"
-                        >
-                          <option value="Service">Service</option>
-                          <option value="Product">Product</option>
-                          <option value="Other">Other</option>
-                        </select>
-                      </td>
-                      <td className="px-3 py-2">
-                        <Input
-                          type="date"
-                          value={item.date}
-                          onChange={(e) => updateLineItem(idx, "date", e.target.value)}
-                          className="h-8 text-xs border-0 bg-transparent px-1 focus:bg-white focus:border"
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <Input
-                          type="text" inputMode="decimal"
-                          value={item.price === 0 ? "" : String(item.price)}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            if (v === "" || /^\d*\.?\d*$/.test(v)) {
-                              updateLineItem(idx, "price", v === "" ? 0 : parseFloat(v));
-                            }
-                          }}
-                          onBlur={() => { if (isNaN(item.price) || item.price < 0) updateLineItem(idx, "price", 0); }}
-                          placeholder="0.00"
-                          className="h-8 text-xs text-right border-0 bg-transparent px-1 focus:bg-white focus:border font-mono w-full min-w-[90px]"
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <Input
-                          type="text" inputMode="numeric"
-                          value={item.qty === 0 ? "" : String(item.qty)}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            if (v === "" || /^\d+$/.test(v)) {
-                              updateLineItem(idx, "qty", v === "" ? 0 : parseInt(v, 10));
-                            }
-                          }}
-                          onBlur={() => { if (isNaN(item.qty) || item.qty < 1) updateLineItem(idx, "qty", 1); }}
-                          className="h-8 text-xs text-right border-0 bg-transparent px-1 focus:bg-white focus:border font-mono w-full min-w-[60px]"
-                        />
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono text-sm font-semibold text-slate-900 tabular-nums whitespace-nowrap min-w-[90px]">
-                        ₦{item.amount.toFixed(2)}
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        {form.lineItems.length > 1 && (
-                          <button
-                            onClick={() => removeRow(idx)}
-                            className="text-slate-300 hover:text-red-400 transition-colors p-1"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </td>
-                    </motion.tr>
-                  ))}
-                </AnimatePresence>
-              </tbody>
-            </table>
-          </div>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 text-xs gap-1 text-sky-600 hover:text-sky-700 hover:bg-sky-50"
-            onClick={addRow}
-          >
-            <Plus className="w-3 h-3" />
-            Add Item Row
-          </Button>
-
-          {renderAddToInvoiceButton()}
-        </div>
-      </TileContent>
     );
   }
 };
@@ -1212,6 +1102,166 @@ function PharmacyLabContent({
       <div className="bg-white rounded-xl border border-slate-200 p-4" style={{ overflow: "visible" }}>
         {renderItemTable()}
       </div>
+      <Button
+        size="sm"
+        className="h-8 text-xs gap-1.5 w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+        onClick={onAddToInvoice}
+        disabled={!hasItems}
+      >
+        <ShoppingCart className="w-3 h-3" />
+        Add to Invoice
+      </Button>
+    </motion.div>
+  );
+}
+
+function GeneralContent({
+  form, updateLineItem, addRow, removeRow, onAddToInvoice, hasItems,
+}: {
+  form: NewInvoiceFormState;
+  updateLineItem: (idx: number, field: keyof LineItem, value: any) => void;
+  addRow: () => void;
+  removeRow: (idx: number) => void;
+  onAddToInvoice: () => void;
+  hasItems: boolean;
+}) {
+  const [priceTexts, setPriceTexts] = useState<string[]>(() => form.lineItems.map(() => ""));
+  const [qtyTexts, setQtyTexts] = useState<string[]>(() => form.lineItems.map(() => ""));
+
+  const syncPriceText = (idx: number, val: string) => {
+    setPriceTexts((prev) => { const n = [...prev]; n[idx] = val; return n; });
+  };
+  const syncQtyText = (idx: number, val: string) => {
+    setQtyTexts((prev) => { const n = [...prev]; n[idx] = val; return n; });
+  };
+
+  return (
+    <motion.div
+      key="general"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.2 }}
+      className="space-y-4"
+    >
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-slate-700">General Billings Ledger</h3>
+      </div>
+
+      <div className="overflow-x-auto border border-slate-200 rounded-xl">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+            <tr>
+              <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider w-14">Code</th>
+              <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider">Item Name</th>
+              <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider w-24">Type</th>
+              <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider w-28">Date</th>
+              <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-36">Price (₦)</th>
+              <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-20">Qty</th>
+              <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-28">Amount (₦)</th>
+              <th className="px-3 py-2.5 text-center w-8" />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            <AnimatePresence>
+              {form.lineItems.map((item, idx) => (
+                <motion.tr
+                  key={`${item.code}-${idx}`}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="hover:bg-slate-50/50"
+                >
+                  <td className="px-3 py-2">
+                    <span className="font-mono text-[11px] text-slate-400">{item.code}</span>
+                  </td>
+                  <td className="px-3 py-2">
+                    <Input
+                      value={item.name}
+                      onChange={(e) => updateLineItem(idx, "name", e.target.value)}
+                      placeholder="Item name"
+                      className="h-8 text-xs border-0 bg-transparent px-1 focus:bg-white focus:border"
+                    />
+                  </td>
+                  <td className="px-3 py-2">
+                    <select
+                      value={item.type}
+                      onChange={(e) => updateLineItem(idx, "type", e.target.value)}
+                      className="h-8 text-xs rounded-lg border border-slate-200 bg-white px-2 w-full"
+                    >
+                      <option value="Service">Service</option>
+                      <option value="Product">Product</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </td>
+                  <td className="px-3 py-2">
+                    <Input
+                      type="date"
+                      value={item.date}
+                      onChange={(e) => updateLineItem(idx, "date", e.target.value)}
+                      className="h-8 text-xs border-0 bg-transparent px-1 focus:bg-white focus:border"
+                    />
+                  </td>
+                  <td className="px-3 py-2">
+                    <Input
+                      type="text" inputMode="decimal"
+                      value={item.price === 0 && priceTexts[idx] === "" ? "" : (priceTexts[idx] || String(item.price || ""))}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === "" || /^\d*\.?\d*$/.test(v)) {
+                          syncPriceText(idx, v);
+                          updateLineItem(idx, "price", v === "" ? 0 : parseFloat(v));
+                        }
+                      }}
+                      placeholder="0.00"
+                      className="h-8 text-xs text-right border-0 bg-transparent px-1 focus:bg-white focus:border font-mono w-full min-w-[90px]"
+                    />
+                  </td>
+                  <td className="px-3 py-2">
+                    <Input
+                      type="text" inputMode="numeric"
+                      value={qtyTexts[idx] || String(item.qty)}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === "" || /^\d+$/.test(v)) {
+                          syncQtyText(idx, v);
+                          updateLineItem(idx, "qty", v === "" ? 0 : parseInt(v, 10));
+                        }
+                      }}
+                      className="h-8 text-xs text-right border-0 bg-transparent px-1 focus:bg-white focus:border font-mono w-full min-w-[60px]"
+                    />
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono text-sm font-semibold text-slate-900 tabular-nums whitespace-nowrap min-w-[90px]">
+                    ₦{item.amount.toFixed(2)}
+                  </td>
+                  <td className="px-3 py-2 text-center">
+                    {form.lineItems.length > 1 && (
+                      <button
+                        onClick={() => removeRow(idx)}
+                        className="text-slate-300 hover:text-red-400 transition-colors p-1"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </td>
+                </motion.tr>
+              ))}
+            </AnimatePresence>
+          </tbody>
+        </table>
+      </div>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-8 text-xs gap-1 text-sky-600 hover:text-sky-700 hover:bg-sky-50"
+        onClick={addRow}
+      >
+        <Plus className="w-3 h-3" />
+        Add Item Row
+      </Button>
+
       <Button
         size="sm"
         className="h-8 text-xs gap-1.5 w-full bg-indigo-600 hover:bg-indigo-700 text-white"
