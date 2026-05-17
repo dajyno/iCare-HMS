@@ -32,6 +32,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { adminSupabase } from "@/src/lib/adminSupabase";
 import { useAuth } from "@/src/context/AuthContext";
 import { saveCustomAccount, removeCustomAccount } from "@/src/lib/accountsStore";
 import { useStaff } from "./StaffContext";
@@ -61,6 +62,7 @@ export default function StaffProfile() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [settingsFeedback, setSettingsFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   const staff = records.find((r) => r.staff_id === id);
 
@@ -156,17 +158,47 @@ export default function StaffProfile() {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const handleSaveSettings = () => {
+  const handleSaveSettings = async () => {
     updateRecord(staff.staff_id, {
       canLogin,
       password: canLogin ? password : "",
       availability_status: availabilityStatus as any,
     });
+    setSettingsFeedback(null);
+
     if (canLogin && password.length >= 6 && staff.email) {
       saveCustomAccount(staff.email, { name: staff.name, role: staffRole });
+
+      try {
+        const { error } = await adminSupabase.auth.admin.createUser({
+          email: staff.email,
+          password,
+          email_confirm: true,
+          user_metadata: { full_name: staff.name, role: staffRole },
+        });
+        if (error) {
+          if (error.message?.includes("already registered")) {
+            setSettingsFeedback({
+              type: "success",
+              message: "Login access granted (account already exists)",
+            });
+          } else {
+            setSettingsFeedback({ type: "error", message: error.message });
+          }
+        } else {
+          setSettingsFeedback({ type: "success", message: "Login access granted" });
+        }
+      } catch (err: any) {
+        setSettingsFeedback({
+          type: "error",
+          message: err?.message || "Failed to create account",
+        });
+      }
     } else if (!canLogin && staff.email) {
       removeCustomAccount(staff.email);
+      setSettingsFeedback({ type: "success", message: "Login access revoked" });
     }
+
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -538,6 +570,24 @@ export default function StaffProfile() {
                     )}
                   </Button>
                 </div>
+
+                {settingsFeedback && (
+                  <div
+                    className={cn(
+                      "flex items-center gap-2 text-sm px-3 py-2 rounded-lg",
+                      settingsFeedback.type === "success"
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        : "bg-red-50 text-red-700 border border-red-200"
+                    )}
+                  >
+                    {settingsFeedback.type === "success" ? (
+                      <Check className="w-4 h-4 shrink-0" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                    )}
+                    {settingsFeedback.message}
+                  </div>
+                )}
               </div>
             </TabsContent>
           </Tabs>
