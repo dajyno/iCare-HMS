@@ -624,6 +624,12 @@ create policy "Users can read all invoice_items"
   to authenticated
   using (true);
 
+drop policy if exists "Authenticated users can update invoices" on public.invoices;
+create policy "Authenticated users can update invoices"
+  on public.invoices for update
+  to authenticated
+  using (true);
+
 create policy "Authenticated users can update lab requests"
   on public.lab_requests for update
   to authenticated
