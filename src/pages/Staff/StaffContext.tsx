@@ -1,6 +1,18 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import type { StaffRecord, StaffPermissions } from "./types";
 import { INITIAL_STAFF_RECORDS } from "./data";
+
+const STORAGE_KEY = "icare-staff-records";
+
+function loadPersistedRecords(): StaffRecord[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw) as StaffRecord[];
+  } catch {
+    /* corrupted data – ignore */
+  }
+  return INITIAL_STAFF_RECORDS;
+}
 
 interface StaffContextType {
   records: StaffRecord[];
@@ -16,7 +28,11 @@ interface StaffContextType {
 const StaffContext = createContext<StaffContextType | null>(null);
 
 export function StaffProvider({ children }: { children: ReactNode }) {
-  const [records, setRecords] = useState<StaffRecord[]>(INITIAL_STAFF_RECORDS);
+  const [records, setRecords] = useState<StaffRecord[]>(loadPersistedRecords);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  }, [records]);
 
   const addRecord = (record: StaffRecord) => {
     setRecords((prev) => [...prev, record]);

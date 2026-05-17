@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/src/context/AuthContext";
+import { saveCustomAccount, removeCustomAccount } from "@/src/lib/accountsStore";
 import { useStaff } from "./StaffContext";
 import PermissionsMatrix from "./PermissionsMatrix";
 import type { StaffPosition } from "./types";
@@ -106,6 +107,14 @@ export default function StaffProfile() {
     );
   }
 
+  const isOwnProfile = user?.email === staff.email;
+  const staffRole: string =
+    staff.position === "Medical Doctors" ? "Doctor" :
+    staff.position === "Nursing" ? "Nurse" :
+    staff.position === "Pharmacy" ? "Pharmacist" :
+    staff.position === "Laboratory" ? "LabTechnician" :
+    "HospitalAdmin";
+
   const handlePictureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -137,7 +146,7 @@ export default function StaffProfile() {
       profilePicture,
       is_clinician: position === "Medical Doctors",
     });
-    if (profilePicture) {
+    if (profilePicture && isOwnProfile) {
       localStorage.setItem("staff_profile_picture", profilePicture);
       window.dispatchEvent(
         new CustomEvent("profile-picture-updated", { detail: profilePicture })
@@ -153,6 +162,11 @@ export default function StaffProfile() {
       password: canLogin ? password : "",
       availability_status: availabilityStatus as any,
     });
+    if (canLogin && password.length >= 6 && staff.email) {
+      saveCustomAccount(staff.email, { name: staff.name, role: staffRole });
+    } else if (!canLogin && staff.email) {
+      removeCustomAccount(staff.email);
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };

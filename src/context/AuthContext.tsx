@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase, toCamel } from "../lib/supabase";
+import { getCustomAccounts } from "../lib/accountsStore";
 import type { User } from "../lib/types";
 
 interface AuthContextType {
@@ -74,7 +75,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error?.message?.includes("Invalid login credentials")) {
-      const account = DEFAULT_ACCOUNTS[email.toLowerCase()];
+      const allAccounts = { ...DEFAULT_ACCOUNTS, ...getCustomAccounts() };
+      const account = allAccounts[email.toLowerCase()];
       if (!account) {
         throw new Error("Account not found. Please contact your system administrator.");
       }
