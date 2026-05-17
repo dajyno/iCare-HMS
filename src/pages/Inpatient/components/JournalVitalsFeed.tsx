@@ -97,6 +97,7 @@ const JournalVitalsFeed = ({
   const [temp, setTemp] = useState("");
   const [spo2, setSpO2] = useState("");
   const [observations, setObservations] = useState("");
+  const [submitLabel, setSubmitLabel] = useState("Submit Record");
 
   const journal = useMemo(() => {
     const entries: any[] = [
@@ -197,6 +198,8 @@ const JournalVitalsFeed = ({
     setTemp("");
     setSpO2("");
     setObservations("");
+    setSubmitLabel("Saved!");
+    setTimeout(() => setSubmitLabel("Submit Record"), 2000);
   };
 
   return (
@@ -264,7 +267,7 @@ const JournalVitalsFeed = ({
             <textarea
               value={observations}
               onChange={(e) => setObservations(e.target.value)}
-              placeholder="Enter clinical observations, nursing notes, or updates on patient's condition"
+              placeholder="Enter observation, notes or updates"
               rows={2}
               className="w-full mt-1 px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
             />
@@ -298,7 +301,7 @@ const JournalVitalsFeed = ({
             className="h-9 gap-1.5 text-xs"
           >
             <Activity className="w-3.5 h-3.5" />
-            Submit Record
+            {submitLabel}
           </Button>
         </div>
       </div>

@@ -43,6 +43,24 @@ interface NewInvoiceModalProps {
 
 const LABEL_CLS = "text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1";
 
+function sourceCategory(code: string): string {
+  if (code.startsWith("ADM")) return "Admin";
+  if (code.startsWith("CONS")) return "Consultation";
+  if (code.startsWith("INP")) return "Inpatient";
+  if (code.startsWith("PHM")) return "Pharmacy";
+  if (code.startsWith("LAB")) return "Lab & Radiology";
+  return "General";
+}
+
+const CATEGORY_STYLES: Record<string, string> = {
+  Admin: "bg-amber-100 text-amber-700",
+  Consultation: "bg-teal-100 text-teal-700",
+  Inpatient: "bg-rose-100 text-rose-700",
+  Pharmacy: "bg-sky-100 text-sky-700",
+  "Lab & Radiology": "bg-purple-100 text-purple-700",
+  General: "bg-indigo-100 text-indigo-700",
+};
+
 const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
   const createInvoice = useCreateInvoice();
 
@@ -247,11 +265,10 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
 
     const invNumber = `INV-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
 
-    const sourceTypes = [...new Set(accumulatedItems.map((i) => i.code.slice(0, 2)))];
-    const sourceLabel =
-      sourceTypes.length === 1
-        ? (form.sourceType || "General")
-        : "General";
+    const sourceLabels = [...new Set(accumulatedItems.map((i) => sourceCategory(i.code)))];
+    const sourceLabel = sourceLabels.length === 1
+      ? sourceLabels[0]
+      : sourceLabels.join(", ");
 
     createInvoice.mutate(
       {
@@ -289,21 +306,27 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
         </div>
         <Separator className="bg-indigo-200/50" />
         <div className="max-h-32 overflow-y-auto space-y-1">
-          {accumulatedItems.map((item, idx) => (
-            <div key={idx} className="flex items-center justify-between text-xs group">
-              <span className="text-slate-600 truncate flex-1">
-                {item.name}
-                {item.qty > 1 && <span className="text-slate-400 ml-1">×{item.qty}</span>}
-              </span>
-              <span className="font-mono text-slate-800 ml-2">₦{item.amount.toFixed(2)}</span>
-              <button
-                onClick={() => removeAccumulatedItem(idx)}
-                className="ml-2 text-slate-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          ))}
+          {accumulatedItems.map((item, idx) => {
+            const cat = sourceCategory(item.code);
+            return (
+              <div key={idx} className="flex items-center justify-between text-xs group">
+                <span className="text-slate-600 truncate flex-1 flex items-center gap-1.5">
+                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${CATEGORY_STYLES[cat]}`}>
+                    {cat}
+                  </span>
+                  {item.name}
+                  {item.qty > 1 && <span className="text-slate-400 ml-1">×{item.qty}</span>}
+                </span>
+                <span className="font-mono text-slate-800 ml-2">₦{item.amount.toFixed(2)}</span>
+                <button
+                  onClick={() => removeAccumulatedItem(idx)}
+                  className="ml-2 text-slate-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -630,6 +653,7 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                     active={selectedTile === "Admin"}
                     onClick={() => handleTileSelect("Admin")}
                     hasItems={accumulatedItems.some((i) => i.code.startsWith("ADM"))}
+                    itemCount={accumulatedItems.filter((i) => i.code.startsWith("ADM")).length}
                   />
                   <MiniTile
                     icon={<Stethoscope className="w-4 h-4" />}
@@ -638,6 +662,7 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                     active={selectedTile === "Consultation"}
                     onClick={() => handleTileSelect("Consultation")}
                     hasItems={accumulatedItems.some((i) => i.code.startsWith("CONS"))}
+                    itemCount={accumulatedItems.filter((i) => i.code.startsWith("CONS")).length}
                   />
                   <MiniTile
                     icon={<Bed className="w-4 h-4" />}
@@ -646,6 +671,7 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                     active={selectedTile === "Inpatient"}
                     onClick={() => handleTileSelect("Inpatient")}
                     hasItems={accumulatedItems.some((i) => i.code.startsWith("INP"))}
+                    itemCount={accumulatedItems.filter((i) => i.code.startsWith("INP")).length}
                   />
                   <MiniTile
                     icon={<Pill className="w-4 h-4" />}
@@ -654,6 +680,7 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                     active={selectedTile === "Pharmacy"}
                     onClick={() => handleTileSelect("Pharmacy")}
                     hasItems={accumulatedItems.some((i) => i.code.startsWith("PHM"))}
+                    itemCount={accumulatedItems.filter((i) => i.code.startsWith("PHM")).length}
                   />
                   <MiniTile
                     icon={<FlaskConical className="w-4 h-4" />}
@@ -662,6 +689,7 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                     active={selectedTile === "Lab & Radiology"}
                     onClick={() => handleTileSelect("Lab & Radiology")}
                     hasItems={accumulatedItems.some((i) => i.code.startsWith("LAB"))}
+                    itemCount={accumulatedItems.filter((i) => i.code.startsWith("LAB")).length}
                   />
                   <MiniTile
                     icon={<Beaker className="w-4 h-4" />}
@@ -670,6 +698,7 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                     active={selectedTile === "General"}
                     onClick={() => handleTileSelect("General")}
                     hasItems={accumulatedItems.some((i) => !i.code.startsWith("ADM") && !i.code.startsWith("CONS") && !i.code.startsWith("INP") && !i.code.startsWith("PHM") && !i.code.startsWith("LAB"))}
+                    itemCount={accumulatedItems.filter((i) => !i.code.startsWith("ADM") && !i.code.startsWith("CONS") && !i.code.startsWith("INP") && !i.code.startsWith("PHM") && !i.code.startsWith("LAB")).length}
                   />
                 </div>
               </div>
@@ -1056,6 +1085,7 @@ interface MiniTileProps {
   active: boolean;
   onClick: () => void;
   hasItems: boolean;
+  itemCount: number;
 }
 
 const miniColorMap: Record<string, { bg: string; border: string; icon: string }> = {
@@ -1067,7 +1097,7 @@ const miniColorMap: Record<string, { bg: string; border: string; icon: string }>
   purple: { bg: "bg-purple-50 hover:bg-purple-100", border: "border-purple-200", icon: "text-purple-600" },
 };
 
-const MiniTile = ({ icon, label, color, active, onClick, hasItems }: MiniTileProps) => {
+const MiniTile = ({ icon, label, color, active, onClick, hasItems, itemCount }: MiniTileProps) => {
   const c = miniColorMap[color] || miniColorMap.indigo;
   return (
     <button
@@ -1080,7 +1110,9 @@ const MiniTile = ({ icon, label, color, active, onClick, hasItems }: MiniTilePro
       <div className={`${c.icon} relative`}>
         {icon}
         {hasItems && (
-          <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full" />
+          <span className="absolute -top-2 -right-2 flex items-center justify-center w-4 h-4 text-[8px] font-bold text-white bg-emerald-500 rounded-full">
+            {itemCount}
+          </span>
         )}
       </div>
       <span className={`text-[10px] font-bold leading-tight ${active ? "text-slate-800" : "text-slate-600"}`}>

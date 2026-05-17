@@ -288,9 +288,6 @@ export function useInpatientState() {
         timestamp: new Date().toISOString(),
       };
       const hasVitals = vitals.bp && vitals.bp !== "—" && vitals.pulse > 0;
-      const noteEntry = hasVitals
-        ? `[${new Date().toLocaleString()}] Vitals: BP ${vitals.bp}, Pulse ${vitals.pulse}, Temp ${vitals.temp}°C, SpO2 ${vitals.spo2}%${vitals.observations ? ` — ${vitals.observations}` : ""}`
-        : `[${new Date().toLocaleString()}] Observation: ${vitals.observations}`;
       setState((prev) => ({
         ...prev,
         activeAdmissions: prev.activeAdmissions.map((a) =>
@@ -298,9 +295,6 @@ export function useInpatientState() {
             ? {
                 ...a,
                 vitalsHistory: [...a.vitalsHistory, record],
-                clinicalNotes: a.clinicalNotes
-                  ? `${a.clinicalNotes}\n${noteEntry}`
-                  : noteEntry,
               }
             : a
         ),

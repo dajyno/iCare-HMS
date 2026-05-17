@@ -61,15 +61,13 @@ const DischargeProcessing = ({
       ? getBedPrice(admission.wardCode, admission.bedNo)
       : 2500;
     const bedStayCost = days * bedRate;
-    const medDetails = admission.medicationSchedule
-      .map((m) => {
-        const adminCount = m.administrationLog.filter(
-          (l) => l.status === "Administered"
-        ).length;
-        const cost = adminCount * (m.unitPrice || 150);
-        return { name: m.name, adminCount, unitPrice: m.unitPrice, cost };
-      })
-      .filter((d) => d.adminCount > 0);
+    const medDetails = admission.medicationSchedule.map((m) => {
+      const adminCount = m.administrationLog.filter(
+        (l) => l.status === "Administered"
+      ).length;
+      const cost = adminCount * (m.unitPrice || 150);
+      return { name: m.name, adminCount, unitPrice: m.unitPrice || 150, cost };
+    });
     const medCost = medDetails.reduce((sum, d) => sum + d.cost, 0);
     return { days, bedRate, bedStayCost, medDetails, medCost, total: bedStayCost + medCost };
   }, [admission, getBedPrice]);
@@ -167,13 +165,15 @@ const DischargeProcessing = ({
               ₦{billingBreakdown.bedStayCost.toLocaleString()}
             </span>
           </div>
-          {billingBreakdown.medDetails.length > 0 && (
-            <div className="rounded-lg bg-sky-50 px-3 py-2 space-y-1.5">
-              <div className="flex items-center gap-2 mb-1.5">
-                <Pill className="w-3.5 h-3.5 text-sky-600" />
-                <span className="text-sm font-semibold text-slate-700">Medications</span>
-              </div>
-              {billingBreakdown.medDetails.map((d, i) => (
+          <div className="rounded-lg bg-sky-50 px-3 py-2 space-y-1.5">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Pill className="w-3.5 h-3.5 text-sky-600" />
+              <span className="text-sm font-semibold text-slate-700">Medications</span>
+            </div>
+            {billingBreakdown.medDetails.length === 0 ? (
+              <div className="text-sm text-slate-500 italic">No medications scheduled</div>
+            ) : (
+              billingBreakdown.medDetails.map((d, i) => (
                 <div key={i} className="flex items-center justify-between text-sm">
                   <span className="text-slate-600">
                     {d.name} ({d.adminCount} × ₦{d.unitPrice})
@@ -182,24 +182,15 @@ const DischargeProcessing = ({
                     ₦{d.cost.toLocaleString()}
                   </span>
                 </div>
-              ))}
-              <div className="flex items-center justify-between text-sm pt-1 border-t border-sky-200">
-                <span className="font-semibold text-slate-700">Medications Total</span>
-                <span className="font-mono font-bold text-slate-900">
-                  ₦{billingBreakdown.medCost.toLocaleString()}
-                </span>
-              </div>
+              ))
+            )}
+            <div className="flex items-center justify-between text-sm pt-1 border-t border-sky-200">
+              <span className="font-semibold text-slate-700">Medications Total</span>
+              <span className="font-mono font-bold text-slate-900">
+                ₦{billingBreakdown.medCost.toLocaleString()}
+              </span>
             </div>
-          )}
-          {billingBreakdown.medDetails.length === 0 && (
-            <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-sky-50">
-              <div className="flex items-center gap-2">
-                <Pill className="w-3.5 h-3.5 text-sky-600" />
-                <span className="text-sm text-slate-700">Medications</span>
-              </div>
-              <span className="text-sm font-mono font-bold text-slate-900">₦0</span>
-            </div>
-          )}
+          </div>
           <div className="flex items-center justify-between py-3 px-3 rounded-lg bg-slate-100 border border-slate-200 mt-2">
             <span className="text-sm font-bold text-slate-800">Total Due</span>
             <span className="text-lg font-bold font-mono text-slate-900">
