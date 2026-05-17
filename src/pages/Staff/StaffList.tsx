@@ -13,6 +13,7 @@ import {
   Plus,
   Search,
   UserPlus,
+  Upload,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
@@ -23,7 +24,8 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useStaff } from "./StaffContext";
 import { POSITIONS } from "./data";
-import AddStaffDrawer from "./AddStaffDrawer";
+import AddStaffModal from "./AddStaffDrawer";
+import StaffUploadModal from "./StaffUploadModal";
 import type { StaffRecord } from "./types";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -39,7 +41,8 @@ export default function StaffList() {
   const { records } = useStaff();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("All Staff");
-  const [showAddDrawer, setShowAddDrawer] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([]);
 
   const filteredData = useMemo(() => {
@@ -166,13 +169,24 @@ export default function StaffList() {
               </p>
             </div>
           </div>
-          <Button
-            onClick={() => setShowAddDrawer(true)}
-            className="bg-sky-600 hover:bg-sky-700 text-white h-9 px-4 gap-2 font-semibold text-xs shadow-lg shadow-sky-200"
-          >
-            <Plus className="w-4 h-4" />
-            Add New Staff
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setShowUploadModal(true)}
+              variant="outline"
+              size="sm"
+              className="h-9 gap-2 border-slate-300 text-slate-600"
+            >
+              <Upload className="w-4 h-4" />
+              Import
+            </Button>
+            <Button
+              onClick={() => setShowAddModal(true)}
+              className="bg-sky-600 hover:bg-sky-700 text-white h-9 px-4 gap-2 font-semibold text-xs shadow-lg shadow-sky-200"
+            >
+              <Plus className="w-4 h-4" />
+              Add New Staff
+            </Button>
+          </div>
         </div>
 
         {/* Search + Filter Bar */}
@@ -296,9 +310,13 @@ export default function StaffList() {
         </div>
       </div>
 
-      <AddStaffDrawer
-        open={showAddDrawer}
-        onClose={() => setShowAddDrawer(false)}
+      <AddStaffModal
+        open={showAddModal}
+        onClose={() => setShowAddModal(false)}
+      />
+      <StaffUploadModal
+        open={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
       />
     </>
   );

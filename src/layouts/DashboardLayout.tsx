@@ -84,6 +84,9 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const searchRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profilePic, setProfilePic] = useState(
+    localStorage.getItem("staff_profile_picture") || ""
+  );
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -176,6 +179,15 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      setProfilePic((e as CustomEvent).detail || "");
+    };
+    window.addEventListener("profile-picture-updated", handler as EventListener);
+    return () =>
+      window.removeEventListener("profile-picture-updated", handler as EventListener);
+  }, []);
+
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
       {/* Sidebar */}
@@ -214,10 +226,14 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
         <div className="p-4 border-t border-slate-100 bg-slate-50/50">
           <Link to="/profile" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white hover:shadow-sm transition-all group">
-            <Avatar className="h-9 w-9 border border-slate-200 group-hover:border-sky-200">
-              <AvatarFallback className="bg-white text-sky-600 text-xs font-bold">
-                {user?.fullName?.split(" ").map((n: string) => n[0]).join("")}
-              </AvatarFallback>
+            <Avatar className="h-9 w-9 border border-slate-200 group-hover:border-sky-200 overflow-hidden">
+              {profilePic ? (
+                <img src={profilePic} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <AvatarFallback className="bg-white text-sky-600 text-xs font-bold">
+                  {user?.fullName?.split(" ").map((n: string) => n[0]).join("")}
+                </AvatarFallback>
+              )}
             </Avatar>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-slate-900 truncate">{user?.fullName}</p>
@@ -286,10 +302,14 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white hover:shadow-sm transition-all group"
                   >
-                    <Avatar className="h-9 w-9 border border-slate-200 group-hover:border-sky-200">
-                      <AvatarFallback className="bg-white text-sky-600 text-xs font-bold">
-                        {user?.fullName?.split(" ").map((n: string) => n[0]).join("")}
-                      </AvatarFallback>
+                    <Avatar className="h-9 w-9 border border-slate-200 group-hover:border-sky-200 overflow-hidden">
+                      {profilePic ? (
+                        <img src={profilePic} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <AvatarFallback className="bg-white text-sky-600 text-xs font-bold">
+                          {user?.fullName?.split(" ").map((n: string) => n[0]).join("")}
+                        </AvatarFallback>
+                      )}
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-slate-900 truncate">{user?.fullName}</p>

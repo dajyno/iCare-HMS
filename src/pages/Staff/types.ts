@@ -21,6 +21,13 @@ export interface StaffRecord {
   availability_status: AvailabilityStatus;
   is_clinician: boolean;
   permissions: Record<string, StaffPermissions>;
+  gender: string;
+  address: string;
+  email: string;
+  phone: string;
+  canLogin: boolean;
+  password: string;
+  profilePicture: string;
 }
 
 export interface PermissionChild {

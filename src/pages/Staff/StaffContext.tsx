@@ -10,6 +10,7 @@ interface StaffContextType {
     staffId: string,
     permissions: Record<string, StaffPermissions>
   ) => void;
+  deleteRecord: (staffId: string) => void;
 }
 
 const StaffContext = createContext<StaffContextType | null>(null);
@@ -38,9 +39,19 @@ export function StaffProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const deleteRecord = (staffId: string) => {
+    setRecords((prev) => prev.filter((r) => r.staff_id !== staffId));
+  };
+
   return (
     <StaffContext.Provider
-      value={{ records, addRecord, updateRecord, updatePermissions }}
+      value={{
+        records,
+        addRecord,
+        updateRecord,
+        updatePermissions,
+        deleteRecord,
+      }}
     >
       {children}
     </StaffContext.Provider>
