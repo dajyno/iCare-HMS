@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Plus, Settings, Bed, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useInpatientState } from "./useInpatientState";
+import { useStaff } from "../Staff/StaffContext";
 import WardBoard from "./components/WardBoard";
 import NewAdmissionWizard from "./components/NewAdmissionWizard";
 import PatientWorkspace from "./components/PatientWorkspace";
@@ -13,6 +14,16 @@ const InpatientOverview = () => {
   const [selectedAdmissionId, setSelectedAdmissionId] = useState<string | null>(null);
   const [showAdmissionWizard, setShowAdmissionWizard] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+
+  const { records: staffRecords } = useStaff();
+
+  const liveAttendingDoctors = useMemo(
+    () =>
+      staffRecords
+        .filter((r) => r.is_clinician && r.availability_status !== "On Leave")
+        .map((r) => r.name),
+    [staffRecords]
+  );
 
   const {
     state,
@@ -182,7 +193,11 @@ const InpatientOverview = () => {
         onClose={() => setShowAdmissionWizard(false)}
         wardConfiguration={state.wardConfiguration}
         searchPatients={searchPatients}
-        attendingDoctors={attendingDoctors}
+        attendingDoctors={
+          liveAttendingDoctors.length > 0
+            ? [...new Set([...attendingDoctors, ...liveAttendingDoctors])]
+            : attendingDoctors
+        }
         onFinalize={finalizeAdmission}
       />
 

@@ -24,6 +24,7 @@ import Profile from "./pages/Dashboard/Profile";
 import StaffLayout from "./pages/Staff/StaffLayout";
 import StaffList from "./pages/Staff/StaffList";
 import StaffProfile from "./pages/Staff/StaffProfile";
+import { StaffProvider } from "./pages/Staff/StaffContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const ReportsOverview = () => <div className="p-6">Reports Overview Placeholder</div>;
@@ -55,6 +56,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
+          <StaffProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route
@@ -263,6 +265,7 @@ export default function App() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
+          </StaffProvider>
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>

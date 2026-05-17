@@ -111,6 +111,11 @@ export default function StaffProfile() {
     reader.onload = (ev) => {
       const dataUrl = ev.target?.result as string;
       setProfilePicture(dataUrl);
+      updateRecord(staff.staff_id, { profilePicture: dataUrl });
+      localStorage.setItem("staff_profile_picture", dataUrl);
+      window.dispatchEvent(
+        new CustomEvent("profile-picture-updated", { detail: dataUrl })
+      );
     };
     reader.readAsDataURL(file);
   };
