@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import type {
   InpatientMasterState,
@@ -14,6 +14,20 @@ export const INITIAL_STATE: InpatientMasterState = {
   activeAdmissions: [],
   wardConfiguration: [],
 };
+
+const PERSIST_KEY = "icare-inpatient-state";
+
+function loadPersistedState(): InpatientMasterState {
+  try {
+    const raw = localStorage.getItem(PERSIST_KEY);
+    if (raw) {
+      return JSON.parse(raw) as InpatientMasterState;
+    }
+  } catch {
+    /* corrupted data – ignore */
+  }
+  return INITIAL_STATE;
+}
 
 const attendingDoctors = [
   "Dr. Eric Lieberman",
@@ -32,10 +46,26 @@ function computeDaysAdmitted(admissionDate: string): number {
 }
 
 export function useInpatientState() {
-  const [state, setState] = useState<InpatientMasterState>(INITIAL_STATE);
-  const [loading, setLoading] = useState(true);
+  const loadedFromStorage = useRef(false);
+  const [state, setState] = useState<InpatientMasterState>(() => {
+    const persisted = loadPersistedState();
+    if (persisted.activeAdmissions.length > 0 || persisted.wardConfiguration.length > 0) {
+      loadedFromStorage.current = true;
+    }
+    return persisted;
+  });
+  const [loading, setLoading] = useState(!loadedFromStorage.current);
 
   useEffect(() => {
+    try {
+      localStorage.setItem(PERSIST_KEY, JSON.stringify(state));
+    } catch {
+      /* quota exceeded – ignore */
+    }
+  }, [state]);
+
+  useEffect(() => {
+    if (loadedFromStorage.current) return;
     let cancelled = false;
 
     async function fetchWards() {
