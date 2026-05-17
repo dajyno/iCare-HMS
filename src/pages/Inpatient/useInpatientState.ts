@@ -38,78 +38,93 @@ export function useInpatientState() {
   useEffect(() => {
     let cancelled = false;
 
+    async function fetchWards() {
+      try {
+        let { data, error } = await supabase
+          .from("wards")
+          .select("*, department:departments(name), beds(*)")
+          .order("name", { ascending: true });
+        if (error) {
+          console.warn("Wards join query failed, trying without department join:", error);
+          const fallback = await supabase
+            .from("wards")
+            .select("*, beds(*)")
+            .order("name", { ascending: true });
+          if (!fallback.error) { data = fallback.data; error = null; }
+        }
+        if (cancelled) return null;
+        if (error) { console.warn("Wards fetch error:", error); return null; }
+        return (data || []).map((w: any) => ({
+          wardId: w.id,
+          name: w.name,
+          department: w.department?.name ?? w.type ?? "General",
+          totalBeds: w.beds_count ?? (w.beds?.length ?? 0),
+          beds: (w.beds || []).map((b: any) => ({
+            bedCode: b.bed_number,
+            status: (b.status === "Occupied"
+              ? "Occupied"
+              : b.status === "Cleaning" || b.status === "Maintenance"
+              ? "Maintenance/Sanitizing"
+              : "Available") as BedUnit["status"],
+          })),
+        }));
+      } catch (err) {
+        console.warn("Wards fetch exception:", err);
+        return null;
+      }
+    }
+
+    async function fetchAdmissions() {
+      try {
+        const { data, error } = await supabase
+          .from("admissions")
+          .select("*, patient:patients(*), ward:wards(name), bed:beds(bed_number)")
+          .eq("status", "Admitted")
+          .order("admission_date", { ascending: false });
+        if (cancelled) return null;
+        if (error) { console.warn("Admissions fetch error:", error); return null; }
+        return (data || []).map((a: any) => ({
+          admissionId: a.id,
+          wardCode: a.ward?.name ?? "Unknown",
+          bedNo: a.bed?.bed_number ?? "Unknown",
+          patient: {
+            folderNo: a.patient?.patient_id ?? "",
+            name: `${a.patient?.first_name ?? ""} ${a.patient?.last_name ?? ""}`.trim(),
+            age: a.patient?.date_of_birth
+              ? Math.floor(
+                  (Date.now() - new Date(a.patient.date_of_birth).getTime()) /
+                    (1000 * 60 * 60 * 24 * 365.25)
+                )
+              : 0,
+            allergies: a.patient?.allergies
+              ? a.patient.allergies.split(",").map((s: string) => s.trim()).filter(Boolean)
+              : [],
+          },
+          attendingPhysician: "Unassigned",
+          daysAdmitted: computeDaysAdmitted(a.admission_date),
+          careStatus: "Stable",
+          vitalsHistory: [],
+          medicationSchedule: [],
+          fluidLedger: { intake: [], output: [] },
+        }));
+      } catch (err) {
+        console.warn("Admissions fetch exception:", err);
+        return null;
+      }
+    }
+
     async function fetchInitialData() {
       setLoading(true);
-
-      try {
-        const [wardsResult, admissionsResult] = await Promise.all([
-          supabase
-            .from("wards")
-            .select("*, department:departments(name), beds(*)")
-            .order("name", { ascending: true }),
-          supabase
-            .from("admissions")
-            .select("*, patient:patients(*), ward:wards(name), bed:beds(bed_number), admitting_doctor:users(full_name)")
-            .eq("status", "Admitted")
-            .order("admission_date", { ascending: false }),
-        ]);
-
-        if (cancelled) return;
-
-        let wardConfig: WardConfig[] = [];
-        let activeAdmissions: ActiveAdmission[] = [];
-
-        if (!wardsResult.error && wardsResult.data) {
-          wardConfig = wardsResult.data.map((w: any) => ({
-            wardId: w.id,
-            name: w.name,
-            department: w.department?.name ?? w.type ?? "General",
-            totalBeds: w.beds_count ?? (w.beds?.length ?? 0),
-            beds: (w.beds || []).map((b: any) => ({
-              bedCode: b.bed_number,
-              status: (b.status === "Occupied"
-                ? "Occupied"
-                : b.status === "Cleaning" || b.status === "Maintenance"
-                ? "Maintenance/Sanitizing"
-                : "Available") as BedUnit["status"],
-            })),
-          }));
-        }
-
-        if (!admissionsResult.error && admissionsResult.data) {
-          activeAdmissions = admissionsResult.data.map((a: any) => ({
-            admissionId: a.id,
-            wardCode: a.ward?.name ?? "Unknown",
-            bedNo: a.bed?.bed_number ?? "Unknown",
-            patient: {
-              folderNo: a.patient?.patient_id ?? "",
-              name: `${a.patient?.first_name ?? ""} ${a.patient?.last_name ?? ""}`.trim(),
-              age: a.patient?.date_of_birth
-                ? Math.floor(
-                    (Date.now() - new Date(a.patient.date_of_birth).getTime()) /
-                      (1000 * 60 * 60 * 24 * 365.25)
-                  )
-                : 0,
-              allergies: a.patient?.allergies
-                ? a.patient.allergies.split(",").map((s: string) => s.trim()).filter(Boolean)
-                : [],
-            },
-            attendingPhysician: a.admitting_doctor?.full_name ?? "Unassigned",
-            daysAdmitted: computeDaysAdmitted(a.admission_date),
-            careStatus: "Stable",
-            vitalsHistory: [],
-            medicationSchedule: [],
-            fluidLedger: { intake: [], output: [] },
-          }));
-        }
-
-        if (!cancelled) {
-          setState({ wardConfiguration: wardConfig, activeAdmissions });
-        }
-      } catch (err) {
-        console.error("Failed to fetch inpatient data from Supabase:", err);
-      } finally {
-        if (!cancelled) setLoading(false);
+      const [wardConfig, activeAdmissions] = await Promise.all([
+        fetchWards(),
+        fetchAdmissions(),
+      ]);
+      if (!cancelled) {
+        setState({
+          wardConfiguration: wardConfig ?? [],
+          activeAdmissions: activeAdmissions ?? [],
+        });
+        setLoading(false);
       }
     }
 
