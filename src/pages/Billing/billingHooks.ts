@@ -344,7 +344,7 @@ async function processPaymentSideEffects(
     } catch {
       // Local fallback
     }
-    queryClient.invalidateQueries({ queryKey: ["labRequests"] });
+    queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
 
     try {
       await (supabase as any)
@@ -354,7 +354,7 @@ async function processPaymentSideEffects(
     } catch {
       // Local fallback
     }
-    queryClient.invalidateQueries({ queryKey: ["radiologyRequests"] });
+    queryClient.invalidateQueries({ queryKey: ["radiology-requests"] });
   }
 }
 
