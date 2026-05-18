@@ -8,6 +8,7 @@ import PatientList from "./pages/Patients/PatientList";
 import PatientProfile from "./pages/Patients/PatientProfile";
 import FamilyPatients from "./pages/Patients/FamilyPatients";
 import AppointmentList from "./pages/Appointments/AppointmentList";
+import ConsultationList from "./pages/Consultations/ConsultationList";
 import ConsultationWorkspace from "./pages/Consultations/ConsultationWorkspace";
 import VitalSigns from "./pages/Consultations/VitalSigns";
 import LabModule from "./pages/Laboratory/LabModule";
@@ -127,12 +128,20 @@ export default function App() {
               path="/consultations"
               element={
                 <ProtectedRoute>
-                  <Navigate to="/consultations/workspace" replace />
+                  <ConsultationList />
                 </ProtectedRoute>
               }
             />
             <Route
               path="/consultations/workspace"
+              element={
+                <ProtectedRoute>
+                  <ConsultationWorkspace />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/consultations/workspace/:patientId"
               element={
                 <ProtectedRoute>
                   <ConsultationWorkspace />

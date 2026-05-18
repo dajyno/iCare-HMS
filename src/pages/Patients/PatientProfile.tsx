@@ -79,7 +79,7 @@ const PatientProfile = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("consultations")
-        .select("*, doctor:users(full_name)")
+        .select("*, doctor:users(full_name), vital_signs(*)")
         .eq("patient_id", id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -235,7 +235,7 @@ const PatientProfile = () => {
     mutationFn: async (payload: any) => {
       const { data: consult, error: consultError } = await supabase
         .from("consultations")
-        .insert({ patient_id: id, doctor_id: currentUser?.id, chief_complaint: "Vitals Check" })
+        .insert({ patient_id: id, doctor_id: currentUser?.id, chief_complaint: "Vitals Check", status: "VitalsRecorded" })
         .select()
         .single();
       if (consultError) throw consultError;
@@ -377,6 +377,7 @@ const PatientProfile = () => {
     createConsultation.mutate({
       patient_id: id,
       doctor_id: currentUser?.id,
+      status: "InProgress",
       chief_complaint: consultForm.chiefComplaint,
       symptoms: consultForm.symptoms || null,
       diagnosis: consultForm.diagnosis || null,
@@ -654,14 +655,16 @@ const PatientProfile = () => {
         {/* ========== CONSULTATIONS ========== */}
         <TabsContent value="consultations" className="mt-6 space-y-4">
           <div className="flex justify-start">
-            <Button onClick={() => navigate("/consultations/workspace?patientId=" + id)} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => setShowConsultModal(true)} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" /> New Consultation
             </Button>
           </div>
           {!Array.isArray(consultations) || consultations.length === 0 ? (
             <div className="text-center py-12 text-slate-400">No consultation records found.</div>
           ) : (
-            consultations.map((c: any) => (
+            consultations.map((c: any) => {
+              const vs = c.vitalSigns;
+              return (
               <Card key={c.id} className="border-none shadow-sm ring-1 ring-slate-200">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-4">
@@ -669,17 +672,30 @@ const PatientProfile = () => {
                       <div className="flex items-center gap-2 text-sm">
                         <Stethoscope className="w-4 h-4 text-blue-500" />
                         <span className="font-bold text-slate-900">{c.chiefComplaint}</span>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                          c.status === "Completed" ? "bg-emerald-50 text-emerald-700" :
+                          c.status === "InProgress" ? "bg-blue-50 text-blue-700" :
+                          "bg-amber-50 text-amber-700"
+                        }`}>{c.status === "VitalsRecorded" ? "Vitals Recorded" : c.status === "InProgress" ? "In Progress" : "Completed"}</span>
                       </div>
                       <p className="text-xs text-slate-500 mt-1">
-                        {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ""} — Dr. {c.doctor?.fullName || "Unknown"}
+                        {c.createdAt ? new Date(c.createdAt).toLocaleString() : ""} — Dr. {c.doctor?.fullName || "Unknown"}
                       </p>
                       {c.diagnosis && <p className="text-sm text-slate-700 mt-2"><span className="font-semibold">Diagnosis:</span> {c.diagnosis}</p>}
                       {c.clinicalNotes && <p className="text-sm text-slate-600 mt-1">{c.clinicalNotes}</p>}
+                      {vs && (vs.temperature != null || vs.bloodPressure || vs.pulseRate != null) && (
+                        <div className="flex flex-wrap gap-3 mt-3 text-xs">
+                          {vs.temperature != null && <span className="text-slate-500"><span className="font-semibold">Temp:</span> {vs.temperature}°C</span>}
+                          {vs.bloodPressure && <span className="text-slate-500"><span className="font-semibold">BP:</span> {vs.bloodPressure}</span>}
+                          {vs.pulseRate != null && <span className="text-slate-500"><span className="font-semibold">Pulse:</span> {vs.pulseRate} bpm</span>}
+                          {vs.oxygenSaturation != null && <span className="text-slate-500"><span className="font-semibold">SpO₂:</span> {vs.oxygenSaturation}%</span>}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            ))
+            );})
           )}
         </TabsContent>
 

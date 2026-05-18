@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { useAuth } from "../../context/AuthContext";
@@ -7,14 +7,19 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { 
-  Thermometer, 
-  Activity, 
-  Scale, 
   ClipboardList, 
   Pill, 
   Save,
   Trash2,
-  Plus
+  Plus,
+  ArrowLeft,
+  Loader2,
+  Thermometer, 
+  Activity, 
+  HeartPulse,
+  Droplets,
+  Scale,
+  Scan,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -32,15 +37,6 @@ const consultationSchema = z.object({
   diagnosis: z.string().optional(),
   clinicalNotes: z.string().optional(),
   treatmentPlan: z.string().optional(),
-  vitalSigns: z.object({
-    temperature: z.coerce.number().optional(),
-    bloodPressure: z.string().optional(),
-    pulseRate: z.coerce.number().optional(),
-    respiratoryRate: z.coerce.number().optional(),
-    weight: z.coerce.number().optional(),
-    height: z.coerce.number().optional(),
-    oxygenSaturation: z.coerce.number().optional(),
-  }).optional(),
   prescriptions: z.array(z.object({
     medicationId: z.string(),
     dosage: z.string(),
@@ -51,14 +47,18 @@ const consultationSchema = z.object({
   labRequests: z.array(z.object({
     testId: z.string(),
   })).optional(),
+  radiologyRequests: z.array(z.object({
+    examId: z.string(),
+  })).optional(),
 });
 
 const ConsultationWorkspace = () => {
+  const { patientId } = useParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
-  const patientIdParam = searchParams.get("patientId");
+  const [existingConsultationId, setExistingConsultationId] = useState<string | null>(null);
 
   const { data: patients } = useQuery({
     queryKey: ["patients"],
@@ -84,16 +84,6 @@ const ConsultationWorkspace = () => {
     },
   });
 
-  useEffect(() => {
-    if (patientIdParam && Array.isArray(patients)) {
-      const match = patients.find((p: any) => p.id === patientIdParam);
-      if (match) {
-        setSelectedPatient(match);
-        setValue("patientId", patientIdParam as any);
-      }
-    }
-  }, [patientIdParam, patients]);
-
   const { data: labTests } = useQuery({
     queryKey: ["labTests"],
     queryFn: async () => {
@@ -106,17 +96,87 @@ const ConsultationWorkspace = () => {
     },
   });
 
+  const { data: radiologyExams } = useQuery({
+    queryKey: ["radiologyExams"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("radiology_exams")
+        .select("*, category:radiology_categories(name)")
+        .eq("status", "active");
+      if (error) throw error;
+      return toCamel(data);
+    },
+  });
+
+  const { data: patientVitals } = useQuery({
+    queryKey: ["patient-vitals", patientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("consultations")
+        .select("id, vital_signs(*)")
+        .eq("patient_id", patientId)
+        .not("vital_signs", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      if (!data || data.length === 0) return null;
+      const c = toCamel(data[0]);
+      return c.vitalSigns ? { ...c.vitalSigns, consultationId: c.id } : null;
+    },
+    enabled: !!patientId,
+  });
+
+  const { data: existingConsultation } = useQuery({
+    queryKey: ["existing-consultation", patientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("consultations")
+        .select("*")
+        .eq("patient_id", patientId)
+        .in("status", ["VitalsRecorded", "InProgress"])
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      if (!data || data.length === 0) return null;
+      return toCamel(data[0]);
+    },
+    enabled: !!patientId,
+  });
+
+  useEffect(() => {
+    if (patientId && Array.isArray(patients)) {
+      const p = patients.find((p: any) => p.id === patientId);
+      if (p) {
+        setSelectedPatient(p);
+        setValue("patientId", p.id as any);
+      }
+    }
+  }, [patientId, patients]);
+
+  useEffect(() => {
+    if (existingConsultation) {
+      setExistingConsultationId(existingConsultation.id);
+      setValue("chiefComplaint", existingConsultation.chiefComplaint || "");
+      setValue("symptoms", existingConsultation.symptoms || "");
+      setValue("diagnosis", existingConsultation.diagnosis || "");
+      setValue("clinicalNotes", existingConsultation.clinicalNotes || "");
+      setValue("treatmentPlan", existingConsultation.treatmentPlan || "");
+    }
+  }, [existingConsultation]);
+
   const form = useForm({
     resolver: zodResolver(consultationSchema),
     defaultValues: {
       prescriptions: [],
       labRequests: [],
+      radiologyRequests: [],
     }
   });
   const { register, handleSubmit, control, setValue, reset, watch, formState: { errors } } = form;
 
   const watchPrescriptions = watch("prescriptions");
   const watchLabRequests = watch("labRequests");
+  const watchRadiologyRequests = watch("radiologyRequests");
 
   const { fields: prescriptionFields, append: appendPrescription, remove: removePrescription } = useFieldArray({
     control,
@@ -128,36 +188,45 @@ const ConsultationWorkspace = () => {
     name: "labRequests" as any,
   });
 
+  const { fields: radFields, append: appendRad, remove: removeRad } = useFieldArray({
+    control,
+    name: "radiologyRequests" as any,
+  });
+
   const mutation = useMutation({
     mutationFn: async (formData: any) => {
-      const { data: consultation, error: consultError } = await supabase
-        .from("consultations")
-        .insert({
-          patient_id: formData.patientId,
-          doctor_id: user?.id,
-          appointment_id: formData.appointmentId || null,
-          chief_complaint: formData.chiefComplaint,
-          symptoms: formData.symptoms || null,
-          diagnosis: formData.diagnosis || null,
-          clinical_notes: formData.clinicalNotes || null,
-          treatment_plan: formData.treatmentPlan || null,
-        })
-        .select()
-        .single();
-      if (consultError) throw consultError;
+      const consultationId = existingConsultationId;
 
-      if (formData.vitalSigns) {
-        const { error: vitalError } = await supabase
-          .from("vital_signs")
+      if (consultationId) {
+        const { error: consultError } = await supabase
+          .from("consultations")
+          .update({
+            chief_complaint: formData.chiefComplaint,
+            symptoms: formData.symptoms || null,
+            diagnosis: formData.diagnosis || null,
+            clinical_notes: formData.clinicalNotes || null,
+            treatment_plan: formData.treatmentPlan || null,
+            status: "Completed",
+          })
+          .eq("id", consultationId);
+        if (consultError) throw consultError;
+      } else {
+        const { data: consultation, error: consultError } = await supabase
+          .from("consultations")
           .insert({
-            consultation_id: consultation.id,
-            temperature: formData.vitalSigns.temperature || null,
-            blood_pressure: formData.vitalSigns.bloodPressure || null,
-            pulse_rate: formData.vitalSigns.pulseRate || null,
-            weight: formData.vitalSigns.weight || null,
-            oxygen_saturation: formData.vitalSigns.oxygenSaturation || null,
-          });
-        if (vitalError) throw vitalError;
+            patient_id: formData.patientId,
+            doctor_id: user?.id,
+            appointment_id: formData.appointmentId || null,
+            chief_complaint: formData.chiefComplaint,
+            symptoms: formData.symptoms || null,
+            diagnosis: formData.diagnosis || null,
+            clinical_notes: formData.clinicalNotes || null,
+            treatment_plan: formData.treatmentPlan || null,
+            status: "Completed",
+          })
+          .select()
+          .single();
+        if (consultError) throw consultError;
       }
 
       if (formData.prescriptions?.length > 0) {
@@ -166,7 +235,7 @@ const ConsultationWorkspace = () => {
           .insert({
             patient_id: formData.patientId,
             doctor_id: user?.id,
-            consultation_id: consultation.id,
+            consultation_id: consultationId,
             status: "Pending",
           })
           .select()
@@ -192,7 +261,7 @@ const ConsultationWorkspace = () => {
         const labInserts = formData.labRequests.map((lr: any) => ({
           patient_id: formData.patientId,
           test_id: lr.testId,
-          consultation_id: consultation.id,
+          consultation_id: consultationId,
           status: "Requested",
         }));
         const { error: labError } = await supabase
@@ -201,20 +270,34 @@ const ConsultationWorkspace = () => {
         if (labError) throw labError;
       }
 
+      if (formData.radiologyRequests?.length > 0) {
+        const radInserts = formData.radiologyRequests.map((rr: any) => ({
+          patient_id: formData.patientId,
+          exam_id: rr.examId,
+          consultation_id: consultationId,
+          status: "Requested",
+        }));
+        const { error: radError } = await supabase
+          .from("radiology_requests")
+          .insert(radInserts);
+        if (radError) throw radError;
+      }
+
       if (formData.appointmentId) {
         await supabase
           .from("appointments")
           .update({ status: "Completed" })
           .eq("id", formData.appointmentId);
       }
-
-      return consultation;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["consultations"] });
+      queryClient.invalidateQueries({ queryKey: ["patient-consultations"] });
+      queryClient.invalidateQueries({ queryKey: ["all-vitals"] });
       reset();
       setSelectedPatient(null);
-      alert("Consultation saved successfully!");
+      setExistingConsultationId(null);
+      navigate("/consultations");
     }
   });
 
@@ -225,44 +308,86 @@ const ConsultationWorkspace = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl mx-auto pb-20">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            Clinical Workspace
-          </h1>
-          <p className="text-slate-500 mt-1">Start a new patient encounter</p>
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/consultations")} className="h-9 w-9">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+              Clinical Workspace
+            </h1>
+            <p className="text-slate-500 mt-1">
+              {patientId ? "Continue patient encounter" : "Start a new patient encounter"}
+            </p>
+          </div>
         </div>
       </div>
 
       <div className="grid gap-8">
-        {/* Patient Selection */}
         <Card className="border-none shadow-sm ring-1 ring-slate-200">
           <CardHeader>
-            <CardTitle>Ecnounter Details</CardTitle>
-            <CardDescription>Select a patient and associated appointment</CardDescription>
+            <CardTitle>Encounter Details</CardTitle>
+            <CardDescription>Select a patient</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
               <Label>Patient</Label>
-              <SearchableSelect value={selectedPatient?.id || ""} onValueChange={(val) => {
-                const p = Array.isArray(patients) ? patients.find((p: any) => p.id === val) : null;
-                setSelectedPatient(p);
-                setValue("patientId", val as any);
-              }} placeholder="Search or select patient..." options={(Array.isArray(patients) ? patients : []).map((p: any) => ({value: p.id, label: `${p.firstName} ${p.lastName} (${p.patientId})`}))} />
+              <SearchableSelect
+                value={selectedPatient?.id || ""}
+                onValueChange={(val) => {
+                  const p = Array.isArray(patients) ? patients.find((p: any) => p.id === val) : null;
+                  setSelectedPatient(p);
+                  setValue("patientId", val as any);
+                  setExistingConsultationId(null);
+                }}
+                placeholder="Search or select patient..."
+                options={(Array.isArray(patients) ? patients : []).map((p: any) => ({value: p.id, label: `${p.firstName} ${p.lastName} (${p.patientId})`}))}
+              />
             </div>
           </CardContent>
         </Card>
 
         {selectedPatient && (
           <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-8">
+            {patientVitals && (
+              <Card className="border-none shadow-sm ring-1 ring-slate-200 bg-gradient-to-r from-blue-50/30 to-transparent">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Activity className="w-4 h-4 text-blue-500" />
+                    <span className="text-sm font-bold text-slate-700">Recorded Vital Signs</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 text-sm">
+                    {patientVitals.temperature != null && (
+                      <div className="bg-white rounded-lg p-2.5 shadow-sm"><span className="text-[10px] font-bold uppercase text-slate-400 block">Temp</span><span className="font-semibold text-slate-900 flex items-center gap-1"><Thermometer className="w-3 h-3 text-rose-400" />{patientVitals.temperature}°C</span></div>
+                    )}
+                    {patientVitals.bloodPressure && (
+                      <div className="bg-white rounded-lg p-2.5 shadow-sm"><span className="text-[10px] font-bold uppercase text-slate-400 block">BP</span><span className="font-semibold text-slate-900 flex items-center gap-1"><HeartPulse className="w-3 h-3 text-red-400" />{patientVitals.bloodPressure}</span></div>
+                    )}
+                    {patientVitals.pulseRate != null && (
+                      <div className="bg-white rounded-lg p-2.5 shadow-sm"><span className="text-[10px] font-bold uppercase text-slate-400 block">Pulse</span><span className="font-semibold text-slate-900">{patientVitals.pulseRate} bpm</span></div>
+                    )}
+                    {patientVitals.oxygenSaturation != null && (
+                      <div className="bg-white rounded-lg p-2.5 shadow-sm"><span className="text-[10px] font-bold uppercase text-slate-400 block">SpO₂</span><span className="font-semibold text-slate-900 flex items-center gap-1"><Droplets className="w-3 h-3 text-blue-400" />{patientVitals.oxygenSaturation}%</span></div>
+                    )}
+                    {patientVitals.weight != null && (
+                      <div className="bg-white rounded-lg p-2.5 shadow-sm"><span className="text-[10px] font-bold uppercase text-slate-400 block">Weight</span><span className="font-semibold text-slate-900 flex items-center gap-1"><Scale className="w-3 h-3 text-slate-400" />{patientVitals.weight} kg</span></div>
+                    )}
+                    {patientVitals.respiratoryRate != null && (
+                      <div className="bg-white rounded-lg p-2.5 shadow-sm"><span className="text-[10px] font-bold uppercase text-slate-400 block">RR</span><span className="font-semibold text-slate-900">{patientVitals.respiratoryRate} /min</span></div>
+                    )}
+                    {patientVitals.bmi != null && (
+                      <div className="bg-white rounded-lg p-2.5 shadow-sm"><span className="text-[10px] font-bold uppercase text-slate-400 block">BMI</span><span className="font-semibold text-slate-900">{patientVitals.bmi}</span></div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Tabs defaultValue="clinical" className="w-full">
               <TabsList className="bg-white border p-1 h-auto mb-6 overflow-x-auto flex-nowrap">
                 <TabsTrigger value="clinical" className="gap-2 px-4 py-2">
                   <ClipboardList className="w-4 h-4" />
                   Clinical Notes
-                </TabsTrigger>
-                <TabsTrigger value="vitals" className="gap-2 px-4 py-2">
-                  <Activity className="w-4 h-4" />
-                  Vital Signs
                 </TabsTrigger>
                 <TabsTrigger value="orders" className="gap-2 px-4 py-2">
                   <Pill className="w-4 h-4" />
@@ -275,9 +400,9 @@ const ConsultationWorkspace = () => {
                   <CardContent className="pt-6 grid gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="chiefComplaint">Chief Complaint <span className="text-red-500">*</span></Label>
-                      <Input 
-                        id="chiefComplaint" 
-                        {...register("chiefComplaint")} 
+                      <Input
+                        id="chiefComplaint"
+                        {...register("chiefComplaint")}
                         placeholder="e.g. Persistent cough, chest pain..."
                         className={errors.chiefComplaint ? "border-red-500" : ""}
                       />
@@ -295,33 +420,6 @@ const ConsultationWorkspace = () => {
                     <div className="space-y-2">
                       <Label htmlFor="clinicalNotes">Clinical Observations</Label>
                       <Textarea id="clinicalNotes" {...register("clinicalNotes")} placeholder="Detailed examination notes..." className="min-h-[120px]" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="vitals" className="space-y-6">
-                <Card className="border-none shadow-sm ring-1 ring-slate-200">
-                  <CardContent className="pt-6 grid gap-6 md:grid-cols-4">
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2"><Thermometer className="w-3 h-3" /> Temp (°C)</Label>
-                      <Input type="number" step="0.1" {...register("vitalSigns.temperature")} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2"><Activity className="w-3 h-3" /> Blood Pressure</Label>
-                      <Input placeholder="120/80" {...register("vitalSigns.bloodPressure")} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Pulse Rate (bpm)</Label>
-                      <Input type="number" {...register("vitalSigns.pulseRate")} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>O2 Saturation (%)</Label>
-                      <Input type="number" {...register("vitalSigns.oxygenSaturation")} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2"><Scale className="w-3 h-3" /> Weight (kg)</Label>
-                      <Input type="number" step="0.1" {...register("vitalSigns.weight")} />
                     </div>
                   </CardContent>
                 </Card>
@@ -403,11 +501,43 @@ const ConsultationWorkspace = () => {
                     )}
                   </CardContent>
                 </Card>
+
+                {/* Radiology Requests */}
+                <Card className="border-none shadow-sm ring-1 ring-slate-200">
+                  <CardHeader className="flex flex-row items-center justify-between border-b bg-slate-50/50">
+                    <div>
+                      <CardTitle className="text-lg">Radiology Requests</CardTitle>
+                      <CardDescription>Imaging exams to be performed</CardDescription>
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={() => appendRad({ examId: "" })}>
+                      <Plus className="w-4 h-4 mr-2" /> Add Exam
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {radFields.length === 0 ? (
+                      <div className="p-12 text-center text-slate-400">No radiology exams requested</div>
+                    ) : (
+                      <div className="divide-y divide-slate-100">
+                        {radFields.map((field, index) => (
+                          <div key={field.id} className="p-4 flex items-end gap-6">
+                            <div className="flex-1 space-y-2">
+                              <Label>Exam</Label>
+                              <SearchableSelect value={watchRadiologyRequests?.[index]?.examId || ""} onValueChange={(val) => setValue(`radiologyRequests.${index}.examId` as any, val as any)} placeholder="Select radiology exam..." options={(Array.isArray(radiologyExams) ? radiologyExams : []).map((e: any) => ({value: e.id, label: `${e.name}${e.category?.name ? ` (${e.category.name})` : ""} — ₦${e.price}`}))} />
+                            </div>
+                            <Button type="button" variant="ghost" size="icon" className="text-rose-500" onClick={() => removeRad(index)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
 
             <div className="flex justify-end gap-4">
-              <Button type="button" variant="outline" className="h-12 px-8" onClick={() => setSelectedPatient(null)}>Cancel Encounter</Button>
+              <Button type="button" variant="outline" className="h-12 px-8" onClick={() => navigate("/consultations")}>Cancel</Button>
               <Button type="submit" className="h-12 px-8 bg-blue-600 hover:bg-blue-700 font-bold" disabled={mutation.isPending}>
                 {mutation.isPending ? "Saving..." : (
                   <>

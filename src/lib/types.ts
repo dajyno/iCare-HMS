@@ -73,7 +73,7 @@ export interface Consultation {
   clinical_notes?: string | null;
   treatment_plan?: string | null;
   follow_up_date?: string | null;
-  status: string;
+  status: "VitalsRecorded" | "InProgress" | "Completed";
   created_at: string;
   patient?: Patient;
   doctor?: User;

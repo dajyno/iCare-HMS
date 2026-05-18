@@ -86,6 +86,7 @@ const VitalSigns = () => {
           patient_id: formData.patientId,
           doctor_id: session.user.id,
           chief_complaint: "Vitals Check",
+          status: "VitalsRecorded",
         })
         .select("id")
         .single();
