@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import {
   Clock, Play, CheckCircle2, Plus, Loader2, AlertCircle,
@@ -18,6 +18,7 @@ const statusConfig: Record<string, { icon: any; label: string; color: string; bg
 
 const ConsultationList = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -26,16 +27,24 @@ const ConsultationList = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("consultations")
-        .select("*, patient:patients(id, patient_id, first_name, last_name)")
+        .select("*, patient:patients(id, patient_id, first_name, last_name), doctor:users(full_name), vital_signs(*)")
         .order("created_at", { ascending: false });
       if (error) {
         console.error("ConsultationList Supabase error:", error);
         throw error;
       }
-      console.log("ConsultationList raw data:", data);
       return toCamel(data);
     },
   });
+
+  const handleStartConsultation = useCallback(async (c: any) => {
+    const pid = c.patientId || c.patient_id;
+    if (c.status === "VitalsRecorded") {
+      await supabase.from("consultations").update({ status: "InProgress" }).eq("id", c.id);
+      queryClient.invalidateQueries({ queryKey: ["consultations"] });
+    }
+    navigate(`/consultations/workspace/${pid}`);
+  }, [navigate, queryClient]);
 
   const sorted = useMemo(() => {
     if (!Array.isArray(consultations)) return [];
@@ -158,7 +167,13 @@ const ConsultationList = () => {
                           className={`h-8 text-xs font-semibold ${
                             c.status === "Completed" ? "text-slate-400" : c.status === "InProgress" ? "text-blue-600" : "text-amber-600"
                           }`}
-                          onClick={() => navigate(`/consultations/workspace/${c.patientId || c.patient_id}`)}
+                          onClick={() => {
+                            if (c.status === "VitalsRecorded") {
+                              handleStartConsultation(c);
+                            } else {
+                              navigate(`/consultations/workspace/${c.patientId || c.patient_id}`);
+                            }
+                          }}
                         >
                           {c.status === "Completed" ? "View" : c.status === "InProgress" ? "Continue" : "Start"}
                         </Button>
