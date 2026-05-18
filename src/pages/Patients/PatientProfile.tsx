@@ -180,6 +180,20 @@ const PatientProfile = () => {
     enabled: !!patient,
   });
 
+  const { data: primaryPatient } = useQuery({
+    queryKey: ["patient-primary", patient?.familyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("patients")
+        .select("id, patient_id, first_name, last_name")
+        .eq("id", patient.familyId)
+        .single();
+      if (error) throw error;
+      return toCamel(data);
+    },
+    enabled: !!patient?.familyId,
+  });
+
   const { data: labTests } = useQuery({
     queryKey: ["lab-tests"],
     queryFn: async () => {
@@ -361,6 +375,15 @@ const PatientProfile = () => {
         : 0;
       const newPatientId = `${folderBase}-${String(lastNum + 1).padStart(3, "0")}`;
 
+      // If this patient is not a Family folder, upgrade it to Family first
+      if (patient.category !== "Family") {
+        const { error: upgradeError } = await supabase
+          .from("patients")
+          .update({ category: "Family", is_primary: true })
+          .eq("id", id);
+        if (upgradeError) throw upgradeError;
+      }
+
       const { data, error } = await supabase
         .from("patients")
         .insert({
@@ -371,7 +394,7 @@ const PatientProfile = () => {
           date_of_birth: formData.dateOfBirth,
           blood_group: formData.bloodGroup || null,
           relationship: formData.relationship || null,
-          category: patient.category === "Family" ? "Family" : "Family",
+          category: "Family",
           family_id: id,
           is_primary: false,
           status: "active",
@@ -384,6 +407,7 @@ const PatientProfile = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["patient-family-group", patient?.id] });
+      queryClient.invalidateQueries({ queryKey: ["patient", id] });
       setShowDependantModal(false);
       setDependantForm({ firstName: "", lastName: "", gender: "", dateOfBirth: "", bloodGroup: "", relationship: "" });
     },
@@ -661,6 +685,30 @@ const PatientProfile = () => {
               <div><span className="text-[10px] font-bold uppercase text-slate-400">Emergency Contact</span><p className="font-semibold mt-1">{patient.emergencyContact || "N/A"}</p></div>
             </CardContent>
           </Card>
+
+          {/* Primary Patient (shown when this patient is a dependant) */}
+          {primaryPatient && (
+            <Card className="border-none shadow-sm ring-1 ring-slate-200">
+              <CardHeader><CardTitle className="text-sm font-bold flex items-center gap-2"><Users className="w-4 h-4 text-blue-500" /> Primary Patient</CardTitle></CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center font-bold text-xs text-white">
+                      {primaryPatient.firstName?.[0]}{primaryPatient.lastName?.[0]}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">{primaryPatient.firstName} {primaryPatient.lastName}</p>
+                      <p className="text-xs text-slate-400">{primaryPatient.patientId}</p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="sm" className="h-8 text-blue-600 font-bold"
+                    onClick={() => navigate(`/patients/${primaryPatient.id}`)}>
+                    View Profile
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Dependants */}
           {Array.isArray(familyMembers) && familyMembers.length > 0 && (
@@ -1234,6 +1282,18 @@ const PatientProfile = () => {
             <DialogTitle>Add Dependant</DialogTitle>
             <DialogDescription>Register a new dependant for this folder.</DialogDescription>
           </DialogHeader>
+          {patient.category !== "Family" && (
+            <div className="flex items-start gap-3 px-4 py-3 rounded-xl border border-amber-200 bg-amber-50 mb-4">
+              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-bold text-amber-800">This will become a Family folder</p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Adding a dependant will upgrade this folder to a Family folder.
+                  The current patient will become the primary member and will appear on the Family page.
+                </p>
+              </div>
+            </div>
+          )}
           <form onSubmit={handleDependantSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
