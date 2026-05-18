@@ -21,7 +21,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { usePatients, useDoctors, useCreateInvoice } from "./billingHooks";
+import { usePatients, useCreateInvoice } from "./billingHooks";
+import { useStaff } from "../Staff/StaffContext";
 import {
   INITIAL_FORM_STATE,
   DEFAULT_LINE_ITEM,
@@ -78,7 +79,13 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
   const [bedRateText, setBedRateText] = useState("");
 
   const { data: patientResults, isLoading: searchingPatients } = usePatients(patientQuery);
-  const { data: doctors } = useDoctors();
+  const { records: staffRecords } = useStaff();
+  const doctors = useMemo(
+    () => staffRecords
+      .filter((r) => r.is_clinician && r.availability_status !== "On Leave")
+      .map((r) => ({ id: r.staff_id, fullName: r.name })),
+    [staffRecords]
+  );
 
   const resetForm = useCallback(() => {
     setForm(INITIAL_FORM_STATE);
