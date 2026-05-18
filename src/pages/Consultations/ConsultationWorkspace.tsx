@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
   ClipboardList, Pill, Save, Trash2, Plus, ArrowLeft, Loader2,
-  Thermometer, Activity, HeartPulse, Droplets, Scale, Scan,
+  Thermometer, Activity, HeartPulse, Droplets, Scale, AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -50,6 +50,8 @@ const ConsultationWorkspace = () => {
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [consultationId, setConsultationId] = useState<string | null>(null);
   const consultationIdRef = useRef<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const form = useForm({
     resolver: zodResolver(consultationSchema),
@@ -156,6 +158,8 @@ const ConsultationWorkspace = () => {
     }
   }, [existingConsultation]);
 
+  const clearFeedback = () => { setError(null); setSuccess(null); };
+
   const ensureConsultation = async (pId: string): Promise<string> => {
     if (consultationIdRef.current) return consultationIdRef.current;
     const { data, error } = await supabase.from("consultations").insert({
@@ -169,6 +173,30 @@ const ConsultationWorkspace = () => {
     setConsultationId(data.id);
     return data.id;
   };
+
+  const saveClinicalNotes = useMutation({
+    mutationFn: async (formData: any) => {
+      const pId = formData.patientId || selectedPatient?.id;
+      if (!pId) throw new Error("No patient selected");
+      const cId = await ensureConsultation(pId);
+      const { error } = await supabase.from("consultations").update({
+        chief_complaint: formData.chiefComplaint,
+        symptoms: formData.symptoms || null,
+        diagnosis: formData.diagnosis || null,
+        clinical_notes: formData.clinicalNotes || null,
+        treatment_plan: formData.treatmentPlan || null,
+      }).eq("id", cId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setSuccess("Clinical notes saved");
+      queryClient.invalidateQueries({ queryKey: ["consultations"] });
+      setTimeout(() => setSuccess(null), 3000);
+    },
+    onError: (err: any) => {
+      setError(err?.message || "Failed to save clinical notes");
+    },
+  });
 
   const savePrescriptions = useMutation({
     mutationFn: async () => {
@@ -189,9 +217,14 @@ const ConsultationWorkspace = () => {
       if (itemsError) throw itemsError;
     },
     onSuccess: () => {
+      setSuccess("Prescriptions saved");
       replacePrescriptions([]);
       queryClient.invalidateQueries({ queryKey: ["consultations"] });
       queryClient.invalidateQueries({ queryKey: ["patient-rx"] });
+      setTimeout(() => setSuccess(null), 3000);
+    },
+    onError: (err: any) => {
+      setError(err?.message || "Failed to save prescriptions");
     },
   });
 
@@ -209,9 +242,14 @@ const ConsultationWorkspace = () => {
       if (error) throw error;
     },
     onSuccess: () => {
+      setSuccess("Lab requests saved");
       replaceLabs([]);
       queryClient.invalidateQueries({ queryKey: ["consultations"] });
       queryClient.invalidateQueries({ queryKey: ["patient-labs"] });
+      setTimeout(() => setSuccess(null), 3000);
+    },
+    onError: (err: any) => {
+      setError(err?.message || "Failed to save lab requests");
     },
   });
 
@@ -228,16 +266,28 @@ const ConsultationWorkspace = () => {
       if (error) throw error;
     },
     onSuccess: () => {
+      setSuccess("Radiology requests saved");
       replaceRads([]);
       queryClient.invalidateQueries({ queryKey: ["radiology-requests"] });
       queryClient.invalidateQueries({ queryKey: ["patient-radiology-requests"] });
+      setTimeout(() => setSuccess(null), 3000);
+    },
+    onError: (err: any) => {
+      setError(err?.message || "Failed to save radiology requests");
     },
   });
 
   const completeConsultation = useMutation({
     mutationFn: async (formData: any) => {
-      const pId = formData.patientId;
+      const pId = formData.patientId || selectedPatient?.id;
+      if (!pId) throw new Error("No patient selected");
       let cId = consultationIdRef.current;
+
+      if (!cId) {
+        const { data, error } = await supabase.from("consultations").select("id").eq("patient_id", pId).in("status", ["VitalsRecorded", "InProgress"]).order("created_at", { ascending: false }).limit(1);
+        if (error) throw error;
+        cId = data?.[0]?.id || null;
+      }
 
       if (cId) {
         const { error } = await supabase.from("consultations").update({
@@ -250,6 +300,7 @@ const ConsultationWorkspace = () => {
           status: "Completed",
         }).eq("id", cId);
         if (error) throw error;
+        consultationIdRef.current = cId;
       } else {
         const { data, error } = await supabase.from("consultations").insert({
           patient_id: pId, doctor_id: user?.id,
@@ -317,7 +368,15 @@ const ConsultationWorkspace = () => {
       setSelectedPatient(null);
       navigate("/consultations");
     },
+    onError: (err: any) => {
+      setError(err?.message || "Failed to complete consultation");
+    },
   });
+
+  const onComplete = (data: any) => {
+    setError(null);
+    completeConsultation.mutate(data);
+  };
 
   if (patientsLoading || existingLoading) {
     return (
@@ -328,10 +387,10 @@ const ConsultationWorkspace = () => {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl mx-auto pb-20">
+    <form onSubmit={handleSubmit(onComplete)} className="space-y-8 animate-in fade-in duration-500 max-w-5xl mx-auto pb-20">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/consultations")} className="h-9 w-9">
+          <Button type="button" variant="ghost" size="icon" onClick={() => navigate("/consultations")} className="h-9 w-9">
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
@@ -342,6 +401,21 @@ const ConsultationWorkspace = () => {
           </div>
         </div>
       </div>
+
+      {error && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{error}</span>
+          <button type="button" className="ml-auto text-red-500 hover:text-red-700 font-bold" onClick={() => setError(null)}>&times;</button>
+        </div>
+      )}
+
+      {success && (
+        <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
+          <span>{success}</span>
+          <button type="button" className="ml-auto text-emerald-500 hover:text-emerald-700 font-bold" onClick={() => setSuccess(null)}>&times;</button>
+        </div>
+      )}
 
       <Card className="border-none shadow-sm ring-1 ring-slate-200">
         <CardHeader>
@@ -359,6 +433,7 @@ const ConsultationWorkspace = () => {
                 setValue("patientId", val as any);
                 setConsultationId(null);
                 consultationIdRef.current = null;
+                clearFeedback();
               }}
               placeholder="Search or select patient..."
               options={(Array.isArray(patients) ? patients : []).map((p: any) => ({ value: p.id, label: `${p.firstName} ${p.lastName} (${p.patientId})` }))}
@@ -419,6 +494,7 @@ const ConsultationWorkspace = () => {
                   <div className="space-y-2">
                     <Label htmlFor="chiefComplaint">Chief Complaint <span className="text-red-500">*</span></Label>
                     <Input id="chiefComplaint" {...register("chiefComplaint")} placeholder="e.g. Persistent cough, chest pain..." className={errors.chiefComplaint ? "border-red-500" : ""} />
+                    {errors.chiefComplaint && <p className="text-xs text-red-500">Chief complaint is required (min 3 characters)</p>}
                   </div>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
@@ -433,6 +509,11 @@ const ConsultationWorkspace = () => {
                   <div className="space-y-2">
                     <Label htmlFor="clinicalNotes">Clinical Observations</Label>
                     <Textarea id="clinicalNotes" {...register("clinicalNotes")} placeholder="Detailed examination notes..." className="min-h-[120px]" />
+                  </div>
+                  <div className="flex justify-end">
+                    <Button type="button" size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={handleSubmit((data) => saveClinicalNotes.mutate(data))} disabled={saveClinicalNotes.isPending}>
+                      {saveClinicalNotes.isPending ? "Saving..." : <><Save className="w-3 h-3 mr-1" /> Save Clinical Notes</>}
+                    </Button>
                   </div>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
@@ -576,7 +657,7 @@ const ConsultationWorkspace = () => {
 
           <div className="flex justify-end gap-4">
             <Button type="button" variant="outline" className="h-12 px-8" onClick={() => navigate("/consultations")}>Cancel</Button>
-            <Button type="button" className="h-12 px-8 bg-blue-600 hover:bg-blue-700 font-bold" disabled={completeConsultation.isPending} onClick={handleSubmit((data) => completeConsultation.mutate(data))}>
+            <Button type="submit" className="h-12 px-8 bg-blue-600 hover:bg-blue-700 font-bold" disabled={completeConsultation.isPending}>
               {completeConsultation.isPending ? "Saving..." : (
                 <><Save className="w-4 h-4 mr-2" /> Complete Consultation</>
               )}
@@ -584,7 +665,7 @@ const ConsultationWorkspace = () => {
           </div>
         </div>
       )}
-    </div>
+    </form>
   );
 };
 

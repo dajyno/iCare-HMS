@@ -172,11 +172,15 @@ const ConsultationList = () => {
                           className={`h-8 text-xs font-semibold ${
                             c.status === "Completed" ? "text-slate-400" : c.status === "InProgress" ? "text-blue-600" : "text-amber-600"
                           }`}
-                          onClick={() => {
-                            if (c.status === "VitalsRecorded") {
-                              handleStartConsultation(c);
-                            } else {
-                              navigate(`/consultations/workspace/${c.patientId || c.patient_id}`);
+                          onClick={async () => {
+                            try {
+                              if (c.status === "VitalsRecorded") {
+                                await handleStartConsultation(c);
+                              } else {
+                                navigate(`/consultations/workspace/${c.patientId || c.patient_id}`);
+                              }
+                            } catch (err) {
+                              console.error("Failed to start consultation:", err);
                             }
                           }}
                         >
