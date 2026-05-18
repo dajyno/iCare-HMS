@@ -132,8 +132,8 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
       setShowNewModal(false);
       setNewForm({});
     },
-    onError: (error) => {
-      alert(error instanceof Error ? error.message : "Failed to create patient");
+    onError: (error: any) => {
+      alert(error?.message || error?.details || error?.hint || error?.error_description || JSON.stringify(error));
     },
   });
 
