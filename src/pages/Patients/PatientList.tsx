@@ -88,13 +88,36 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
   const { data: doctors } = useQuery({
     queryKey: ["doctors"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const ids = new Set<string>();
+      const result: Array<{ id: string; fullName: string }> = [];
+
+      const { data: users, error: usersError } = await supabase
         .from("users")
         .select("id, full_name")
         .eq("role", "Doctor")
         .eq("status", "active");
-      if (error) throw error;
-      return toCamel(data);
+      if (!usersError && users) {
+        for (const u of users as any[]) {
+          ids.add(u.id);
+          result.push({ id: u.id, fullName: u.full_name });
+        }
+      }
+
+      const { data: staff, error: staffError } = await supabase
+        .from("staff")
+        .select("staff_id, name, auth_user_id")
+        .eq("is_clinician", true);
+      if (!staffError && staff) {
+        for (const s of staff as any[]) {
+          const sid = s.auth_user_id || s.staff_id;
+          if (!ids.has(sid)) {
+            ids.add(sid);
+            result.push({ id: sid, fullName: s.name });
+          }
+        }
+      }
+
+      return result;
     },
   });
 

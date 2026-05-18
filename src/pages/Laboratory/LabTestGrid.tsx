@@ -46,17 +46,42 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
     },
   });
 
-  const { data: doctors, isError: doctorsError } = useQuery({
+  const { data: doctors } = useQuery({
     queryKey: ["doctors"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const ids = new Set<string>();
+      const result: Array<{ id: string; fullName: string }> = [];
+
+      // Try users table first
+      const { data: users, error: usersError } = await supabase
         .from("users")
         .select("id, full_name")
         .in("role", ["Doctor", "HospitalAdmin", "SuperAdmin"])
         .eq("status", "active")
         .order("full_name", { ascending: true });
-      if (error) throw error;
-      return toCamel(data);
+      if (!usersError && users) {
+        for (const u of users as any[]) {
+          ids.add(u.id);
+          result.push({ id: u.id, fullName: u.full_name });
+        }
+      }
+
+      // Also pull clinicians from staff table (for demo/fallback accounts)
+      const { data: staff, error: staffError } = await supabase
+        .from("staff")
+        .select("staff_id, name, auth_user_id")
+        .eq("is_clinician", true);
+      if (!staffError && staff) {
+        for (const s of staff as any[]) {
+          const sid = s.auth_user_id || s.staff_id;
+          if (!ids.has(sid)) {
+            ids.add(sid);
+            result.push({ id: sid, fullName: s.name });
+          }
+        }
+      }
+
+      return result;
     },
   });
 

@@ -433,7 +433,6 @@ const PatientProfile = () => {
       amount_paid: 0,
       balance: total,
       status: "Unpaid",
-      created_by: currentUser?.id,
       items: [{ description: billForm.description, quantity: qty, unit_price: unitPrice, total }],
     });
   };
