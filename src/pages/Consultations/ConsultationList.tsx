@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import {
-  Clock, Play, CheckCircle2, Plus, Loader2, AlertCircle,
-  Thermometer, HeartPulse, Droplets
+  Clock, Play, CheckCircle2, Plus, Loader2, AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,29 +26,40 @@ const ConsultationList = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("consultations")
-        .select("*, patient:patients(id, patient_id, first_name, last_name)")
+        .select("*")
         .order("created_at", { ascending: false });
-      if (error) {
-        console.error("ConsultationList Supabase error:", error);
-        throw error;
-      }
+      if (error) throw error;
       return toCamel(data);
     },
   });
 
-  const handleStartConsultation = useCallback(async (c: any) => {
-    const pid = c.patientId || c.patient_id;
-    if (c.status === "VitalsRecorded") {
-      await supabase.from("consultations").update({ status: "InProgress" }).eq("id", c.id);
-      queryClient.invalidateQueries({ queryKey: ["consultations"] });
-    }
-    navigate(`/consultations/workspace/${pid}`);
-  }, [navigate, queryClient]);
+  const { data: patients } = useQuery({
+    queryKey: ["patients-short"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("patients")
+        .select("id, patient_id, first_name, last_name");
+      if (error) throw error;
+      return toCamel(data);
+    },
+  });
+
+  const patientMap = useMemo(() => {
+    if (!Array.isArray(patients)) return new Map();
+    return new Map(patients.map((p: any) => [p.id, p]));
+  }, [patients]);
+
+  const enrichedConsultations = useMemo(() => {
+    if (!Array.isArray(consultations)) return [];
+    return consultations.map((c: any) => ({
+      ...c,
+      _patient: patientMap.get(c.patientId || c.patient_id) || null,
+    }));
+  }, [consultations, patientMap]);
 
   const sorted = useMemo(() => {
-    if (!Array.isArray(consultations)) return [];
     const order: Record<string, number> = { VitalsRecorded: 0, InProgress: 1, Completed: 2 };
-    return [...consultations].sort((a: any, b: any) => {
+    return [...enrichedConsultations].sort((a: any, b: any) => {
       const aOrder = a.status && order[a.status] !== undefined ? order[a.status] : 3;
       const bOrder = b.status && order[b.status] !== undefined ? order[b.status] : 3;
       if (aOrder !== bOrder) return aOrder - bOrder;
@@ -58,7 +68,7 @@ const ConsultationList = () => {
       }
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-  }, [consultations]);
+  }, [enrichedConsultations]);
 
   const paginated = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -69,6 +79,15 @@ const ConsultationList = () => {
     const maxPage = Math.max(1, Math.ceil(sorted.length / pageSize));
     if (page > maxPage) setPage(maxPage);
   }, [sorted, pageSize]);
+
+  const handleStartConsultation = useCallback(async (c: any) => {
+    const pid = c.patientId || c.patient_id;
+    if (c.status === "VitalsRecorded") {
+      await supabase.from("consultations").update({ status: "InProgress" }).eq("id", c.id);
+      queryClient.invalidateQueries({ queryKey: ["consultations"] });
+    }
+    navigate(`/consultations/workspace/${pid}`);
+  }, [navigate, queryClient]);
 
   if (isLoading) return (
     <div className="h-[60vh] flex items-center justify-center">
@@ -111,17 +130,15 @@ const ConsultationList = () => {
                   <th className="px-4 py-3 text-left min-w-[200px]">Patient</th>
                   <th className="px-4 py-3 text-left min-w-[140px]">Status</th>
                   <th className="px-4 py-3 text-left whitespace-nowrap">Date / Time</th>
-                  <th className="px-4 py-3 text-left min-w-[160px]">Vital Signs</th>
                   <th className="px-4 py-3 text-left min-w-[120px]">Complaint</th>
                   <th className="px-4 py-3 text-center">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {paginated.map((c: any) => {
-                  const patient = Array.isArray(c.patient) ? c.patient[0] : c.patient;
+                  const patient = c._patient;
                   const s = statusConfig[c.status] || statusConfig.Completed;
                   const StatusIcon = s.icon;
-                  const vs = Array.isArray(c.vitalSigns) ? c.vitalSigns[0] : c.vitalSigns;
 
                   return (
                     <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
@@ -144,18 +161,6 @@ const ConsultationList = () => {
                       </td>
                       <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
                         {c.createdAt ? new Date(c.createdAt).toLocaleString() : ""}
-                      </td>
-                      <td className="px-4 py-3">
-                        {vs ? (
-                          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-slate-600">
-                            {vs.temperature != null && <span><Thermometer className="w-3 h-3 inline mr-0.5 text-rose-400" />{vs.temperature}°C</span>}
-                            {vs.bloodPressure && <span><HeartPulse className="w-3 h-3 inline mr-0.5 text-red-400" />{vs.bloodPressure}</span>}
-                            {vs.pulseRate != null && <span className="font-mono">{vs.pulseRate} bpm</span>}
-                            {vs.oxygenSaturation != null && <span><Droplets className="w-3 h-3 inline mr-0.5 text-blue-400" />{vs.oxygenSaturation}%</span>}
-                          </div>
-                        ) : (
-                          <span className="text-slate-300 text-xs">No vitals</span>
-                        )}
                       </td>
                       <td className="px-4 py-3 text-xs text-slate-700 max-w-[160px] truncate">
                         {c.chiefComplaint || "—"}
