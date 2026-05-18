@@ -353,7 +353,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
             <tbody className="divide-y divide-slate-100">
               {Array.isArray(paginatedPatients) && paginatedPatients.length > 0 ? (
                 paginatedPatients.map((patient: any) => (
-                  <tr key={patient.id} onClick={() => navigate(`/patients/${patient.id}`)} className="cursor-pointer hover:bg-slate-50/80 transition-colors group">
+                  <tr key={patient.id} className="hover:bg-slate-50/80 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
@@ -387,35 +387,38 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
                       {patient.registrationDate ? new Date(patient.registrationDate).toLocaleDateString() : "N/A"}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-900">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44 font-sans">
-                          <DropdownMenuItem className="cursor-pointer" onClick={(e) => { e.stopPropagation(); navigate(`/patients/${patient.id}`); }}>
-                            <FileText className="w-3.5 h-3.5 mr-2 text-blue-500" /> View Profile
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer" onClick={(e) => { e.stopPropagation(); openEdit(patient); }}>
-                            <Edit className="w-3.5 h-3.5 mr-2 text-slate-500" /> Edit Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer" onClick={(e) => { e.stopPropagation(); openAppt(patient); }}>
-                            <CalendarDays className="w-3.5 h-3.5 mr-2 text-emerald-500" /> Book Appointment
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="cursor-pointer text-red-600"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (window.confirm(`Archive ${patient.firstName} ${patient.lastName}?`)) {
-                                archiveMutation.mutate(patient.id);
-                              }
-                            }}
-                          >
-                            <Archive className="w-3.5 h-3.5 mr-2" /> Archive
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="sm" className="h-8 text-blue-600 font-bold text-xs"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/patients/${patient.id}`); }}>
+                          <FileText className="w-3.5 h-3.5 mr-1" /> View Profile
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-900">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44 font-sans">
+                            <DropdownMenuItem className="cursor-pointer" onClick={(e) => { e.stopPropagation(); openEdit(patient); }}>
+                              <Edit className="w-3.5 h-3.5 mr-2 text-slate-500" /> Edit Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer" onClick={(e) => { e.stopPropagation(); openAppt(patient); }}>
+                              <CalendarDays className="w-3.5 h-3.5 mr-2 text-emerald-500" /> Book Appointment
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="cursor-pointer text-red-600"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (window.confirm(`Archive ${patient.firstName} ${patient.lastName}?`)) {
+                                  archiveMutation.mutate(patient.id);
+                                }
+                              }}
+                            >
+                              <Archive className="w-3.5 h-3.5 mr-2" /> Archive
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </td>
                   </tr>
                 ))

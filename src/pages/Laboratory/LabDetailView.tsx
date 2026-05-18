@@ -125,7 +125,6 @@ const LabDetailView = ({
     const latestUnits = unitsRef.current;
     const latestInterps = interpretationsRef.current;
     const latestFile = fileRef.current;
-    const latestExisting = existingResultsRef.current;
 
     for (const o of orders) {
       const val = latestResults[o.id] ?? "";
@@ -137,24 +136,17 @@ const LabDetailView = ({
         if (!interp.startsWith("[ATTACHMENT:")) interp = fileTag + interp;
       }
 
-      const existing = latestExisting?.find((r: any) => r.requestId === o.id);
-      if (existing) {
-        const { error } = await supabase
-          .from("lab_results")
-          .update({ result_value: val, unit: unit || null, interpretation: interp || null })
-          .eq("id", existing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("lab_results").insert({
+      const { error } = await supabase
+        .from("lab_results")
+        .upsert({
           request_id: o.id,
           patient_id: o.patientId,
           result_value: val,
           unit: unit || null,
           reference_range: o.test?.referenceRange ?? null,
           interpretation: interp || null,
-        });
-        if (error) throw error;
-      }
+        }, { onConflict: "request_id" });
+      if (error) throw error;
 
       if (markCompleted) {
         const { error } = await supabase

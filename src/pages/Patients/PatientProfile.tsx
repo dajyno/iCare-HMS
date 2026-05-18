@@ -168,31 +168,16 @@ const PatientProfile = () => {
   const { data: familyMembers } = useQuery({
     queryKey: ["patient-family-group", patient?.id],
     queryFn: async () => {
-      const fields = "id, patient_id, first_name, last_name, phone, gender, is_primary, family_id";
-      if (patient.isPrimary) {
-        const { data, error } = await supabase
-          .from("patients")
-          .select(fields)
-          .eq("family_id", patient.id)
-          .order("first_name", { ascending: true });
-        if (error) throw error;
-        return toCamel(data);
-      }
-      const { data: primary } = await supabase
+      const fields = "id, patient_id, first_name, last_name, phone, gender, is_primary, family_id, relationship";
+      const { data, error } = await supabase
         .from("patients")
         .select(fields)
-        .eq("id", patient.familyId)
-        .single();
-      const { data: others } = await supabase
-        .from("patients")
-        .select(fields)
-        .eq("family_id", patient.familyId)
-        .neq("id", id)
+        .eq("family_id", patient.id)
         .order("first_name", { ascending: true });
-      if (others) others.unshift(toCamel(primary));
-      return toCamel(others || [primary]);
+      if (error) throw error;
+      return toCamel(data);
     },
-    enabled: !!patient && patient.category === "Family",
+    enabled: !!patient,
   });
 
   const { data: labTests } = useQuery({
@@ -350,6 +335,68 @@ const PatientProfile = () => {
     },
   });
 
+  const [showDependantModal, setShowDependantModal] = useState(false);
+  const [dependantForm, setDependantForm] = useState({
+    firstName: "", lastName: "", gender: "", dateOfBirth: "", bloodGroup: "", relationship: "",
+  });
+
+  const RELATIONSHIP_OPTIONS = [
+    "Wife", "Son", "Daughter", "Mother", "Father", "Brother", "Sister",
+    "Uncle", "Aunt", "Cousin", "Grandfather", "Grandmother", "Grandson", "Granddaughter",
+    "Nephew", "Niece", "Friend", "Ward", "Spouse", "Partner",
+    "Others",
+  ];
+
+  const createDependant = useMutation({
+    mutationFn: async (formData: typeof dependantForm) => {
+      const folderBase = (formData.lastName || "DEP").toUpperCase().replace(/[^A-Z]/g, "").substring(0, 6);
+      const { data: existing } = await supabase
+        .from("patients")
+        .select("patient_id")
+        .like("patient_id", `${folderBase}-%`)
+        .order("patient_id", { ascending: false })
+        .limit(1);
+      const lastNum = existing?.[0]?.patient_id
+        ? parseInt(String(existing[0].patient_id).split("-").pop() || "0", 10)
+        : 0;
+      const newPatientId = `${folderBase}-${String(lastNum + 1).padStart(3, "0")}`;
+
+      const { data, error } = await supabase
+        .from("patients")
+        .insert({
+          patient_id: newPatientId,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          gender: formData.gender,
+          date_of_birth: formData.dateOfBirth,
+          blood_group: formData.bloodGroup || null,
+          relationship: formData.relationship || null,
+          category: patient.category === "Family" ? "Family" : "Family",
+          family_id: id,
+          is_primary: false,
+          status: "active",
+          phone: "",
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patient-family-group", patient?.id] });
+      setShowDependantModal(false);
+      setDependantForm({ firstName: "", lastName: "", gender: "", dateOfBirth: "", bloodGroup: "", relationship: "" });
+    },
+    onError: (err: Error) => {
+      alert(`Failed to create dependant: ${err.message}`);
+    },
+  });
+
+  const handleDependantSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createDependant.mutate(dependantForm);
+  };
+
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const { id: _, patientId, createdAt, registrationDate, ...rest } = editForm;
@@ -499,6 +546,9 @@ const PatientProfile = () => {
           <p className="text-sm text-slate-500">{patient.patientId}</p>
         </div>
         <div className="ml-auto flex gap-2">
+          <Button variant="outline" onClick={() => setShowDependantModal(true)} className="border-slate-200">
+            <Users className="w-4 h-4 mr-2" /> Add Dependant
+          </Button>
           <Button onClick={openEdit} className="bg-blue-600 hover:bg-blue-700">
             <Edit className="w-4 h-4 mr-2" /> Edit
           </Button>
@@ -582,40 +632,6 @@ const PatientProfile = () => {
               <div><span className="text-[10px] font-bold uppercase text-slate-400">Registered</span><p className="font-semibold mt-1">{patient.registrationDate ? new Date(patient.registrationDate).toLocaleDateString() : "N/A"}</p></div>
             </CardContent>
 
-            {/* Family Members */}
-            {patient.category === "Family" && Array.isArray(familyMembers) && familyMembers.length > 0 && (
-              <CardContent className="border-t border-slate-100 pt-4">
-                <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1.5 mb-3">
-                  <Users className="w-3.5 h-3.5" /> {patient.isPrimary ? "Dependants" : "Family Members"}
-                </span>
-                <div className="space-y-2">
-                  {familyMembers.map((fm: any) => {
-                    const isPrimary = fm.isPrimary || fm.id === patient.familyId;
-                    const isSelf = fm.id === patient.id;
-                    return (
-                      <div key={fm.id} className="flex items-center justify-between py-2 px-3 rounded-lg" style={{ backgroundColor: isPrimary ? "#fef3c7" : "#f8fafc" }}>
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs" style={{ backgroundColor: isPrimary ? "#f59e0b" : "#10b981", color: "white" }}>
-                            {fm.firstName?.[0]}{fm.lastName?.[0]}
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold text-slate-700">{fm.firstName} {fm.lastName} {isSelf && <span className="text-[10px] text-slate-400 font-normal">(current)</span>}</p>
-                            <p className="text-xs text-slate-400">{fm.patientId} {isPrimary && "• Primary"}</p>
-                          </div>
-                        </div>
-                        {!isSelf && (
-                          <Button variant="ghost" size="sm" className="h-8 text-blue-600 font-bold"
-                            onClick={() => navigate(`/patients/${fm.id}`)}>
-                            View Profile
-                          </Button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            )}
-
             {(patient.companyName || patient.insuranceProvider) && (
               <CardContent className="border-t border-slate-100 pt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                 {patient.companyName && (
@@ -645,6 +661,32 @@ const PatientProfile = () => {
               <div><span className="text-[10px] font-bold uppercase text-slate-400">Emergency Contact</span><p className="font-semibold mt-1">{patient.emergencyContact || "N/A"}</p></div>
             </CardContent>
           </Card>
+
+          {/* Dependants */}
+          {Array.isArray(familyMembers) && familyMembers.length > 0 && (
+            <Card className="border-none shadow-sm ring-1 ring-slate-200">
+              <CardHeader><CardTitle className="text-sm font-bold flex items-center gap-2"><Users className="w-4 h-4 text-emerald-500" /> Dependants</CardTitle></CardHeader>
+              <CardContent className="space-y-2">
+                {familyMembers.map((fm: any) => (
+                  <div key={fm.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center font-bold text-xs text-white">
+                        {fm.firstName?.[0]}{fm.lastName?.[0]}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-700">{fm.firstName} {fm.lastName}</p>
+                        <p className="text-xs text-slate-400">{fm.patientId} {fm.relationship ? `• ${fm.relationship}` : ""}</p>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="sm" className="h-8 text-blue-600 font-bold"
+                      onClick={() => navigate(`/patients/${fm.id}`)}>
+                      View Profile
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* ========== VITAL SIGNS ========== */}
@@ -1182,6 +1224,50 @@ const PatientProfile = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelectedLabResult(null)}>Close</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ======== ADD DEPENDANT MODAL ======== */}
+      <Dialog open={showDependantModal} onOpenChange={setShowDependantModal}>
+        <DialogContent className="w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add Dependant</DialogTitle>
+            <DialogDescription>Register a new dependant for this folder.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleDependantSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>First Name *</Label>
+                <Input required value={dependantForm.firstName} onChange={(e) => setDependantForm({ ...dependantForm, firstName: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Last Name *</Label>
+                <Input required value={dependantForm.lastName} onChange={(e) => setDependantForm({ ...dependantForm, lastName: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Gender *</Label>
+                <SearchableSelect value={dependantForm.gender} onValueChange={(v) => setDependantForm({ ...dependantForm, gender: v })} placeholder="Select" options={[{value:"Male",label:"Male"},{value:"Female",label:"Female"}]} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Date of Birth *</Label>
+                <Input type="date" required value={dependantForm.dateOfBirth} onChange={(e) => setDependantForm({ ...dependantForm, dateOfBirth: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Blood Group</Label>
+                <SearchableSelect value={dependantForm.bloodGroup} onValueChange={(v) => setDependantForm({ ...dependantForm, bloodGroup: v })} placeholder="Select" options={["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(b => ({value:b,label:b}))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Relationship *</Label>
+                <SearchableSelect value={dependantForm.relationship} onValueChange={(v) => setDependantForm({ ...dependantForm, relationship: v })} placeholder="Select" options={RELATIONSHIP_OPTIONS.map(r => ({value: r, label: r}))} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => { setShowDependantModal(false); setDependantForm({ firstName: "", lastName: "", gender: "", dateOfBirth: "", bloodGroup: "", relationship: "" }); }}>Cancel</Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={createDependant.isPending}>
+                {createDependant.isPending ? "Saving..." : "Add Dependant"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

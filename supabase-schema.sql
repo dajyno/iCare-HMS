@@ -861,6 +861,11 @@ update public.patients p set family_id = (
 where p.category = 'Family' and p.family_id is null and p.is_primary = false;
 
 -- ============================================================
+-- MIGRATION: Add relationship column for dependants (safe to re-run)
+-- ============================================================
+alter table public.patients add column if not exists relationship text;
+
+-- ============================================================
 -- DROP FK CONSTRAINTS that reference public.users(id)
 -- These were removed from CREATE TABLE above but may still exist
 -- in databases that ran an earlier version of the schema.
