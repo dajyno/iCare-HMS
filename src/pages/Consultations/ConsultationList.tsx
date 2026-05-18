@@ -40,6 +40,9 @@ const ConsultationList = () => {
       const aOrder = order[a.status as keyof typeof order] ?? 3;
       const bOrder = order[b.status as keyof typeof order] ?? 3;
       if (aOrder !== bOrder) return aOrder - bOrder;
+      if (a.status === "VitalsRecorded") {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      }
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
   }, [consultations]);

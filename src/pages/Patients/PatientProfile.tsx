@@ -103,6 +103,20 @@ const PatientProfile = () => {
     enabled: !!id,
   });
 
+  const { data: radiologyRequestsData } = useQuery({
+    queryKey: ["patient-radiology-requests", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("radiology_requests")
+        .select("*, exam:radiology_exams(*, category:radiology_categories(name)), result:radiology_results(*)")
+        .eq("patient_id", id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return toCamel(data);
+    },
+    enabled: !!id,
+  });
+
   const { data: prescriptions } = useQuery({
     queryKey: ["patient-rx", id],
     queryFn: async () => {
@@ -453,9 +467,22 @@ const PatientProfile = () => {
     </div>
   );
 
-  const radiologyRequests = Array.isArray(labRequests)
+  const radiologyFromLab = Array.isArray(labRequests)
     ? labRequests.filter((lr: any) => lr.test?.category === "Radiology")
     : [];
+
+  const radiologyFromRad = Array.isArray(radiologyRequestsData)
+    ? radiologyRequestsData.map((rr: any) => ({
+        id: rr.id,
+        status: rr.status,
+        createdAt: rr.createdAt,
+        test: rr.exam ? { name: rr.exam.name, category: rr.exam.category?.name } : null,
+        results: rr.result ? { resultValue: rr.result.findings, unit: "", interpretation: rr.result.conclusion } : null,
+        _source: "radiology_requests",
+      }))
+    : [];
+
+  const radiologyRequests = [...radiologyFromRad, ...radiologyFromLab];
 
   const regularLabs = Array.isArray(labRequests)
     ? labRequests.filter((lr: any) => lr.test?.category !== "Radiology")
@@ -751,15 +778,17 @@ const PatientProfile = () => {
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
                     <div>
-                      <div className="flex items-center gap-2"><Bone className="w-4 h-4 text-indigo-500" /><span className="font-bold text-slate-900">{lr.test?.name || "Unknown"}</span></div>
+                      <div className="flex items-center gap-2"><Bone className="w-4 h-4 text-indigo-500" /><span className="font-bold text-slate-900">{lr.test?.name || "Unknown"}</span>
+                        {lr._source === "radiology_requests" && <span className="text-[10px] text-slate-400 font-normal">(Radiology)</span>}
+                      </div>
                       <Badge variant="outline" className="mt-2 text-[10px]">{lr.status}</Badge>
                     </div>
                     <span className="text-xs text-slate-400">{lr.createdAt ? new Date(lr.createdAt).toLocaleDateString() : ""}</span>
                   </div>
-                  {lr.results && (
+                  {lr.results && lr.results.resultValue && (
                     <div className="mt-3 p-3 bg-slate-50 rounded-lg text-sm">
-                      <span className="font-semibold text-slate-700">Result: </span>{lr.results.resultValue} {lr.results.unit || ""}
-                      {lr.results.interpretation && <p className="text-xs text-slate-500 mt-1">{lr.results.interpretation}</p>}
+                      <span className="font-semibold text-slate-700">Findings: </span>{lr.results.resultValue}
+                      {lr.results.interpretation && <p className="text-xs text-slate-500 mt-1"><span className="font-semibold">Conclusion:</span> {lr.results.interpretation}</p>}
                     </div>
                   )}
                 </CardContent>
