@@ -26,7 +26,7 @@ const ConsultationList = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("consultations")
-        .select("*")
+        .select("*, patient:patients(id, patient_id, first_name, last_name)")
         .order("created_at", { ascending: false });
       if (error) {
         console.error("ConsultationList Supabase error:", error);
