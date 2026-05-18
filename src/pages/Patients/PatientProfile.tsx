@@ -376,10 +376,16 @@ const PatientProfile = () => {
       const newPatientId = `${folderBase}-${String(lastNum + 1).padStart(3, "0")}`;
 
       // If this patient is not a Family folder, upgrade it to Family first
-      if (patient.category !== "Family") {
+      if (patient.category === "Individual") {
         const { error: upgradeError } = await supabase
           .from("patients")
           .update({ category: "Family", is_primary: true })
+          .eq("id", id);
+        if (upgradeError) throw upgradeError;
+      } else if (patient.category === "Corporate" || patient.category === "HMO") {
+        const { error: upgradeError } = await supabase
+          .from("patients")
+          .update({ is_primary: true })
           .eq("id", id);
         if (upgradeError) throw upgradeError;
       }
@@ -394,7 +400,7 @@ const PatientProfile = () => {
           date_of_birth: formData.dateOfBirth,
           blood_group: formData.bloodGroup || null,
           relationship: formData.relationship || null,
-          category: "Family",
+          category: patient.category === "Individual" ? "Family" : patient.category,
           family_id: id,
           is_primary: false,
           status: "active",
@@ -1282,7 +1288,7 @@ const PatientProfile = () => {
             <DialogTitle>Add Dependant</DialogTitle>
             <DialogDescription>Register a new dependant for this folder.</DialogDescription>
           </DialogHeader>
-          {patient.category !== "Family" && (
+          {patient.category === "Individual" && (
             <div className="flex items-start gap-3 px-4 py-3 rounded-xl border border-amber-200 bg-amber-50 mb-4">
               <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
               <div>
@@ -1290,6 +1296,18 @@ const PatientProfile = () => {
                 <p className="text-xs text-amber-700 mt-0.5">
                   Adding a dependant will upgrade this folder to a Family folder.
                   The current patient will become the primary member and will appear on the Family page.
+                </p>
+              </div>
+            </div>
+          )}
+          {(patient.category === "Corporate" || patient.category === "HMO") && (
+            <div className="flex items-start gap-3 px-4 py-3 rounded-xl border border-amber-200 bg-amber-50 mb-4">
+              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-bold text-amber-800">This patient will become a primary member</p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Adding a dependant will keep this patient as a {patient.category} folder.
+                  The current patient will become the primary member with beneficiaries.
                 </p>
               </div>
             </div>
