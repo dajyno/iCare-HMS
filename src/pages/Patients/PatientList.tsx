@@ -130,6 +130,10 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       setShowNewModal(false);
+      setNewForm({});
+    },
+    onError: (error) => {
+      alert(error instanceof Error ? error.message : "Failed to create patient");
     },
   });
 
@@ -209,6 +213,17 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
       insurance_provider: newForm.insuranceProvider || null,
       insurance_id: newForm.insuranceId || null,
     };
+    const missing: string[] = [];
+    if (!newForm.firstName?.trim()) missing.push("First Name");
+    if (!newForm.lastName?.trim()) missing.push("Last Name");
+    if (!newForm.gender) missing.push("Gender");
+    if (!newForm.patientId?.trim()) missing.push("Folder No.");
+    if (!newForm.dateOfBirth) missing.push("Date of Birth");
+    if (!newForm.phone?.trim()) missing.push("Phone");
+    if (missing.length) {
+      alert(`Please fill in the required fields: ${missing.join(", ")}`);
+      return;
+    }
     createMutation.mutate(payload);
   };
 

@@ -93,6 +93,9 @@ const FamilyPatients = () => {
       setShowNewModal(false);
       setNewForm({});
     },
+    onError: (error) => {
+      alert(error instanceof Error ? error.message : "Failed to create patient");
+    },
   });
 
   const handleNewSubmit = (e: React.FormEvent) => {
@@ -116,6 +119,17 @@ const FamilyPatients = () => {
       next_of_kin_phone: newForm.nextOfKinPhone || null,
       next_of_kin_relation: newForm.nextOfKinRelation || null,
     };
+    const missing: string[] = [];
+    if (!newForm.firstName?.trim()) missing.push("First Name");
+    if (!newForm.lastName?.trim()) missing.push("Last Name");
+    if (!newForm.gender) missing.push("Gender");
+    if (!newForm.patientId?.trim()) missing.push("Folder No.");
+    if (!newForm.dateOfBirth) missing.push("Date of Birth");
+    if (!newForm.phone?.trim()) missing.push("Phone");
+    if (missing.length) {
+      alert(`Please fill in the required fields: ${missing.join(", ")}`);
+      return;
+    }
     createMutation.mutate(payload);
   };
 
