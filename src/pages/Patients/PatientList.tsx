@@ -170,6 +170,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
   });
 
   const [newForm, setNewForm] = useState<any>({});
+  const [patientIdManuallySet, setPatientIdManuallySet] = useState(false);
   const [editForm, setEditForm] = useState<any>({});
   const [apptForm, setApptForm] = useState<any>({});
 
@@ -317,7 +318,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
             Filters
             {showFilters && <ChevronDown className="w-3 h-3 ml-1" />}
           </Button>
-          <Button size="sm" className="h-9 bg-blue-600 hover:bg-blue-700" onClick={() => { setNewForm({}); setShowNewModal(true); }}>
+          <Button size="sm" className="h-9 bg-blue-600 hover:bg-blue-700" onClick={() => { setNewForm({}); setPatientIdManuallySet(false); setShowNewModal(true); }}>
             <Plus className="w-4 h-4 mr-2" />
             New Patient
           </Button>
@@ -466,7 +467,19 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
               </div>
               <div className="space-y-1.5">
                 <Label>Last Name <span className="text-red-500">*</span></Label>
-                <Input required value={newForm.lastName || ""} onChange={(e) => setNewForm({ ...newForm, lastName: e.target.value })} />
+                <Input required value={newForm.lastName || ""} onChange={(e) => {
+                  const lastName = e.target.value;
+                  if (!patientIdManuallySet) {
+                    const base = (lastName || "PAT").toUpperCase().replace(/[^A-Z]/g, "").substring(0, 4) || "PAT";
+                    const existing = Array.isArray(patients)
+                      ? patients.filter((p: any) => p.patientId?.toUpperCase().startsWith(base))
+                      : [];
+                    const next = (existing.length + 1).toString().padStart(3, "0");
+                    setNewForm({ ...newForm, lastName, patientId: `${base}-${next}` });
+                  } else {
+                    setNewForm({ ...newForm, lastName });
+                  }
+                }} />
               </div>
               <div className="space-y-1.5">
                 <Label>Gender <span className="text-red-500">*</span></Label>
@@ -474,7 +487,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
               </div>
               <div className="space-y-1.5">
                 <Label>Folder No. <span className="text-red-500">*</span></Label>
-                <Input required value={newForm.patientId || ""} onChange={(e) => setNewForm({ ...newForm, patientId: e.target.value })} placeholder={newForm.category === "Family" ? "e.g. DOE-001" : "e.g. PAT003"} />
+                <Input required value={newForm.patientId || ""} onChange={(e) => { setPatientIdManuallySet(true); setNewForm({ ...newForm, patientId: e.target.value }); }} placeholder="Auto-generated from last name" />
               </div>
               <div className="space-y-1.5">
                 <Label>Date of Birth <span className="text-red-500">*</span></Label>
