@@ -102,12 +102,13 @@ export function useDoctors() {
     queryFn: async () => {
       try {
         const { data, error } = await (supabase as any)
-          .from("users")
-          .select("id, full_name")
-          .eq("role", "Doctor")
-          .eq("status", "active");
+          .from("staff")
+          .select("staff_id, name")
+          .eq("is_clinician", true)
+          .neq("availability_status", "On Leave");
         if (error) return [];
-        return (toCamel(data) || []) as { id: string; fullName: string }[];
+        const results = toCamel(data) as { staffId: string; name: string }[];
+        return results.map((d) => ({ id: d.staffId, fullName: d.name }));
       } catch {
         return [];
       }

@@ -406,10 +406,10 @@ const BillingOverview = () => {
                               </span>
                             </div>
                           </td>
-                          <td className="px-4 py-4 max-w-[130px] whitespace-normal">
+                          <td className="px-4 py-4 max-w-[140px] whitespace-normal align-top">
                             <Badge
                               variant="outline"
-                              className={`text-[10px] font-semibold whitespace-normal text-left leading-tight ${
+                              className={`text-[10px] font-semibold whitespace-normal text-left h-auto leading-snug py-1 ${
                                 SOURCE_STYLES[inv.sourceType] ?? "bg-slate-50 text-slate-600"
                               }`}
                             >
