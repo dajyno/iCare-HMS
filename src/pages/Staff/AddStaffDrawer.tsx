@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import {
   Dialog,
   DialogContent,
@@ -46,7 +46,7 @@ export default function AddStaffModal({ open, onClose }: Props) {
   const [address, setAddress] = useState("");
   const [position, setPosition] = useState<StaffPosition | "">("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!firstName || !lastName || !position || !staffId) return;
 
@@ -60,6 +60,7 @@ export default function AddStaffModal({ open, onClose }: Props) {
       gender,
       address,
       email,
+
       phone,
       canLogin: false,
       password: "",
@@ -71,7 +72,7 @@ export default function AddStaffModal({ open, onClose }: Props) {
       },
     };
 
-    addRecord(newRecord);
+    await addRecord(newRecord);
     setFirstName("");
     setLastName("");
     setEmail("");

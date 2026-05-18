@@ -28,6 +28,7 @@ export interface StaffRecord {
   canLogin: boolean;
   password: string;
   profilePicture: string;
+  authUserId?: string;
 }
 
 export interface PermissionChild {

@@ -69,8 +69,8 @@ export default function PermissionsMatrix({ staff }: Props) {
     });
   };
 
-  const handleSave = () => {
-    updatePermissions(staff.staff_id, pendingPerms);
+  const handleSave = async () => {
+    await updatePermissions(staff.staff_id, pendingPerms);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };

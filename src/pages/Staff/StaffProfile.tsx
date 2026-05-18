@@ -121,10 +121,10 @@ export default function StaffProfile() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       const dataUrl = ev.target?.result as string;
       setProfilePicture(dataUrl);
-      updateRecord(staff.staff_id, { profilePicture: dataUrl });
+      await updateRecord(staff.staff_id, { profilePicture: dataUrl });
       if (user?.email === staff.email) {
         localStorage.setItem("staff_profile_picture", dataUrl);
         window.dispatchEvent(
@@ -135,9 +135,9 @@ export default function StaffProfile() {
     reader.readAsDataURL(file);
   };
 
-  const handleSaveDetails = () => {
+  const handleSaveDetails = async () => {
     if (!position) return;
-    updateRecord(staff.staff_id, {
+    await updateRecord(staff.staff_id, {
       name,
       position: position as StaffPosition,
       department,
@@ -159,7 +159,7 @@ export default function StaffProfile() {
   };
 
   const handleSaveSettings = async () => {
-    updateRecord(staff.staff_id, {
+    await updateRecord(staff.staff_id, {
       canLogin,
       password: canLogin ? password : "",
       availability_status: availabilityStatus as any,
@@ -170,7 +170,7 @@ export default function StaffProfile() {
       saveCustomAccount(staff.email, { name: staff.name, role: staffRole });
 
       try {
-        const { error } = await adminSupabase.auth.admin.createUser({
+        const { data, error } = await adminSupabase.auth.admin.createUser({
           email: staff.email,
           password,
           email_confirm: true,
@@ -186,6 +186,9 @@ export default function StaffProfile() {
             setSettingsFeedback({ type: "error", message: error.message });
           }
         } else {
+          if (data?.user?.id) {
+            await updateRecord(staff.staff_id, { authUserId: data.user.id });
+          }
           setSettingsFeedback({ type: "success", message: "Login access granted" });
         }
       } catch (err: any) {
@@ -203,8 +206,8 @@ export default function StaffProfile() {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const handleDelete = () => {
-    deleteRecord(staff.staff_id);
+  const handleDelete = async () => {
+    await deleteRecord(staff.staff_id);
     setShowDeleteConfirm(false);
     navigate("/staff");
   };

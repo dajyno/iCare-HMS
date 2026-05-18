@@ -57,17 +57,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (data && !error) {
       setUser(toCamel(data) as unknown as User);
     } else if (authUser) {
-      // Profile row missing (trigger wasn't set up in time) — use auth metadata
-      const role = (authUser.user_metadata?.role || "Doctor") as User["role"];
-      setUser({
-        id: userId,
-        email: authUser.email || "",
-        full_name: authUser.user_metadata?.full_name || authUser.email?.split("@")[0] || "User",
-        role,
-        status: "active",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
+      // Profile row missing — try the staff table
+      const { data: staffRow } = await (supabase.from("staff") as any)
+        .select("name, position")
+        .eq("auth_user_id", userId)
+        .maybeSingle();
+
+      if (staffRow) {
+        const role = (staffRow.position === "Medical Doctors" ? "Doctor" :
+          staffRow.position === "Nursing" ? "Nurse" :
+          staffRow.position === "Pharmacy" ? "Pharmacist" :
+          staffRow.position === "Laboratory" ? "LabTechnician" :
+          "HospitalAdmin") as User["role"];
+        setUser({
+          id: userId,
+          email: authUser.email || "",
+          full_name: staffRow.name || authUser.email?.split("@")[0] || "User",
+          role,
+          status: "active",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+      } else {
+        // Neither users nor staff table have a row — use auth metadata
+        const role = (authUser.user_metadata?.role || "Doctor") as User["role"];
+        setUser({
+          id: userId,
+          email: authUser.email || "",
+          full_name: authUser.user_metadata?.full_name || authUser.email?.split("@")[0] || "User",
+          role,
+          status: "active",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+      }
     }
     setLoading(false);
   };
