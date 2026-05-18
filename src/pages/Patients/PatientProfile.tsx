@@ -317,7 +317,7 @@ const PatientProfile = () => {
         .select()
         .single();
       if (invError) throw invError;
-      if (items && items.length > 0) {
+      if (inv && items && items.length > 0) {
         const { error: itemError } = await supabase
           .from("invoice_items")
           .insert(items.map((i: any) => ({ ...i, invoice_id: inv.id })));
@@ -328,6 +328,10 @@ const PatientProfile = () => {
       queryClient.invalidateQueries({ queryKey: ["patient-invoices", id] });
       setShowBillModal(false);
       setBillForm({});
+      navigate("/billing");
+    },
+    onError: (err: Error) => {
+      alert(`Failed to create invoice: ${err.message}`);
     },
   });
 

@@ -18,10 +18,16 @@ const LabModule = () => {
   const [searchParams] = useSearchParams();
   const patientIdParam = searchParams.get("patientId");
   const viewParam = searchParams.get("view");
-  const [selectedOrder, setSelectedOrder] = useState<any>(viewParam === "newExam" ? "new" : null);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [selectedBatch, setSelectedBatch] = useState<any[] | null>(null);
   const [viewingResult, setViewingResult] = useState<any>(null);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+
+  useEffect(() => {
+    if (viewParam === "newExam") {
+      setSelectedOrder("new");
+    }
+  }, [viewParam]);
 
   const { data: requests, isLoading, error } = useQuery({
     queryKey: ["lab-requests"],

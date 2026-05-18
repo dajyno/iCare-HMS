@@ -14,9 +14,15 @@ const RadiologyModule = () => {
   const patientIdParam = searchParams.get("patientId");
   const viewParam = searchParams.get("view");
   const [selectedBatch, setSelectedBatch] = useState<any[] | null>(null);
-  const [showNewExam, setShowNewExam] = useState(viewParam === "newExam");
+  const [showNewExam, setShowNewExam] = useState(false);
   const [diagnosticOpen, setDiagnosticOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+
+  useEffect(() => {
+    if (viewParam === "newExam") {
+      setShowNewExam(true);
+    }
+  }, [viewParam]);
 
   const { data: requests, isLoading, error } = useQuery({
     queryKey: ["radiology-requests"],

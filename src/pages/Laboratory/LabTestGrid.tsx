@@ -46,7 +46,7 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
     },
   });
 
-  const { data: doctors } = useQuery({
+  const { data: doctors, isError: doctorsError } = useQuery({
     queryKey: ["doctors"],
     queryFn: async () => {
       const { data, error } = await supabase
