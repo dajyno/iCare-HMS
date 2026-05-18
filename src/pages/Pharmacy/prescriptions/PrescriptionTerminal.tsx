@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -46,11 +47,13 @@ const columnHelper = createColumnHelper<RowData>();
 
 const PrescriptionTerminal = () => {
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const patientIdParam = searchParams.get("patientId");
   const { data: prescriptions, isLoading, error } = usePrescriptionQueue();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [selectedPrescription, setSelectedPrescription] = useState<PharmacyPrescription | null>(null);
-  const [newPrescriptionOpen, setNewPrescriptionOpen] = useState(false);
+  const [newPrescriptionOpen, setNewPrescriptionOpen] = useState(!!patientIdParam);
 
   const data = useMemo<RowData[]>(() => {
     if (!Array.isArray(prescriptions)) return [];
@@ -309,7 +312,7 @@ const PrescriptionTerminal = () => {
         </DialogContent>
       </Dialog>
 
-      <NewPrescriptionDialog open={newPrescriptionOpen} onOpenChange={setNewPrescriptionOpen} />
+      <NewPrescriptionDialog open={newPrescriptionOpen} onOpenChange={setNewPrescriptionOpen} initialPatientId={patientIdParam || undefined} />
 
       <style>{`
         @keyframes badgePulse {

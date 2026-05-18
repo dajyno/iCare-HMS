@@ -45,6 +45,7 @@ const PatientProfile = () => {
   const [rxForm, setRxForm] = useState<any>({});
   const [showBillModal, setShowBillModal] = useState(false);
   const [billForm, setBillForm] = useState<any>({});
+  const [selectedLabResult, setSelectedLabResult] = useState<any>(null);
   const [companySuggestions, setCompanySuggestions] = useState<string[]>([]);
   const [hmoSuggestions, setHmoSuggestions] = useState<string[]>([]);
 
@@ -119,14 +120,18 @@ const PatientProfile = () => {
     queryKey: ["patient-vitals", id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("vital_signs")
-        .select("*, consultation:consultations!consultation_id(id, created_at)")
-        .eq("consultations.patient_id", id);
+        .from("consultations")
+        .select("id, created_at, vital_signs(*)")
+        .eq("patient_id", id)
+        .not("vital_signs", "is", null)
+        .order("created_at", { ascending: false });
       if (error) throw error;
-      const sorted = (data || []).sort(
-        (a, b) => new Date(b.consultation?.created_at || 0).getTime() - new Date(a.consultation?.created_at || 0).getTime()
+      return toCamel(
+        (data || []).map((c: any) => ({
+          ...(c.vital_signs || {}),
+          consultation: { id: c.id, created_at: c.created_at },
+        }))
       );
-      return toCamel(sorted);
     },
     enabled: !!id,
   });
@@ -613,7 +618,7 @@ const PatientProfile = () => {
         {/* ========== VITAL SIGNS ========== */}
         <TabsContent value="vitals" className="mt-6 space-y-4">
           <div className="flex justify-start">
-            <Button onClick={() => setShowVitalsModal(true)} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => navigate("/consultations/vitals?patientId=" + id)} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" /> Record Vital Signs
             </Button>
           </div>
@@ -646,7 +651,7 @@ const PatientProfile = () => {
         {/* ========== CONSULTATIONS ========== */}
         <TabsContent value="consultations" className="mt-6 space-y-4">
           <div className="flex justify-start">
-            <Button onClick={() => setShowConsultModal(true)} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => navigate("/consultations/workspace?patientId=" + id)} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" /> New Consultation
             </Button>
           </div>
@@ -678,7 +683,7 @@ const PatientProfile = () => {
         {/* ========== LAB RESULTS ========== */}
         <TabsContent value="labs" className="mt-6 space-y-4">
           <div className="flex justify-start">
-            <Button onClick={() => setShowLabModal(true)} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => navigate("/laboratory?patientId=" + id + "&view=newExam")} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" /> New Lab Request
             </Button>
           </div>
@@ -686,7 +691,11 @@ const PatientProfile = () => {
             <div className="text-center py-12 text-slate-400">No lab records found.</div>
           ) : (
             regularLabs.map((lr: any) => (
-              <Card key={lr.id} className="border-none shadow-sm ring-1 ring-slate-200">
+              <Card
+                key={lr.id}
+                className={`border-none shadow-sm ring-1 ring-slate-200 ${lr.results ? "cursor-pointer hover:ring-2 hover:ring-amber-300 transition-all" : ""}`}
+                onClick={() => { if (lr.results) setSelectedLabResult(lr); }}
+              >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
                     <div>
@@ -710,7 +719,7 @@ const PatientProfile = () => {
         {/* ========== RADIOLOGY ========== */}
         <TabsContent value="radiology" className="mt-6 space-y-4">
           <div className="flex justify-start">
-            <Button onClick={() => setShowRadModal(true)} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => navigate("/radiology?patientId=" + id + "&view=newExam")} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" /> New Radiology Request
             </Button>
           </div>
@@ -742,7 +751,7 @@ const PatientProfile = () => {
         {/* ========== PRESCRIPTIONS ========== */}
         <TabsContent value="prescriptions" className="mt-6 space-y-4">
           <div className="flex justify-start">
-            <Button onClick={() => setShowRxModal(true)} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => navigate("/pharmacy/prescriptions?patientId=" + id)} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" /> New Prescription
             </Button>
           </div>
@@ -1063,6 +1072,67 @@ const PatientProfile = () => {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ======== LAB RESULT OVERLAY ======== */}
+      <Dialog open={!!selectedLabResult} onOpenChange={() => setSelectedLabResult(null)}>
+        <DialogContent className="w-[95vw] max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FlaskConical className="w-4 h-4 text-amber-500" />
+              {selectedLabResult?.test?.name || "Lab Result"}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedLabResult?.createdAt ? new Date(selectedLabResult.createdAt).toLocaleString() : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedLabResult && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[10px]">{selectedLabResult.status}</Badge>
+                {selectedLabResult.test?.category && (
+                  <span className="text-xs text-slate-400">{selectedLabResult.test.category}</span>
+                )}
+              </div>
+              {selectedLabResult.results && (
+                <div className="space-y-3 p-4 bg-slate-50 rounded-lg">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-slate-400">Result</span>
+                      <p className="font-semibold text-slate-900 mt-0.5">{selectedLabResult.results.resultValue}</p>
+                    </div>
+                    {selectedLabResult.results.unit && (
+                      <div>
+                        <span className="text-[10px] font-bold uppercase text-slate-400">Unit</span>
+                        <p className="font-semibold text-slate-900 mt-0.5">{selectedLabResult.results.unit}</p>
+                      </div>
+                    )}
+                  </div>
+                  {selectedLabResult.results.referenceRange && (
+                    <div className="text-sm">
+                      <span className="text-[10px] font-bold uppercase text-slate-400">Reference Range</span>
+                      <p className="text-slate-700 mt-0.5">{selectedLabResult.results.referenceRange}</p>
+                    </div>
+                  )}
+                  {selectedLabResult.results.interpretation && (
+                    <div className="text-sm">
+                      <span className="text-[10px] font-bold uppercase text-slate-400">Interpretation</span>
+                      <p className="text-slate-700 mt-0.5">{selectedLabResult.results.interpretation}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="text-xs text-slate-400">
+                {selectedLabResult.results?.date && (
+                  <p>Result date: {new Date(selectedLabResult.results.date).toLocaleString()}</p>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedLabResult(null)}>Close</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

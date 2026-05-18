@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { useAuth } from "@/src/context/AuthContext";
@@ -16,11 +17,14 @@ import Pagination from "@/components/ui/pagination";
 const VitalSigns = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState<any>(null);
   const [form, setForm] = useState<any>({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  const patientIdParam = searchParams.get("patientId");
 
   const { data: vitals, isLoading, isError, error } = useQuery({
     queryKey: ["all-vitals"],
@@ -48,6 +52,16 @@ const VitalSigns = () => {
       return toCamel(data);
     },
   });
+
+  useEffect(() => {
+    if (patientIdParam && Array.isArray(patients)) {
+      const match = patients.find((p: any) => p.id === patientIdParam);
+      if (match) {
+        setForm((prev: any) => ({ ...prev, patientId: patientIdParam }));
+        setShowAddModal(true);
+      }
+    }
+  }, [patientIdParam, patients]);
 
   const paginatedVitals = useMemo(() => {
     if (!Array.isArray(vitals)) return [];

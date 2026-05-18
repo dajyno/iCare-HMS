@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
@@ -9,8 +10,11 @@ import ManageCategoriesDialog from "./ManageCategoriesDialog";
 
 const RadiologyModule = () => {
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const patientIdParam = searchParams.get("patientId");
+  const viewParam = searchParams.get("view");
   const [selectedBatch, setSelectedBatch] = useState<any[] | null>(null);
-  const [showNewExam, setShowNewExam] = useState(false);
+  const [showNewExam, setShowNewExam] = useState(viewParam === "newExam");
   const [diagnosticOpen, setDiagnosticOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
 
@@ -81,7 +85,7 @@ const RadiologyModule = () => {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
             >
-              <RadiologyNewExam onBack={handleBack} />
+              <RadiologyNewExam onBack={handleBack} initialPatientId={patientIdParam || undefined} />
             </motion.div>
           ) : (
             <motion.div

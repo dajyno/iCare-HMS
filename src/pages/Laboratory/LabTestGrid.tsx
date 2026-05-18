@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion } from "motion/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
@@ -19,9 +19,9 @@ import SearchableSelect from "@/components/ui/searchable-select";
 import { testCategories, testDictionary } from "./testCategories";
 import ToggleTile from "./ToggleTile";
 
-const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
+const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initialPatientId?: string }) => {
   const [selectedTests, setSelectedTests] = useState<Set<string>>(new Set());
-  const [patientId, setPatientId] = useState("");
+  const [patientId, setPatientId] = useState(initialPatientId || "");
   const [patientQuery, setPatientQuery] = useState("");
   const [referredBy, setReferredBy] = useState("");
   const [urgency, setUrgency] = useState<"normal" | "urgent">("normal");
@@ -59,6 +59,16 @@ const LabTestGrid = ({ onBack }: { onBack: () => void }) => {
       return toCamel(data);
     },
   });
+
+  useEffect(() => {
+    if (initialPatientId && Array.isArray(patients)) {
+      const match = patients.find((p: any) => p.id === initialPatientId);
+      if (match) {
+        setPatientId(initialPatientId);
+        setPatientQuery(`${match.firstName} ${match.lastName}`);
+      }
+    }
+  }, [initialPatientId, patients]);
 
   const toggleTest = useCallback((testName: string) => {
     setSelectedTests((prev) => {

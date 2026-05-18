@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "motion/react";
 import { Plus, X, Search, Pill, Loader2, Check } from "lucide-react";
@@ -29,7 +29,7 @@ interface PrescriptionLineItem {
 
 const ROUTES = ["Oral", "IV", "IM", "Subcutaneous", "Topical", "Inhalation", "Ophthalmic", "Otic", "Rectal", "Sublingual"];
 
-const NewPrescriptionDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) => {
+const NewPrescriptionDialog = ({ open, onOpenChange, initialPatientId }: { open: boolean; onOpenChange: (open: boolean) => void; initialPatientId?: string }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [patientQuery, setPatientQuery] = useState("");
@@ -43,6 +43,21 @@ const NewPrescriptionDialog = ({ open, onOpenChange }: { open: boolean; onOpenCh
   const [medResults, setMedResults] = useState<Record<number, any[]>>({});
   const searchTimeout = useRef<any>(null);
   const medTimeouts = useRef<Record<number, any>>({});
+
+  useEffect(() => {
+    if (open && initialPatientId && !selectedPatient) {
+      supabase
+        .from("patients")
+        .select("id, patient_id, first_name, last_name, date_of_birth")
+        .eq("id", initialPatientId)
+        .single()
+        .then(({ data, error }) => {
+          if (data && !error) {
+            setSelectedPatient(data);
+          }
+        });
+    }
+  }, [open, initialPatientId]);
 
   const createPrescription = useMutation({
     mutationFn: async () => {

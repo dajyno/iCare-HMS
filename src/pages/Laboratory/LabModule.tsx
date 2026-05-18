@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
@@ -14,7 +15,10 @@ import LabManageCategories from "./LabManageCategories";
 
 const LabModule = () => {
   const queryClient = useQueryClient();
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [searchParams] = useSearchParams();
+  const patientIdParam = searchParams.get("patientId");
+  const viewParam = searchParams.get("view");
+  const [selectedOrder, setSelectedOrder] = useState<any>(viewParam === "newExam" ? "new" : null);
   const [selectedBatch, setSelectedBatch] = useState<any[] | null>(null);
   const [viewingResult, setViewingResult] = useState<any>(null);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
@@ -126,7 +130,7 @@ const LabModule = () => {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
             >
-              <LabTestGrid onBack={handleBack} />
+              <LabTestGrid onBack={handleBack} initialPatientId={patientIdParam || undefined} />
             </motion.div>
           ) : !selectedOrder ? (
             <motion.div

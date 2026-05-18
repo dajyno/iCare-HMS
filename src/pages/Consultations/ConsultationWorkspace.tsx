@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { useAuth } from "../../context/AuthContext";
@@ -55,7 +56,9 @@ const consultationSchema = z.object({
 const ConsultationWorkspace = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
+  const patientIdParam = searchParams.get("patientId");
 
   const { data: patients } = useQuery({
     queryKey: ["patients"],
@@ -80,6 +83,16 @@ const ConsultationWorkspace = () => {
       return toCamel(data);
     },
   });
+
+  useEffect(() => {
+    if (patientIdParam && Array.isArray(patients)) {
+      const match = patients.find((p: any) => p.id === patientIdParam);
+      if (match) {
+        setSelectedPatient(match);
+        setValue("patientId", patientIdParam as any);
+      }
+    }
+  }, [patientIdParam, patients]);
 
   const { data: labTests } = useQuery({
     queryKey: ["labTests"],

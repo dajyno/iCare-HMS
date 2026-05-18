@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
@@ -18,10 +18,10 @@ import { Label } from "@/components/ui/label";
 import { radiologyCategories } from "./RadiologyCategories";
 import ChipGrid from "./ChipGrid";
 
-const RadiologyNewExam = ({ onBack }: { onBack: () => void }) => {
+const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; initialPatientId?: string }) => {
   const queryClient = useQueryClient();
   const [selectedExams, setSelectedExams] = useState<Set<string>>(new Set());
-  const [patientId, setPatientId] = useState("");
+  const [patientId, setPatientId] = useState(initialPatientId || "");
   const [patientQuery, setPatientQuery] = useState("");
   const [folderNo, setFolderNo] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
@@ -43,6 +43,17 @@ const RadiologyNewExam = ({ onBack }: { onBack: () => void }) => {
       return toCamel(data);
     },
   });
+
+  useEffect(() => {
+    if (initialPatientId && Array.isArray(patients)) {
+      const match = patients.find((p: any) => p.id === initialPatientId);
+      if (match) {
+        setPatientId(initialPatientId);
+        setPatientQuery(`${match.firstName} ${match.lastName}`);
+        setFolderNo(match.patientId);
+      }
+    }
+  }, [initialPatientId, patients]);
 
   const toggleExam = useCallback((examName: string) => {
     setSelectedExams((prev) => {
