@@ -1,10 +1,23 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Settings as SettingsIcon, Bell, Lock, Globe, Shield } from "lucide-react";
+import { getHospitalName, setHospitalName } from "@/src/lib/hospitalConfig";
 
 const Settings = () => {
+  const [hospitalName, setHospitalNameState] = useState("iCare Medical Center");
+
+  useEffect(() => {
+    setHospitalNameState(getHospitalName());
+  }, []);
+
+  const handleSave = () => {
+    setHospitalName(hospitalName);
+    alert("Hospital name saved.");
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div>
@@ -40,13 +53,13 @@ const Settings = () => {
             <CardContent className="space-y-4">
               <div className="grid gap-2">
                 <Label htmlFor="hospital-name">Hospital Name</Label>
-                <Input id="hospital-name" defaultValue="iCare Medical Center" />
+                <Input id="hospital-name" value={hospitalName} onChange={(e) => setHospitalNameState(e.target.value)} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="contact-email">System Email</Label>
                 <Input id="contact-email" defaultValue="admin@icare.com" />
               </div>
-              <Button className="bg-sky-600">Save Changes</Button>
+              <Button className="bg-sky-600" onClick={handleSave}>Save Changes</Button>
             </CardContent>
           </Card>
 

@@ -20,7 +20,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import StatusBadge from "./StatusBadge";
+import { format } from "date-fns";
 import { supabase, toCamel } from "@/src/lib/supabase";
+import { getHospitalName } from "@/src/lib/hospitalConfig";
 
 const mapStatus = (dbStatus: string) => {
   const map: Record<string, string> = {
@@ -87,7 +89,7 @@ const LabDetailView = ({
       if (error) throw error;
       return toCamel(data ?? []);
     },
-    enabled: isCompleted && orders.length > 0,
+    enabled: orders.length > 0,
   });
 
   useEffect(() => {
@@ -207,6 +209,90 @@ const LabDetailView = ({
     if (f) setFile(f);
   }, []);
 
+  const handlePrintAll = useCallback(() => {
+    const hospitalName = getHospitalName();
+    const batchId = orders.length > 1
+      ? `BATCH-${order?.consultationId?.slice(-4).toUpperCase() || order?.batchId?.slice(-4).toUpperCase()}`
+      : `REQ-${order.id?.slice(-6).toUpperCase()}`;
+    const patientName = order?.patient
+      ? `${order.patient.firstName ?? ""} ${order.patient.lastName ?? ""}`.trim()
+      : "—";
+    const requestedDate = order?.createdAt
+      ? format(new Date(order.createdAt), "MMM dd, yyyy HH:mm")
+      : "—";
+
+    const testsHtml = orders.map((o: any, idx: number) => {
+      const res = existingResults?.find((r: any) => r.requestId === o.id);
+      const resultValue = res?.resultValue ?? "—";
+      const unit = res?.unit ?? "—";
+      const refRange = res?.referenceRange ?? o?.test?.referenceRange ?? null;
+      const interp = res?.interpretation
+        ? res.interpretation.replace(/^\[ATTACHMENT:.+?\]\n?/, "")
+        : null;
+      const completedDate = res?.date
+        ? format(new Date(res.date), "MMM dd, yyyy HH:mm")
+        : "—";
+
+      return `
+        <div class="test-section">
+          <div class="test-header">${idx + 1}. ${o?.test?.name ?? "Unknown Test"}</div>
+          <hr class="thin-divider" />
+          <div class="section-label">Result Value</div>
+          <div class="section-value">${resultValue}</div>
+          <div class="section-label">Unit</div>
+          <div class="section-value-plain">${unit}</div>
+          ${refRange ? `<div class="section-label">Reference Range</div><div class="section-value-plain">${refRange}</div>` : ""}
+          ${interp ? `<div class="section-label">Interpretation</div><div class="section-value-plain">${interp}</div>` : ""}
+          <div class="section-label">Completed</div>
+          <div class="section-value-plain">${completedDate}</div>
+        </div>
+      `;
+    }).join("<hr class=\"divider\" />");
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Lab Results - ${hospitalName}</title>
+        <style>
+          body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 40px; color: #1e293b; }
+          .hospital-name { text-align: center; font-size: 22px; font-weight: 700; color: #0f172a; margin-bottom: 2px; }
+          .title { text-align: center; font-size: 16px; font-weight: 600; color: #005EB8; margin-bottom: 6px; }
+          .divider { border: none; border-top: 2px solid #e2e8f0; margin: 16px 0; }
+          .thin-divider { border: none; border-top: 1px solid #e2e8f0; margin: 8px 0; }
+          .meta-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+          .meta-label { color: #64748b; }
+          .meta-value { font-weight: 600; }
+          .test-section { margin-top: 4px; }
+          .test-header { font-size: 15px; font-weight: 700; color: #005EB8; }
+          .section-label { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 12px; margin-bottom: 3px; }
+          .section-value { font-size: 16px; font-weight: 700; font-family: 'Courier New', monospace; }
+          .section-value-plain { font-size: 14px; }
+          .footer { margin-top: 32px; text-align: center; font-size: 11px; color: #94a3b8; }
+          .meta-grid { display: flex; gap: 32px; flex-wrap: wrap; }
+          @media print { body { padding: 20px; } }
+        </style>
+      </head>
+      <body>
+        <div class="hospital-name">${hospitalName}</div>
+        <div class="title">Laboratory Results (Batch)</div>
+        <hr class="divider" />
+        <div class="meta-row"><span class="meta-label">Patient:</span><span class="meta-value">${patientName}</span></div>
+        <div class="meta-row"><span class="meta-label">Batch:</span><span class="meta-value">${batchId}</span></div>
+        <div class="meta-row"><span class="meta-label">Requested:</span><span class="meta-value">${requestedDate}</span></div>
+        <hr class="divider" />
+        ${testsHtml}
+        <div class="footer">This is a system-generated report from ${hospitalName}</div>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 300);
+  }, [orders, order, existingResults]);
+
   const totalPrice = orders.reduce(
     (sum: number, o: any) => sum + (o?.test?.price ?? 0),
     0
@@ -237,6 +323,9 @@ const LabDetailView = ({
           <div className="flex items-center gap-2">
             {isCompleted && viewMode === "view" ? (
               <>
+                <Button size="sm" variant="outline" className="h-9 px-4 gap-1.5 text-xs font-semibold" onClick={handlePrintAll}>
+                  <Printer className="w-3.5 h-3.5" /> Print All
+                </Button>
                 <Button size="sm" variant="outline" className="h-9 px-4 gap-1.5 text-xs font-semibold" onClick={onBack}>
                   Close
                 </Button>
