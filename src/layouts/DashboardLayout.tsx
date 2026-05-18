@@ -138,7 +138,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     ]},
     { icon: ClipboardList, label: "Consultations", children: [
       { label: "Vital Signs", href: "/consultations/vitals" },
-      { label: "Clinical Workspace", href: "/consultations/workspace" },
+      { label: "Clinical Workspace", href: "/consultations" },
     ]},
     { icon: FlaskConical, label: "Laboratory", href: "/laboratory" },
     { icon: Scan, label: "Radiology", href: "/radiology" },
