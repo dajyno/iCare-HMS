@@ -186,6 +186,18 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
     setShowApptModal(true);
   };
 
+  const lastFolderNumbers = useMemo(() => {
+    if (!Array.isArray(patients)) return {};
+    const latest: Record<string, string> = {};
+    for (const p of patients) {
+      const cat = p.category || "Individual";
+      if (!latest[cat] && p.patientId) {
+        latest[cat] = p.patientId;
+      }
+    }
+    return latest;
+  }, [patients]);
+
   const handleNewSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const isFamilyPrimary = newForm.category === "Family" && newForm.role !== "dependant";
@@ -488,6 +500,9 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
               <div className="space-y-1.5">
                 <Label>Folder No. <span className="text-red-500">*</span></Label>
                 <Input required value={newForm.patientId || ""} onChange={(e) => { setPatientIdManuallySet(true); setNewForm({ ...newForm, patientId: e.target.value }); }} placeholder="Auto-generated from last name" />
+                {lastFolderNumbers[newForm.category || "Individual"] && (
+                  <p className="text-[10px] text-slate-400 mt-0.5">Last {newForm.category || "Individual"}: {lastFolderNumbers[newForm.category || "Individual"]}</p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label>Date of Birth <span className="text-red-500">*</span></Label>
