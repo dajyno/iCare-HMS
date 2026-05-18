@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
+import { generateInvoiceNumber } from "@/src/lib/invoiceNumber";
 import { useAuth } from "@/src/context/AuthContext";
 import {
   ArrowLeft, User, Phone, Mail, MapPin, Calendar, Edit, Save,
@@ -421,12 +422,12 @@ const PatientProfile = () => {
     });
   };
 
-  const handleBillSubmit = (e: React.FormEvent) => {
+  const handleBillSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const qty = parseInt(billForm.quantity) || 1;
     const unitPrice = parseFloat(billForm.unitPrice) || 0;
     const total = qty * unitPrice;
-    const invNum = `INV-${Date.now()}`;
+    const invNum = await generateInvoiceNumber(supabase);
     createInvoice.mutate({
       patient_id: id,
       invoice_number: invNum,

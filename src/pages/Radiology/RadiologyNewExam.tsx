@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
+import { generateInvoiceNumber } from "@/src/lib/invoiceNumber";
 import {
   Search,
   ChevronDown,
@@ -213,7 +214,7 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
         }
       }
 
-      const invoiceNumber = `INV-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+      const invoiceNumber = await generateInvoiceNumber(supabase);
       const totalAmount = createdRequests.reduce((sum: number, req: any) => {
         const info = priceMap.get(req.exam_id);
         return sum + (info?.price ?? 0);

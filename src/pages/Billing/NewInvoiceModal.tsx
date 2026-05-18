@@ -23,6 +23,8 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { usePatients, useCreateInvoice } from "./billingHooks";
 import { useStaff } from "../Staff/StaffContext";
+import { generateInvoiceNumber } from "@/src/lib/invoiceNumber";
+import { supabase } from "@/src/lib/supabase";
 import {
   INITIAL_FORM_STATE,
   DEFAULT_LINE_ITEM,
@@ -276,10 +278,10 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
     return true;
   }, [form.selectedPatient, accumulatedItems]);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!canGenerate || !form.selectedPatient) return;
 
-    const invNumber = `INV-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+    const invNumber = await generateInvoiceNumber(supabase);
 
     const sourceLabels = [...new Set(accumulatedItems.map((i) => sourceCategory(i.code)))];
     const sourceLabel = sourceLabels.length === 1

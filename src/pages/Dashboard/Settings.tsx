@@ -4,18 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Settings as SettingsIcon, Bell, Lock, Globe, Shield } from "lucide-react";
-import { getHospitalName, setHospitalName } from "@/src/lib/hospitalConfig";
+import { getHospitalName, setHospitalName, getHospitalCode, setHospitalCode } from "@/src/lib/hospitalConfig";
 
 const Settings = () => {
   const [hospitalName, setHospitalNameState] = useState("iCare Medical Center");
+  const [hospitalCode, setHospitalCodeState] = useState("HMS");
 
   useEffect(() => {
     setHospitalNameState(getHospitalName());
+    setHospitalCodeState(getHospitalCode());
   }, []);
 
   const handleSave = () => {
     setHospitalName(hospitalName);
-    alert("Hospital name saved.");
+    setHospitalCode(hospitalCode);
+    alert("Settings saved.");
   };
 
   return (
@@ -54,6 +57,10 @@ const Settings = () => {
               <div className="grid gap-2">
                 <Label htmlFor="hospital-name">Hospital Name</Label>
                 <Input id="hospital-name" value={hospitalName} onChange={(e) => setHospitalNameState(e.target.value)} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="hospital-code">Hospital Code (used in invoice numbers)</Label>
+                <Input id="hospital-code" value={hospitalCode} onChange={(e) => setHospitalCodeState(e.target.value.toUpperCase())} placeholder="e.g. HMS" maxLength={10} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="contact-email">System Email</Label>

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/src/lib/supabase";
+import { generateInvoiceNumber } from "@/src/lib/invoiceNumber";
 import { useAuth } from "@/src/context/AuthContext";
 import {
   Dialog,
@@ -97,7 +98,7 @@ const NewPrescriptionDialog = ({ open, onOpenChange, initialPatientId }: { open:
       console.log("Items created successfully");
 
       const itemTotal = items.filter((i) => i.medicationId).reduce((s, i) => s + (i.quantity || 1) * 0, 0);
-      const invNumber = `INV-PHARM-${Date.now().toString(36).toUpperCase()}`;
+      const invNumber = await generateInvoiceNumber(supabase, "PHA");
 
       const { data: medPrices } = await (supabase as any)
         .from("medications")

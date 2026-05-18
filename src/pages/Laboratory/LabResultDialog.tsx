@@ -36,7 +36,7 @@ const LabResultDialog = ({
   onClose: () => void;
   onEdit: () => void;
 }) => {
-  const { data: result } = useQuery({
+  const { data: result, isLoading: resultLoading } = useQuery({
     queryKey: ["lab-result", order?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -143,7 +143,11 @@ const LabResultDialog = ({
             </div>
           </div>
 
-          {result ? (
+          {resultLoading ? (
+            <div className="py-8 text-center text-sm text-slate-400">
+              Loading result...
+            </div>
+          ) : result ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -205,7 +209,7 @@ const LabResultDialog = ({
             </div>
           ) : (
             <div className="py-8 text-center text-sm text-slate-400">
-              Loading result...
+              No results recorded yet. Click Edit to add results.
             </div>
           )}
 

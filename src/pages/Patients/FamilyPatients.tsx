@@ -186,7 +186,7 @@ const FamilyPatients = () => {
                 </tr>
               ) : (
                 filteredFamilies.map((f: any) => (
-                  <tr key={f.id} className="hover:bg-slate-50/80 transition-colors group">
+                  <tr key={f.id} onClick={() => navigate(`/patients/${f.id}`)} className="cursor-pointer hover:bg-slate-50/80 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="font-semibold text-slate-900">{f.lastName}</div>
                     </td>
@@ -218,7 +218,7 @@ const FamilyPatients = () => {
                       </Badge>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <Button variant="ghost" size="sm" className="h-8 text-blue-600 font-bold" onClick={() => navigate(`/patients/${f.id}`)}>
+                      <Button variant="ghost" size="sm" className="h-8 text-blue-600 font-bold" onClick={(e) => { e.stopPropagation(); navigate(`/patients/${f.id}`); }}>
                         View Profile
                       </Button>
                     </td>

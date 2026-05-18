@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { supabase, toCamel } from "@/src/lib/supabase";
+import { generateInvoiceNumber } from "@/src/lib/invoiceNumber";
 import type {
   InpatientMasterState,
   ActiveAdmission,
@@ -465,7 +466,7 @@ export function useInpatientState() {
         return;
       }
 
-      const invoiceNumber = `INV-${Date.now()}`;
+      const invoiceNumber = await generateInvoiceNumber(supabase);
       const invoicePayload = {
         invoice_number: invoiceNumber,
         patient_id: admission.patient.folderNo,

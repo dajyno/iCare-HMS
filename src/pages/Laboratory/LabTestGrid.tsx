@@ -18,6 +18,8 @@ import { Label } from "@/components/ui/label";
 import SearchableSelect from "@/components/ui/searchable-select";
 import { testCategories, testDictionary } from "./testCategories";
 import ToggleTile from "./ToggleTile";
+import { useStaff } from "../Staff/StaffContext";
+import { generateInvoiceNumber } from "@/src/lib/invoiceNumber";
 
 const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initialPatientId?: string }) => {
   const [selectedTests, setSelectedTests] = useState<Set<string>>(new Set());
@@ -46,44 +48,13 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
     },
   });
 
-  const { data: doctors } = useQuery({
-    queryKey: ["doctors"],
-    queryFn: async () => {
-      const ids = new Set<string>();
-      const result: Array<{ id: string; fullName: string }> = [];
-
-      // Try users table first
-      const { data: users, error: usersError } = await supabase
-        .from("users")
-        .select("id, full_name")
-        .in("role", ["Doctor", "HospitalAdmin", "SuperAdmin"])
-        .eq("status", "active")
-        .order("full_name", { ascending: true });
-      if (!usersError && users) {
-        for (const u of users as any[]) {
-          ids.add(u.id);
-          result.push({ id: u.id, fullName: u.full_name });
-        }
-      }
-
-      // Also pull clinicians from staff table (for demo/fallback accounts)
-      const { data: staff, error: staffError } = await supabase
-        .from("staff")
-        .select("staff_id, name, auth_user_id")
-        .eq("is_clinician", true);
-      if (!staffError && staff) {
-        for (const s of staff as any[]) {
-          const sid = s.auth_user_id || s.staff_id;
-          if (!ids.has(sid)) {
-            ids.add(sid);
-            result.push({ id: sid, fullName: s.name });
-          }
-        }
-      }
-
-      return result;
-    },
-  });
+  const { records: staffRecords } = useStaff();
+  const doctors = useMemo(
+    () => staffRecords
+      .filter((r: any) => r.is_clinician && r.availability_status !== "On Leave")
+      .map((r: any) => ({ id: r.staff_id, fullName: r.name })),
+    [staffRecords]
+  );
 
   useEffect(() => {
     if (initialPatientId && Array.isArray(patients)) {
@@ -249,7 +220,7 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
         }
       }
 
-      const invoiceNumber = `INV-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+      const invoiceNumber = await generateInvoiceNumber(supabase);
       const totalAmount = createdRequests.reduce((sum: number, req: any) => {
         const info = priceMap.get(req.test_id);
         return sum + (info?.price ?? 0);
