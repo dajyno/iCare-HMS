@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Printer, CreditCard, Loader2, CheckCircle, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import { Separator } from "@/components/ui/separator";
 import { STATUS_STYLES, SOURCE_STYLES } from "./billingTypes";
 import { useUpdateInvoiceStatus } from "./billingHooks";
 import type { InvoiceSummary } from "./billingTypes";
+import { getHospitalName } from "@/src/lib/hospitalConfig";
+import { format } from "date-fns";
 
 interface InvoiceActionDrawerProps {
   invoice: InvoiceSummary | null;
@@ -51,9 +53,98 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
     );
   };
 
-  const handleGeneratePrint = () => {
-    window.print();
-  };
+  const handleGeneratePrint = useCallback(() => {
+    if (!invoice) return;
+    const hospitalName = getHospitalName();
+    const patientName = invoice.patient
+      ? `${invoice.patient.firstName ?? ""} ${invoice.patient.lastName ?? ""}`.trim()
+      : "—";
+    const patientId = invoice.patient?.patientId ?? "—";
+    const invDate = invoice.createdAt
+      ? format(new Date(invoice.createdAt), "MMM dd, yyyy HH:mm")
+      : "—";
+    const paidDate = invoice.paidAt
+      ? format(new Date(invoice.paidAt), "MMM dd, yyyy")
+      : null;
+    const itemsHtml = (invoice.items ?? [])
+      .map(
+        (item) => `
+        <tr>
+          <td class="cell">${item.description}</td>
+          <td class="cell right">${item.quantity}</td>
+          <td class="cell right">₦${item.unitPrice.toFixed(2)}</td>
+          <td class="cell right">₦${item.total.toFixed(2)}</td>
+        </tr>`
+      )
+      .join("");
+
+    const subtotal = invoice.items?.reduce((s, i) => s + i.total, 0) ?? 0;
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Payment Receipt - ${hospitalName}</title>
+        <style>
+          body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 40px; color: #1e293b; }
+          .hospital-name { text-align: center; font-size: 22px; font-weight: 700; color: #0f172a; margin-bottom: 2px; }
+          .title { text-align: center; font-size: 16px; font-weight: 600; color: #005EB8; margin-bottom: 6px; }
+          .divider { border: none; border-top: 2px solid #e2e8f0; margin: 16px 0; }
+          .meta-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+          .meta-label { color: #64748b; }
+          .meta-value { font-weight: 600; }
+          table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+          th { text-align: left; font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 4px; border-bottom: 1px solid #e2e8f0; }
+          th.right { text-align: right; }
+          .cell { padding: 8px 4px; border-bottom: 1px solid #f1f5f9; }
+          .cell.right { text-align: right; font-family: 'Courier New', monospace; }
+          .total-row td { padding: 10px 4px; font-weight: 700; border-top: 2px solid #e2e8f0; }
+          .total-row td.right { font-size: 16px; font-family: 'Courier New', monospace; }
+          .paid-badge { display: inline-block; background: #dcfce7; color: #166534; padding: 2px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+          .footer { margin-top: 32px; text-align: center; font-size: 11px; color: #94a3b8; }
+          @media print { body { padding: 20px; } }
+        </style>
+      </head>
+      <body>
+        <div class="hospital-name">${hospitalName}</div>
+        <div class="title">Payment Receipt</div>
+        <hr class="divider" />
+        <div class="meta-row"><span class="meta-label">Invoice:</span><span class="meta-value">${invoice.invoiceNumber}</span></div>
+        <div class="meta-row"><span class="meta-label">Patient:</span><span class="meta-value">${patientName}</span></div>
+        <div class="meta-row"><span class="meta-label">Patient ID:</span><span class="meta-value">${patientId}</span></div>
+        <div class="meta-row"><span class="meta-label">Date:</span><span class="meta-value">${invDate}</span></div>
+        <div class="meta-row"><span class="meta-label">Source:</span><span class="meta-value">${invoice.sourceType}</span></div>
+        <div class="meta-row"><span class="meta-label">Status:</span><span class="meta-value"><span class="paid-badge">${invoice.status}</span></span></div>
+        ${paidDate ? `<div class="meta-row"><span class="meta-label">Paid On:</span><span class="meta-value">${paidDate}</span></div>` : ""}
+        ${invoice.paymentMethod ? `<div class="meta-row"><span class="meta-label">Payment Method:</span><span class="meta-value">${invoice.paymentMethod}</span></div>` : ""}
+        <hr class="divider" />
+        <table>
+          <thead>
+            <tr><th>Item</th><th class="right">Qty</th><th class="right">Unit Price</th><th class="right">Total</th></tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+          <tfoot>
+            <tr class="total-row"><td colspan="3">Subtotal</td><td class="right">₦${subtotal.toFixed(2)}</td></tr>
+            <tr class="total-row"><td colspan="3">Amount Paid</td><td class="right">₦${invoice.amountPaid.toFixed(2)}</td></tr>
+            <tr class="total-row"><td colspan="3">Balance</td><td class="right">₦${invoice.balance.toFixed(2)}</td></tr>
+          </tfoot>
+        </table>
+        <hr class="divider" />
+        <div style="text-align:center; font-size:14px; font-weight:700; margin-top:4px;">
+          Total Paid: ₦${invoice.amountPaid.toFixed(2)}
+        </div>
+        <div class="footer">This is a system-generated receipt from ${hospitalName}</div>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 300);
+  }, [invoice]);
 
   const subtotal = invoice?.items?.reduce((s, i) => s + i.total, 0) ?? 0;
 

@@ -22,7 +22,10 @@ import {
   User,
   CheckCircle2,
   DollarSign,
+  Printer,
 } from "lucide-react";
+import { getHospitalName } from "@/src/lib/hospitalConfig";
+import { format } from "date-fns";
 
 const statusConfig: Record<string, { label: string; bg: string; text: string }> = {
   Requested: { label: "Requested", bg: "bg-purple-50", text: "text-purple-700" },
@@ -184,6 +187,85 @@ const RadiologyDiagnosticView = ({
     completeMutation.mutate();
   }, [completeMutation]);
 
+  const handlePrint = useCallback(() => {
+    if (!requests.length) return;
+    const hospitalName = getHospitalName();
+    const firstReq = requests[0];
+    const patientName = firstReq?.patient
+      ? `${firstReq.patient.firstName ?? ""} ${firstReq.patient.lastName ?? ""}`.trim()
+      : "—";
+    const patientId = firstReq?.patient?.patientId ?? "—";
+    const requestedDate = firstReq?.createdAt
+      ? format(new Date(firstReq.createdAt), "MMM dd, yyyy HH:mm")
+      : "—";
+
+    const examsHtml = requests.map((req: any, idx: number) => {
+      const existing = existingResults?.[req.id];
+      const findings = existing?.findings?.trim() || "No findings recorded.";
+      const conclusion = existing?.conclusion?.trim() || "No conclusion recorded.";
+
+      return `
+        <div class="exam-section">
+          <div class="exam-header">${idx + 1}. ${req.exam?.name ?? "Examination"}</div>
+          <hr class="thin-divider" />
+          <div class="section-label">Observation / Findings</div>
+          <div class="section-value-plain">${findings}</div>
+          <div class="section-label">Conclusion / Recommendations</div>
+          <div class="section-value-plain">${conclusion}</div>
+        </div>
+      `;
+    }).join("<hr class=\"divider\" />");
+
+    const total = requests.reduce((sum: number, req: any) => sum + Number(req.exam?.price ?? 0), 0);
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Radiology Report - ${hospitalName}</title>
+        <style>
+          body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 40px; color: #1e293b; }
+          .hospital-name { text-align: center; font-size: 22px; font-weight: 700; color: #0f172a; margin-bottom: 2px; }
+          .title { text-align: center; font-size: 16px; font-weight: 600; color: #005EB8; margin-bottom: 6px; }
+          .divider { border: none; border-top: 2px solid #e2e8f0; margin: 16px 0; }
+          .thin-divider { border: none; border-top: 1px solid #e2e8f0; margin: 8px 0; }
+          .meta-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+          .meta-label { color: #64748b; }
+          .meta-value { font-weight: 600; }
+          .exam-section { margin-top: 4px; }
+          .exam-header { font-size: 15px; font-weight: 700; color: #005EB8; }
+          .section-label { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 12px; margin-bottom: 3px; }
+          .section-value-plain { font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+          .footer { margin-top: 32px; text-align: center; font-size: 11px; color: #94a3b8; }
+          .amount { font-size: 15px; font-weight: 700; font-family: 'Courier New', monospace; }
+          @media print { body { padding: 20px; } }
+        </style>
+      </head>
+      <body>
+        <div class="hospital-name">${hospitalName}</div>
+        <div class="title">Radiology Report</div>
+        <hr class="divider" />
+        <div class="meta-row"><span class="meta-label">Patient:</span><span class="meta-value">${patientName}</span></div>
+        <div class="meta-row"><span class="meta-label">Patient ID:</span><span class="meta-value">${patientId}</span></div>
+        <div class="meta-row"><span class="meta-label">Requested:</span><span class="meta-value">${requestedDate}</span></div>
+        <div class="meta-row"><span class="meta-label">Total Examinations:</span><span class="meta-value">${requests.length}</span></div>
+        <hr class="divider" />
+        ${examsHtml}
+        <hr class="divider" />
+        <div style="text-align:right; font-size:14px; margin-top:8px;">
+          <span class="meta-label">Total:</span> <span class="amount">₦${total.toFixed(2)}</span>
+        </div>
+        <div class="footer">This is a system-generated report from ${hospitalName}</div>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 300);
+  }, [requests, existingResults]);
+
   const first = requests[0];
   const patientName = first?.patient
     ? `${first.patient.firstName ?? ""} ${first.patient.lastName ?? ""}`.trim()
@@ -344,14 +426,24 @@ const RadiologyDiagnosticView = ({
         {/* Footer Toolbar */}
         <div className="shrink-0 border-t border-slate-200 bg-white px-6 py-3 flex items-center justify-end gap-2">
           {allCompleted ? (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-9 px-4 text-xs font-semibold"
-              onClick={onClose}
-            >
-              Close
-            </Button>
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-9 px-4 gap-1.5 text-xs font-semibold"
+                onClick={handlePrint}
+              >
+                <Printer className="w-3.5 h-3.5" /> Print
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-9 px-4 text-xs font-semibold"
+                onClick={onClose}
+              >
+                Close
+              </Button>
+            </>
           ) : (
             <>
               <Button

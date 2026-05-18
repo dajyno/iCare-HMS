@@ -54,6 +54,14 @@ const LabDetailView = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
+  const resultValuesRef = useRef(resultValues);
+  resultValuesRef.current = resultValues;
+  const unitsRef = useRef(units);
+  unitsRef.current = units;
+  const interpretationsRef = useRef(interpretations);
+  interpretationsRef.current = interpretations;
+  const fileRef = useRef(file);
+  fileRef.current = file;
   const { data: siblingOrders } = useQuery({
     queryKey: ["batch-orders", order?.consultationId ?? order?.batchId],
     queryFn: async () => {
@@ -92,6 +100,9 @@ const LabDetailView = ({
     enabled: orders.length > 0,
   });
 
+  const existingResultsRef = useRef(existingResults);
+  existingResultsRef.current = existingResults;
+
   useEffect(() => {
     if (existingResults && existingResults.length > 0) {
       const values: Record<string, string> = {};
@@ -110,17 +121,23 @@ const LabDetailView = ({
   }, [existingResults]);
 
   const saveResults = async (markCompleted: boolean) => {
-    for (const o of orders) {
-      const val = resultValues[o.id] ?? "";
-      const unit = units[o.id] ?? "";
-      let interp = interpretations[o.id] ?? "";
+    const latestResults = resultValuesRef.current;
+    const latestUnits = unitsRef.current;
+    const latestInterps = interpretationsRef.current;
+    const latestFile = fileRef.current;
+    const latestExisting = existingResultsRef.current;
 
-      if (file && val) {
-        const fileTag = `[ATTACHMENT:${file.name}]\n`;
+    for (const o of orders) {
+      const val = latestResults[o.id] ?? "";
+      const unit = latestUnits[o.id] ?? "";
+      let interp = latestInterps[o.id] ?? "";
+
+      if (latestFile && val) {
+        const fileTag = `[ATTACHMENT:${latestFile.name}]\n`;
         if (!interp.startsWith("[ATTACHMENT:")) interp = fileTag + interp;
       }
 
-      const existing = existingResults?.find((r: any) => r.requestId === o.id);
+      const existing = latestExisting?.find((r: any) => r.requestId === o.id);
       if (existing) {
         const { error } = await supabase
           .from("lab_results")
@@ -151,10 +168,11 @@ const LabDetailView = ({
 
   const saveDraftMutation = useMutation({
     mutationFn: () => saveResults(false),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["batch-results"] });
-      queryClient.invalidateQueries({ queryKey: ["batch-orders"] });
-      queryClient.invalidateQueries({ queryKey: ["lab-result"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["batch-results"] });
+      await queryClient.invalidateQueries({ queryKey: ["batch-orders"] });
+      await queryClient.invalidateQueries({ queryKey: ["lab-result"] });
+      alert("Results saved successfully.");
       onBack();
     },
     onError: (err) => {
@@ -164,10 +182,11 @@ const LabDetailView = ({
 
   const completeMutation = useMutation({
     mutationFn: () => saveResults(true),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["batch-results"] });
-      queryClient.invalidateQueries({ queryKey: ["batch-orders"] });
-      queryClient.invalidateQueries({ queryKey: ["lab-result"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["batch-results"] });
+      await queryClient.invalidateQueries({ queryKey: ["batch-orders"] });
+      await queryClient.invalidateQueries({ queryKey: ["lab-result"] });
+      alert("Results completed successfully.");
       onBack();
     },
     onError: (err) => {
