@@ -205,8 +205,9 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
         .insert(validRequests)
         .select();
       if (reqError) throw reqError;
+      const createdIds = createdRequests.map((r: any) => r.id);
 
-      // Auto-create invoice for the lab requests
+      // Auto-create invoice for the lab requests (with retry on collision)
       const testIds = validNames.map((name) => testIdMap.get(name)).filter(Boolean);
       const { data: testPrices } = await supabase
         .from("lab_tests")
@@ -220,27 +221,46 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
         }
       }
 
-      const invoiceNumber = await generateInvoiceNumber(supabase);
-      const totalAmount = createdRequests.reduce((sum: number, req: any) => {
-        const info = priceMap.get(req.test_id);
-        return sum + (info?.price ?? 0);
-      }, 0);
+      let invoiceData: any = null;
+      let invoiceError: any = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const invoiceNumber = await generateInvoiceNumber(supabase);
+        const totalAmount = createdRequests.reduce((sum: number, req: any) => {
+          const info = priceMap.get(req.test_id);
+          return sum + (info?.price ?? 0);
+        }, 0);
 
-      const { data: invoiceData, error: invError } = await supabase
-        .from("invoices")
-        .insert({
-          invoice_number: invoiceNumber,
-          patient_id: patientId,
-          total_amount: totalAmount,
-          amount_paid: 0,
-          balance: totalAmount,
-          status: "Unpaid",
-          source_type: "Lab & Radiology",
-        })
-        .select("id")
-        .single();
+        const { data: invData, error: invError } = await supabase
+          .from("invoices")
+          .insert({
+            invoice_number: invoiceNumber,
+            patient_id: patientId,
+            total_amount: totalAmount,
+            amount_paid: 0,
+            balance: totalAmount,
+            status: "Unpaid",
+            source_type: "Lab & Radiology",
+          })
+          .select("id")
+          .maybeSingle();
 
-      if (invError) throw invError;
+        if (invData) {
+          invoiceData = invData;
+          break;
+        }
+
+        invoiceError = invError;
+        // If unique violation, retry with new number
+        if ((invError as any)?.code === "23505") continue;
+
+        break;
+      }
+
+      if (!invoiceData) {
+        // Cleanup: remove orphaned lab requests
+        await supabase.from("lab_requests").delete().in("id", createdIds);
+        throw invoiceError || new Error("Failed to create invoice");
+      }
 
       const invoiceId = invoiceData.id;
 
@@ -258,11 +278,10 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
       const { error: itemsError } = await supabase.from("invoice_items").insert(itemsPayload);
       if (itemsError) throw itemsError;
 
-      const requestIds = createdRequests.map((req: any) => req.id);
       const { error: linkError } = await supabase
         .from("lab_requests")
         .update({ invoice_id: invoiceId })
-        .in("id", requestIds);
+        .in("id", createdIds);
       if (linkError) throw linkError;
     },
     onSuccess: () => {

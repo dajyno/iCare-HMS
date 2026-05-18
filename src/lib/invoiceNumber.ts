@@ -16,9 +16,10 @@ export async function generateInvoiceNumber(supabase: any, customPrefix?: string
     .order("invoice_number", { ascending: false })
     .limit(1);
 
-  const lastSeq = data?.[0]?.invoice_number
-    ? parseInt(String(data[0].invoice_number).split("-").pop() || "0", 10)
-    : 0;
+  const parts = data?.[0]?.invoice_number ? String(data[0].invoice_number).split("-") : [];
+  const lastSeq = parts.length >= 3 ? parseInt(parts[2], 10) || 0 : 0;
 
-  return `${todayPrefix}${String(lastSeq + 1).padStart(5, "0")}`;
+  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+
+  return `${todayPrefix}${String(lastSeq + 1).padStart(5, "0")}-${rand}`;
 }
