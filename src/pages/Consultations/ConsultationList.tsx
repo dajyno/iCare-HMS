@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import {
   Clock, Play, CheckCircle2, Plus, Loader2, AlertCircle,
-  Stethoscope, Thermometer, HeartPulse, Droplets
+  Thermometer, HeartPulse, Droplets
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +26,7 @@ const ConsultationList = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("consultations")
-        .select("*, patient:patients(*), doctor:users(full_name), vital_signs(*)")
+        .select("*, patient:patients!patient_id(id, patient_id, first_name, last_name), doctor:users!doctor_id(full_name), vital_signs(*)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return toCamel(data);
@@ -35,10 +35,10 @@ const ConsultationList = () => {
 
   const sorted = useMemo(() => {
     if (!Array.isArray(consultations)) return [];
-    const order = { VitalsRecorded: 0, InProgress: 1, Completed: 2 };
+    const order: Record<string, number> = { VitalsRecorded: 0, InProgress: 1, Completed: 2 };
     return [...consultations].sort((a: any, b: any) => {
-      const aOrder = order[a.status as keyof typeof order] ?? 3;
-      const bOrder = order[b.status as keyof typeof order] ?? 3;
+      const aOrder = a.status && order[a.status] !== undefined ? order[a.status] : 3;
+      const bOrder = b.status && order[b.status] !== undefined ? order[b.status] : 3;
       if (aOrder !== bOrder) return aOrder - bOrder;
       if (a.status === "VitalsRecorded") {
         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
@@ -66,7 +66,7 @@ const ConsultationList = () => {
   if (isError) return (
     <div className="p-12 text-center text-slate-400">
       <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-40" />
-      <p>{error instanceof Error ? error.message : "Error loading consultations"}</p>
+      <p className="text-sm">{error instanceof Error ? error.message : "Error loading consultations"}</p>
     </div>
   );
 
@@ -82,48 +82,51 @@ const ConsultationList = () => {
         </Button>
       </div>
 
-      <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
-              <tr>
-                <th className="px-4 py-3 text-left min-w-[200px]">Patient</th>
-                <th className="px-4 py-3 text-left min-w-[140px]">Status</th>
-                <th className="px-4 py-3 text-left whitespace-nowrap">Date / Time</th>
-                <th className="px-4 py-3 text-left min-w-[160px]">Vital Signs</th>
-                <th className="px-4 py-3 text-left min-w-[120px]">Complaint</th>
-                <th className="px-4 py-3 text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {paginated.length === 0 ? (
+      {sorted.length === 0 ? (
+        <div className="bg-white rounded-xl border shadow-sm p-12 text-center text-slate-400">
+          <p>No consultations found.</p>
+          <Button className="mt-4 bg-blue-600 hover:bg-blue-700" onClick={() => navigate("/consultations/workspace")}>
+            <Plus className="w-4 h-4 mr-2" /> Start New Consultation
+          </Button>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-slate-400">No consultations found.</td>
+                  <th className="px-4 py-3 text-left min-w-[200px]">Patient</th>
+                  <th className="px-4 py-3 text-left min-w-[140px]">Status</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Date / Time</th>
+                  <th className="px-4 py-3 text-left min-w-[160px]">Vital Signs</th>
+                  <th className="px-4 py-3 text-left min-w-[120px]">Complaint</th>
+                  <th className="px-4 py-3 text-center">Action</th>
                 </tr>
-              ) : (
-                paginated.map((c: any) => {
-                  const patient = c.patient;
-                  const status = statusConfig[c.status] || statusConfig.Completed;
-                  const StatusIcon = status.icon;
-                  const vs = c.vitalSigns;
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {paginated.map((c: any) => {
+                  const patient = Array.isArray(c.patient) ? c.patient[0] : c.patient;
+                  const s = statusConfig[c.status] || statusConfig.Completed;
+                  const StatusIcon = s.icon;
+                  const vs = Array.isArray(c.vitalSigns) ? c.vitalSigns[0] : c.vitalSigns;
 
                   return (
                     <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
-                            {patient?.firstName?.[0]}{patient?.lastName?.[0]}
+                            {patient?.firstName?.[0] || ""}{patient?.lastName?.[0] || ""}
                           </div>
                           <div className="min-w-0">
-                            <div className="font-semibold text-slate-900 text-sm truncate">{patient?.firstName} {patient?.lastName}</div>
-                            <div className="text-[10px] font-mono text-slate-400 truncate">{patient?.patientId}</div>
+                            <div className="font-semibold text-slate-900 text-sm truncate">{patient?.firstName || ""} {patient?.lastName || ""}</div>
+                            <div className="text-[10px] font-mono text-slate-400 truncate">{patient?.patientId || ""}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <Badge className={`${status.bg} ${status.color} border-0 font-semibold text-[11px] gap-1`}>
+                        <Badge className={`${s.bg} ${s.color} border-0 font-semibold text-[11px] gap-1`}>
                           <StatusIcon className="w-3 h-3" />
-                          {status.label}
+                          {s.label}
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
@@ -149,27 +152,22 @@ const ConsultationList = () => {
                           variant="ghost"
                           size="sm"
                           className={`h-8 text-xs font-semibold ${
-                            c.status === "Completed"
-                              ? "text-slate-400"
-                              : c.status === "InProgress"
-                                ? "text-blue-600"
-                                : "text-amber-600"
+                            c.status === "Completed" ? "text-slate-400" : c.status === "InProgress" ? "text-blue-600" : "text-amber-600"
                           }`}
-                          onClick={() => navigate(`/consultations/workspace/${c.patientId}`)}
+                          onClick={() => navigate(`/consultations/workspace/${c.patientId || c.patient_id}`)}
                         >
                           {c.status === "Completed" ? "View" : c.status === "InProgress" ? "Continue" : "Start"}
                         </Button>
                       </td>
                     </tr>
                   );
-                })
-              )}
-            </tbody>
-          </table>
+                })}
+              </tbody>
+            </table>
+          </div>
+          <Pagination currentPage={page} pageSize={pageSize} totalItems={sorted.length} onPageChange={setPage} onPageSizeChange={setPageSize} />
         </div>
-
-        <Pagination currentPage={page} pageSize={pageSize} totalItems={sorted.length} onPageChange={setPage} onPageSizeChange={setPageSize} />
-      </div>
+      )}
     </div>
   );
 };
