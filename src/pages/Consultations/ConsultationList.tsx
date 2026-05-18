@@ -24,13 +24,15 @@ const ConsultationList = () => {
   const { data: consultations, isLoading, isError, error } = useQuery({
     queryKey: ["consultations"],
     queryFn: async () => {
-      console.log("ConsultationList: fetching...");
       const { data, error } = await supabase
         .from("consultations")
-        .select("*, patient:patients(id, patient_id, first_name, last_name), doctor:users(full_name), vital_signs(*)")
+        .select("*")
         .order("created_at", { ascending: false });
-      console.log("ConsultationList: result", { data, error });
-      if (error) throw error;
+      if (error) {
+        console.error("ConsultationList Supabase error:", error);
+        throw error;
+      }
+      console.log("ConsultationList raw data:", data);
       return toCamel(data);
     },
   });
