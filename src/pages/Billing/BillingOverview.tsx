@@ -396,7 +396,7 @@ const BillingOverview = () => {
                           <td className="px-4 py-4 text-sm text-slate-500 tabular-nums whitespace-nowrap">
                             {format(new Date(inv.createdAt), "dd-MMM-yyyy - HH:mm")}
                           </td>
-                          <td className="px-4 py-4">
+                          <td className="px-4 py-4 whitespace-nowrap truncate max-w-[220px]">
                             <div>
                               <span className="font-semibold text-slate-900">
                                 {inv.patient?.firstName} {inv.patient?.lastName}
@@ -406,10 +406,10 @@ const BillingOverview = () => {
                               </span>
                             </div>
                           </td>
-                          <td className="px-4 py-4">
+                          <td className="px-4 py-4 max-w-[130px] whitespace-normal">
                             <Badge
                               variant="outline"
-                              className={`text-[10px] font-semibold ${
+                              className={`text-[10px] font-semibold whitespace-normal text-left leading-tight ${
                                 SOURCE_STYLES[inv.sourceType] ?? "bg-slate-50 text-slate-600"
                               }`}
                             >

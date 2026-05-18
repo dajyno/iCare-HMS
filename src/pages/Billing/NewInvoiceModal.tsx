@@ -885,20 +885,6 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
     );
   }
 
-  function TileContent({ children, key }: { children: ReactNode; key: string }) {
-    return (
-      <motion.div
-        key={key}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        transition={{ duration: 0.2 }}
-        className="space-y-4"
-      >
-        {children}
-      </motion.div>
-    );
-  }
 };
 
 interface MiniTileProps {
@@ -909,6 +895,20 @@ interface MiniTileProps {
   onClick: () => void;
   hasItems: boolean;
   itemCount: number;
+}
+
+function TileContent({ children }: { children: ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.2 }}
+      className="space-y-4"
+    >
+      {children}
+    </motion.div>
+  );
 }
 
 function PharmacyLabContent({
