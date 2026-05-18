@@ -426,9 +426,10 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
       <motion.div
         layout
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className="relative bg-white rounded-2xl shadow-2xl w-full p-6 max-h-[90vh] overflow-y-auto max-w-4xl"
+        className="relative bg-white rounded-2xl shadow-2xl w-full p-6 max-h-[95vh] max-w-4xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="flex-1 overflow-y-auto -mx-6 px-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -514,11 +515,6 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                 )}
               </div>
 
-              <div className="flex justify-end pt-2">
-                <Button variant="ghost" size="sm" className="h-9 text-slate-500" onClick={handleClose}>
-                  Cancel
-                </Button>
-              </div>
             </motion.div>
           )}
 
@@ -843,36 +839,46 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
 
               {/* Accumulated Items Summary */}
               {renderAccumulatedSummary()}
-
-              {/* Footer */}
-              <div className="sticky bottom-0 -mx-6 -mb-6 px-6 py-4 bg-white/80 backdrop-blur-md border-t border-slate-200 rounded-b-2xl flex items-center justify-between">
-                <Button variant="ghost" size="sm" className="h-9 text-slate-500" onClick={handleClose}>
-                  Cancel
-                </Button>
-
-                {createInvoice.error && (
-                  <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-1.5 mx-2 flex-1 text-center">
-                    {(createInvoice.error as any)?.message || "Failed to create invoice"}
-                  </p>
-                )}
-
-                <Button
-                  size="sm"
-                  className="h-9 bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5"
-                  onClick={handleGenerate}
-                  disabled={!canGenerate || createInvoice.isPending}
-                >
-                  {createInvoice.isPending ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Check className="w-3.5 h-3.5" />
-                  )}
-                  {createInvoice.isPending ? "Generating..." : "Generate Bill"}
-                </Button>
-              </div>
             </motion.div>
           )}
         </AnimatePresence>
+        </div>
+
+        {/* Footer - snapped to bottom */}
+        {form.currentStep === 1 && (
+          <div className="flex justify-end pt-2 shrink-0">
+            <Button variant="ghost" size="sm" className="h-9 text-slate-500" onClick={handleClose}>
+              Cancel
+            </Button>
+          </div>
+        )}
+        {form.currentStep === 2 && (
+          <div className="-mx-6 -mb-6 px-6 py-4 bg-white/80 backdrop-blur-md border-t border-slate-200 rounded-b-2xl flex items-center justify-between shrink-0">
+            <Button variant="ghost" size="sm" className="h-9 text-slate-500" onClick={handleClose}>
+              Cancel
+            </Button>
+
+            {createInvoice.error && (
+              <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-1.5 mx-2 flex-1 text-center">
+                {(createInvoice.error as any)?.message || "Failed to create invoice"}
+              </p>
+            )}
+
+            <Button
+              size="sm"
+              className="h-9 bg-blue-600 hover:bg-blue-700 text-white font-bold gap-1.5"
+              onClick={handleGenerate}
+              disabled={!canGenerate || createInvoice.isPending}
+            >
+              {createInvoice.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Check className="w-3.5 h-3.5" />
+              )}
+              {createInvoice.isPending ? "Generating..." : "Generate Bill"}
+            </Button>
+          </div>
+        )}
       </motion.div>
     </motion.div>
   );
