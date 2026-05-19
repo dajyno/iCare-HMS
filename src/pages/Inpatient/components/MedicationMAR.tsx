@@ -139,6 +139,7 @@ const MedicationMAR = ({
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState(150);
   const [customSlots, setCustomSlots] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
   const [verifyDialog, setVerifyDialog] = useState<{
     drugId: string;
     slot: string;
@@ -181,7 +182,7 @@ const MedicationMAR = ({
   };
 
   const openEditDialog = (med: MedicationSchedule) => {
-    setEditingDrugId(med.drugId);
+    setEditingDrugId(med.scheduleEntryId || med.drugId);
     setSelectedDrug({ drugId: med.drugId, name: med.name });
     setDrugQuery(med.name);
     setFreq(med.frequency);
@@ -197,33 +198,44 @@ const MedicationMAR = ({
   };
 
   const handleSaveSchedule = () => {
-    if (!selectedDrug || !freq) return;
-    const slots =
-      freq === "Custom" ? customSlots : FREQ_PRESETS[freq]?.slots ?? [];
-    const drugId = selectedDrug.drugId;
-    const med: MedicationSchedule = {
-      drugId,
-      name: selectedDrug.name,
-      quantity: quantity || 1,
-      unitPrice: unitPrice || 150,
-      frequency: freq as MedicationSchedule["frequency"],
-      assignedSlots: slots,
-      administrationLog: slots.map((s) => {
-        if (editingDrugId === drugId) {
-          const existing = admission.medicationSchedule
-            .find((m) => m.drugId === drugId)
-            ?.administrationLog.find((l) => l.slot === s);
-          return existing ?? { slot: s, status: "Pending" as const, loggedAt: null, note: "" };
-        }
-        return { slot: s, status: "Pending" as const, loggedAt: null, note: "" };
-      }),
-    };
-    if (editingDrugId) {
-      onUpdateMedication(editingDrugId, med);
-    } else {
-      onAssignMedication(med);
+    if (!selectedDrug || !freq || saving) return;
+    setSaving(true);
+    try {
+      const slots =
+        freq === "Custom" ? customSlots : FREQ_PRESETS[freq]?.slots ?? [];
+      const drugId = selectedDrug.drugId;
+      const existingEntry = editingDrugId
+        ? admission.medicationSchedule.find((m) =>
+            m.drugId === editingDrugId || m.scheduleEntryId === editingDrugId
+          )
+        : undefined;
+      const med: MedicationSchedule = {
+        scheduleEntryId: existingEntry?.scheduleEntryId || crypto.randomUUID(),
+        drugId,
+        name: selectedDrug.name,
+        quantity: quantity || 1,
+        unitPrice: unitPrice || 150,
+        frequency: freq as MedicationSchedule["frequency"],
+        assignedSlots: slots,
+        administrationLog: slots.map((s) => {
+          if (editingDrugId === drugId) {
+            const existing = admission.medicationSchedule
+              .find((m) => m.drugId === drugId)
+              ?.administrationLog.find((l) => l.slot === s);
+            return existing ?? { slot: s, status: "Pending" as const, loggedAt: null, note: "" };
+          }
+          return { slot: s, status: "Pending" as const, loggedAt: null, note: "" };
+        }),
+      };
+      if (editingDrugId) {
+        onUpdateMedication(editingDrugId, med);
+      } else {
+        onAssignMedication(med);
+      }
+      setDrawerOpen(false);
+    } finally {
+      setSaving(false);
     }
-    setDrawerOpen(false);
   };
 
   const handleSingleClick = useCallback(
@@ -336,7 +348,7 @@ const MedicationMAR = ({
               </thead>
               <tbody>
                 {meds.map((med) => (
-                  <tr key={med.drugId} className="border-b border-slate-50 last:border-0">
+                  <tr key={med.scheduleEntryId || med.drugId} className="border-b border-slate-50 last:border-0">
                     <td className="px-3 py-2.5">
                       <p className="text-xs font-medium text-slate-900">
                         {med.name}
@@ -546,12 +558,16 @@ const MedicationMAR = ({
             </Button>
             <Button
               size="sm"
-              disabled={!selectedDrug || !freq}
+              disabled={!selectedDrug || !freq || saving}
               onClick={handleSaveSchedule}
               className="gap-1.5"
             >
-              <Check className="w-3.5 h-3.5" />
-              {editingDrugId ? "Update Schedule" : "Save Schedule"}
+              {saving ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Check className="w-3.5 h-3.5" />
+              )}
+              {saving ? "Saving..." : editingDrugId ? "Update Schedule" : "Save Schedule"}
             </Button>
           </DialogFooter>
         </DialogContent>

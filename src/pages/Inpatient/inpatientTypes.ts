@@ -22,6 +22,7 @@ export interface AdministrationLogEntry {
 }
 
 export interface MedicationSchedule {
+  scheduleEntryId: string;
   drugId: string;
   name: string;
   quantity: number;

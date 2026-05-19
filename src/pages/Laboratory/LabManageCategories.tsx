@@ -32,6 +32,8 @@ const LabManageCategories = ({ open, onClose }: Props) => {
   const [addName, setAddName] = useState("");
   const [addCategory, setAddCategory] = useState("");
   const [addPrice, setAddPrice] = useState("");
+  const [showCustomCategory, setShowCustomCategory] = useState(false);
+  const [customCategory, setCustomCategory] = useState("");
 
   const { data: tests } = useQuery({
     queryKey: ["lab-tests-all"],
@@ -94,6 +96,8 @@ const LabManageCategories = ({ open, onClose }: Props) => {
       setAddName("");
       setAddCategory("");
       setAddPrice("");
+      setShowCustomCategory(false);
+      setCustomCategory("");
       setErrorMsg(null);
     },
     onError: (err: Error) => {
@@ -121,9 +125,10 @@ const LabManageCategories = ({ open, onClose }: Props) => {
 
   const handleAdd = () => {
     if (!addName.trim()) return;
+    const category = showCustomCategory && customCategory.trim() ? customCategory.trim() : addCategory.trim();
     addMutation.mutate({
       name: addName.trim(),
-      category: addCategory.trim(),
+      category,
       price: parseFloat(addPrice || "0"),
     });
   };
@@ -241,10 +246,22 @@ const LabManageCategories = ({ open, onClose }: Props) => {
                 <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Category</Label>
                 <SearchableSelect
                   value={addCategory}
-                  onValueChange={setAddCategory}
+                  onValueChange={(v) => {
+                    setAddCategory(v);
+                    setShowCustomCategory(v === "OTHERS");
+                    if (v !== "OTHERS") setCustomCategory("");
+                  }}
                   placeholder="Select..."
-                  options={allCategories.map((c) => ({ value: c, label: c }))}
+                  options={[...allCategories.map((c) => ({ value: c, label: c })), { value: "OTHERS", label: "OTHERS" }]}
                 />
+                {showCustomCategory && (
+                  <Input
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    placeholder="Type custom category..."
+                    className="h-8 text-xs mt-2"
+                  />
+                )}
               </div>
               <div className="w-24">
                 <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Price (₦)</Label>
@@ -275,6 +292,8 @@ const LabManageCategories = ({ open, onClose }: Props) => {
                     setAddName("");
                     setAddCategory("");
                     setAddPrice("");
+                    setShowCustomCategory(false);
+                    setCustomCategory("");
                   }}
                 >
                   Cancel

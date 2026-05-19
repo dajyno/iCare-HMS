@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { generateInvoiceNumber } from "@/src/lib/invoiceNumber";
 import type {
@@ -30,15 +30,6 @@ function loadPersistedState(): InpatientMasterState {
   return INITIAL_STATE;
 }
 
-const attendingDoctors = [
-  "Dr. Eric Lieberman",
-  "Dr. Jane Wanjiku",
-  "Dr. Grace Ochieng",
-  "Dr. Michael Otieno",
-  "Dr. Faith Njoki",
-  "Dr. Kevin Kimani",
-];
-
 function computeDaysAdmitted(admissionDate: string): number {
   const admitted = new Date(admissionDate);
   const now = new Date();
@@ -47,15 +38,8 @@ function computeDaysAdmitted(admissionDate: string): number {
 }
 
 export function useInpatientState() {
-  const loadedFromStorage = useRef(false);
-  const [state, setState] = useState<InpatientMasterState>(() => {
-    const persisted = loadPersistedState();
-    if (persisted.activeAdmissions.length > 0 || persisted.wardConfiguration.length > 0) {
-      loadedFromStorage.current = true;
-    }
-    return persisted;
-  });
-  const [loading, setLoading] = useState(!loadedFromStorage.current);
+  const [state, setState] = useState<InpatientMasterState>(loadPersistedState);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     try {
@@ -66,7 +50,6 @@ export function useInpatientState() {
   }, [state]);
 
   useEffect(() => {
-    if (loadedFromStorage.current) return;
     let cancelled = false;
 
     async function fetchWards() {
@@ -146,18 +129,44 @@ export function useInpatientState() {
       }
     }
 
+    async function migrateLegacyWards(wardConfig: any[]) {
+      const legacy = loadPersistedState();
+      if (legacy.wardConfiguration.length === 0) return wardConfig;
+      for (const legacyWard of legacy.wardConfiguration) {
+        const exists = wardConfig?.some((w) => w.name === legacyWard.name);
+        if (exists) continue;
+        const { data: wardData, error: wardError } = await supabase
+          .from("wards")
+          .insert({ name: legacyWard.name, type: legacyWard.department })
+          .select()
+          .single();
+        if (wardError) { console.warn("Legacy ward migration failed:", wardError); continue; }
+        const bedInserts = legacyWard.beds.map((b: any) => ({
+          ward_id: wardData.id,
+          bed_number: b.bedCode,
+          status: b.status === "Maintenance/Sanitizing" ? "Maintenance" : b.status,
+        }));
+        await supabase.from("beds").insert(bedInserts);
+      }
+      try { localStorage.removeItem(PERSIST_KEY); } catch {}
+      return fetchWards();
+    }
+
     async function fetchInitialData() {
       setLoading(true);
-      const [wardConfig, activeAdmissions] = await Promise.all([
+      let [wardConfig, activeAdmissions] = await Promise.all([
         fetchWards(),
         fetchAdmissions(),
       ]);
       if (!cancelled) {
-        setState({
-          wardConfiguration: wardConfig ?? [],
-          activeAdmissions: activeAdmissions ?? [],
-        });
-        setLoading(false);
+        wardConfig = await migrateLegacyWards(wardConfig);
+        if (!cancelled) {
+          setState({
+            wardConfiguration: wardConfig ?? [],
+            activeAdmissions: activeAdmissions ?? [],
+          });
+          setLoading(false);
+        }
       }
     }
 
@@ -302,7 +311,18 @@ export function useInpatientState() {
         ...prev,
         activeAdmissions: prev.activeAdmissions.map((a) =>
           a.admissionId === admissionId
-            ? { ...a, medicationSchedule: [...a.medicationSchedule, med] }
+            ? {
+                ...a,
+                medicationSchedule: a.medicationSchedule.some(
+                  (m) => m.drugId === med.drugId
+                )
+                  ? a.medicationSchedule.map((m) =>
+                      m.drugId === med.drugId
+                        ? { ...m, ...med, scheduleEntryId: m.scheduleEntryId }
+                        : m
+                    )
+                  : [...a.medicationSchedule, med],
+              }
             : a
         ),
       }));
@@ -319,7 +339,9 @@ export function useInpatientState() {
             ? {
                 ...a,
                 medicationSchedule: a.medicationSchedule.map((m) =>
-                  m.drugId === drugId ? updated : m
+                  m.scheduleEntryId === updated.scheduleEntryId || m.drugId === drugId
+                    ? updated
+                    : m
                 ),
               }
             : a
@@ -338,7 +360,7 @@ export function useInpatientState() {
             ? {
                 ...a,
                 medicationSchedule: a.medicationSchedule.filter(
-                  (m) => m.drugId !== drugId
+                  (m) => m.scheduleEntryId !== drugId && m.drugId !== drugId
                 ),
               }
             : a
@@ -544,38 +566,65 @@ export function useInpatientState() {
   );
 
   const addWard = useCallback(
-    (ward: Omit<WardConfig, "beds"> & { bedCount: number }) => {
-      const newWard: WardConfig = {
-        wardId: ward.wardId || `WARD-${Date.now()}`,
-        name: ward.name,
-        department: ward.department,
-        totalBeds: ward.bedCount,
-        beds: Array.from({ length: ward.bedCount }, (_, i) => ({
-          bedCode: `${ward.wardId || `WARD-${Date.now()}`}-B${String(i + 1).padStart(2, "0")}`,
-          status: "Available" as const,
-          price: 2500,
-        })),
-      };
-      setState((prev) => ({
-        ...prev,
-        wardConfiguration: [...prev.wardConfiguration, newWard],
-      }));
+    async (ward: Omit<WardConfig, "beds"> & { bedCount: number }) => {
+      try {
+        const { data: wardData, error: wardError } = await supabase
+          .from("wards")
+          .insert({ name: ward.name, type: ward.department })
+          .select()
+          .single();
+        if (wardError) throw wardError;
+        const bedInserts = Array.from({ length: ward.bedCount }, (_, i) => ({
+          ward_id: wardData.id,
+          bed_number: `${ward.wardId || wardData.id.slice(0, 8)}-B${String(i + 1).padStart(2, "0")}`,
+          status: "Available",
+        }));
+        const { error: bedsError } = await supabase.from("beds").insert(bedInserts);
+        if (bedsError) throw bedsError;
+        setState((prev) => ({
+          ...prev,
+          wardConfiguration: [
+            ...prev.wardConfiguration,
+            {
+              wardId: wardData.id,
+              name: ward.name,
+              department: ward.department,
+              totalBeds: ward.bedCount,
+              beds: bedInserts.map((b) => ({
+                bedCode: b.bed_number,
+                status: "Available" as const,
+                price: 2500,
+              })),
+            },
+          ],
+        }));
+        alert("Ward added successfully.");
+      } catch (err: any) {
+        alert("Failed to add ward: " + (err?.message || err));
+      }
     },
     []
   );
 
   const deleteWard = useCallback(
-    (wardId: string) => {
-      setState((prev) => ({
-        ...prev,
-        wardConfiguration: prev.wardConfiguration.filter((w) => w.wardId !== wardId),
-        activeAdmissions: prev.activeAdmissions.filter(
-          (a) => {
-            const ward = prev.wardConfiguration.find((w) => w.wardId === wardId);
-            return ward ? a.wardCode !== ward.name : true;
-          }
-        ),
-      }));
+    async (wardId: string) => {
+      try {
+        const { error } = await supabase.from("wards").delete().eq("id", wardId);
+        if (error) throw error;
+        setState((prev) => ({
+          ...prev,
+          wardConfiguration: prev.wardConfiguration.filter((w) => w.wardId !== wardId),
+          activeAdmissions: prev.activeAdmissions.filter(
+            (a) => {
+              const ward = prev.wardConfiguration.find((w) => w.wardId === wardId);
+              return ward ? a.wardCode !== ward.name : true;
+            }
+          ),
+        }));
+        alert("Ward deleted successfully.");
+      } catch (err: any) {
+        alert("Failed to delete ward: " + (err?.message || err));
+      }
     },
     []
   );
@@ -615,6 +664,5 @@ export function useInpatientState() {
     deleteWard,
     getBedPrice,
     setState,
-    attendingDoctors,
   };
 }

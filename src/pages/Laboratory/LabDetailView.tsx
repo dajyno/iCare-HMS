@@ -126,6 +126,8 @@ const LabDetailView = ({
     const latestInterps = interpretationsRef.current;
     const latestFile = fileRef.current;
 
+    const { data: { user } } = await supabase.auth.getUser();
+
     for (const o of orders) {
       const val = latestResults[o.id] ?? "";
       const unit = latestUnits[o.id] ?? "";
@@ -145,6 +147,7 @@ const LabDetailView = ({
           unit: unit || null,
           reference_range: o.test?.referenceRange ?? null,
           interpretation: interp || null,
+          technician_id: user?.id ?? null,
         }, { onConflict: "request_id" });
       if (error) throw error;
 

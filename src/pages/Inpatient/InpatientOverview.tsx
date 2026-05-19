@@ -30,7 +30,6 @@ const InpatientOverview = () => {
     loading,
     computeFluidBalance,
     searchPatients,
-    attendingDoctors,
     finalizeAdmission,
     commitVitals,
     assignMedication,
@@ -195,8 +194,8 @@ const InpatientOverview = () => {
         searchPatients={searchPatients}
         attendingDoctors={
           liveAttendingDoctors.length > 0
-            ? [...new Set([...attendingDoctors, ...liveAttendingDoctors])]
-            : attendingDoctors
+            ? liveAttendingDoctors
+            : ["Unassigned"]
         }
         onFinalize={finalizeAdmission}
       />

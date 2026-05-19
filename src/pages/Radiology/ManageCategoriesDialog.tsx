@@ -33,6 +33,10 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
   const [addName, setAddName] = useState("");
   const [addPrice, setAddPrice] = useState("");
   const [addCategory, setAddCategory] = useState("");
+  const [showAddCustomCategory, setShowAddCustomCategory] = useState(false);
+  const [addCustomCategory, setAddCustomCategory] = useState("");
+  const [showEditCustomCategory, setShowEditCustomCategory] = useState(false);
+  const [editCustomCategory, setEditCustomCategory] = useState("");
 
   const { data: exams } = useQuery({
     queryKey: ["radiology-exams-all"],
@@ -82,6 +86,9 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
       queryClient.invalidateQueries({ queryKey: ["radiology-exams-all"] });
       queryClient.invalidateQueries({ queryKey: ["radiology-requests"] });
       setEditingId(null);
+      setShowEditCustomCategory(false);
+      setEditCustomCategory("");
+      setErrorMsg(null);
     },
     onError: (err: Error) => {
       console.error("Update exam failed:", err);
@@ -102,6 +109,8 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
       setAddName("");
       setAddPrice("");
       setAddCategory("");
+      setShowAddCustomCategory(false);
+      setAddCustomCategory("");
       setErrorMsg(null);
     },
     onError: (err: Error) => {
@@ -114,24 +123,52 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
     setEditName(exam.name);
     setEditPrice(String(exam.price ?? ""));
     setEditCategory(exam.categoryId ?? "");
+    setShowEditCustomCategory(false);
+    setEditCustomCategory("");
   };
 
-  const handleUpdate = (id: string) => {
-    if (!editName.trim() || !editPrice || !editCategory) return;
+  const handleUpdate = async (id: string) => {
+    if (!editName.trim() || !editPrice) return;
+    let categoryId = editCategory;
+    if (showEditCustomCategory) {
+      if (!editCustomCategory.trim()) return;
+      const { data: newCat, error: catError } = await supabase
+        .from("radiology_categories")
+        .insert({ name: editCustomCategory.trim() })
+        .select()
+        .single();
+      if (catError) { setErrorMsg(catError.message); return; }
+      categoryId = newCat.id;
+      queryClient.invalidateQueries({ queryKey: ["radiology-categories-all"] });
+    }
+    if (!categoryId) return;
     updateMutation.mutate({
       id,
       name: editName.trim(),
       price: parseFloat(editPrice),
-      categoryId: editCategory,
+      categoryId,
     });
   };
 
-  const handleAdd = () => {
-    if (!addName.trim() || !addPrice || !addCategory) return;
+  const handleAdd = async () => {
+    if (!addName.trim() || !addPrice) return;
+    let categoryId = addCategory;
+    if (showAddCustomCategory) {
+      if (!addCustomCategory.trim()) return;
+      const { data: newCat, error: catError } = await supabase
+        .from("radiology_categories")
+        .insert({ name: addCustomCategory.trim() })
+        .select()
+        .single();
+      if (catError) { setErrorMsg(catError.message); return; }
+      categoryId = newCat.id;
+      queryClient.invalidateQueries({ queryKey: ["radiology-categories-all"] });
+    }
+    if (!categoryId) return;
     addMutation.mutate({
       name: addName.trim(),
       price: parseFloat(addPrice),
-      categoryId: addCategory,
+      categoryId,
     });
   };
 
@@ -182,14 +219,29 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
                         />
                         <SearchableSelect
                           value={editCategory}
-                          onValueChange={setEditCategory}
+                          onValueChange={(v) => {
+                            setEditCategory(v);
+                            setShowEditCustomCategory(v === "__others__");
+                            if (v !== "__others__") setEditCustomCategory("");
+                          }}
                           placeholder="Category"
-                          options={(Array.isArray(categories) ? categories : []).map((c: any) => ({
-                            value: c.id,
-                            label: c.name,
-                          }))}
+                          options={[
+                            ...(Array.isArray(categories) ? categories : []).map((c: any) => ({
+                              value: c.id,
+                              label: c.name,
+                            })),
+                            { value: "__others__", label: "OTHERS" },
+                          ]}
                           triggerClassName="h-8 text-xs w-36"
                         />
+                        {showEditCustomCategory && (
+                          <Input
+                            value={editCustomCategory}
+                            onChange={(e) => setEditCustomCategory(e.target.value)}
+                            placeholder="Type custom category..."
+                            className="h-8 text-xs w-36"
+                          />
+                        )}
                         <button
                           onClick={() => handleUpdate(exam.id)}
                           disabled={updateMutation.isPending}
@@ -251,13 +303,28 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
                 <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Category</Label>
                 <SearchableSelect
                   value={addCategory}
-                  onValueChange={setAddCategory}
+                  onValueChange={(v) => {
+                    setAddCategory(v);
+                    setShowAddCustomCategory(v === "__others__");
+                    if (v !== "__others__") setAddCustomCategory("");
+                  }}
                   placeholder="Select..."
-                  options={(Array.isArray(categories) ? categories : []).map((c: any) => ({
-                    value: c.id,
-                    label: c.name,
-                  }))}
+                  options={[
+                    ...(Array.isArray(categories) ? categories : []).map((c: any) => ({
+                      value: c.id,
+                      label: c.name,
+                    })),
+                    { value: "__others__", label: "OTHERS" },
+                  ]}
                 />
+                {showAddCustomCategory && (
+                  <Input
+                    value={addCustomCategory}
+                    onChange={(e) => setAddCustomCategory(e.target.value)}
+                    placeholder="Type custom category..."
+                    className="h-8 text-xs mt-2"
+                  />
+                )}
               </div>
               <div className="w-24">
                 <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Price (₦)</Label>
@@ -288,6 +355,8 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
                     setAddName("");
                     setAddPrice("");
                     setAddCategory("");
+                    setShowAddCustomCategory(false);
+                    setAddCustomCategory("");
                   }}
                 >
                   Cancel

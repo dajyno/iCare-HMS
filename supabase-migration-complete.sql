@@ -82,6 +82,46 @@ begin
 end
 $$;
 
+-- Add UPDATE policy for lab_results (needed for LabDetailView upsert)
+drop policy if exists "Users can update lab results" on public.lab_results;
+create policy "Users can update lab results"
+  on public.lab_results for update
+  to authenticated
+  using (true);
+
+-- Wards: drop type check constraint (accept free-text department names)
+alter table public.wards drop constraint if exists wards_type_check;
+alter table public.wards drop constraint if exists check_type;
+
+-- Wards: make department_id nullable
+alter table public.wards alter column department_id drop not null;
+
+-- INSERT/DELETE RLS for wards
+drop policy if exists "Users can insert wards" on public.wards;
+create policy "Users can insert wards"
+  on public.wards for insert
+  to authenticated
+  with check (true);
+
+drop policy if exists "Users can delete wards" on public.wards;
+create policy "Users can delete wards"
+  on public.wards for delete
+  to authenticated
+  using (true);
+
+-- INSERT/DELETE RLS for beds
+drop policy if exists "Users can insert beds" on public.beds;
+create policy "Users can insert beds"
+  on public.beds for insert
+  to authenticated
+  with check (true);
+
+drop policy if exists "Users can delete beds" on public.beds;
+create policy "Users can delete beds"
+  on public.beds for delete
+  to authenticated
+  using (true);
+
 drop policy if exists "Authenticated users can insert medications" on public.medications;
 create policy "Authenticated users can insert medications"
   on public.medications for insert
