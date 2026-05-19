@@ -122,10 +122,13 @@ const PatientProfile = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("prescriptions")
-        .select("*, doctor:users(full_name), items:prescription_items(*, medication:medications(name, strength))")
+        .select("*, items:prescription_items(*, medication:medications(name, strength))")
         .eq("patient_id", id)
         .order("date", { ascending: false });
-      if (error) throw error;
+      if (error) {
+        console.error("Prescriptions query error:", error);
+        throw error;
+      }
       return toCamel(data);
     },
     enabled: !!id,
@@ -966,7 +969,7 @@ const PatientProfile = () => {
                     <div className="flex items-center gap-2"><Pill className="w-4 h-4 text-emerald-500" /><span className="font-bold text-slate-900">Prescription</span></div>
                     <Badge variant="outline" className="text-[10px]">{rx.status}</Badge>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">Dr. {rx.doctor?.fullName || "Unknown"} — {rx.date ? new Date(rx.date).toLocaleDateString() : ""}</p>
+                    <p className="text-xs text-slate-500 mt-1">{rx.date ? new Date(rx.date).toLocaleDateString() : ""}</p>
                   {Array.isArray(rx.items) && rx.items.length > 0 && (
                     <div className="mt-3 space-y-2">
                       {rx.items.map((item: any, i: number) => (

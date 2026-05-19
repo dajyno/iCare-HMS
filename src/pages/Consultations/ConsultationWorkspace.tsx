@@ -237,7 +237,9 @@ const ConsultationWorkspace = () => {
       setSuccess("Prescriptions saved");
       replacePrescriptions([]);
       queryClient.invalidateQueries({ queryKey: ["consultations"] });
-      queryClient.invalidateQueries({ queryKey: ["patient-rx"] });
+      if (selectedPatient?.id) {
+        queryClient.invalidateQueries({ queryKey: ["patient-rx", selectedPatient.id] });
+      }
       queryClient.invalidateQueries({ queryKey: ["pharmacy-prescriptions"] });
       setTimeout(() => setSuccess(null), 3000);
     },
@@ -391,7 +393,9 @@ const ConsultationWorkspace = () => {
       queryClient.invalidateQueries({ queryKey: ["consultations"] });
       queryClient.invalidateQueries({ queryKey: ["patient-consultations"] });
       queryClient.invalidateQueries({ queryKey: ["all-vitals"] });
-      queryClient.invalidateQueries({ queryKey: ["patient-rx"] });
+      if (selectedPatient?.id) {
+        queryClient.invalidateQueries({ queryKey: ["patient-rx", selectedPatient.id] });
+      }
       queryClient.invalidateQueries({ queryKey: ["patient-labs"] });
       queryClient.invalidateQueries({ queryKey: ["radiology-requests"] });
       reset();

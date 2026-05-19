@@ -8,11 +8,22 @@ import {
   Check,
   X,
   Loader2,
+  Banknote,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { useInvoices, useUpdateInvoiceStatus } from "./billingHooks";
 import {
   SOURCE_TABS,
@@ -150,20 +161,28 @@ const BillingOverview = () => {
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
   const [bulkPaying, setBulkPaying] = useState(false);
+  const [showBulkPayModal, setShowBulkPayModal] = useState(false);
+  const [bulkPayMethod, setBulkPayMethod] = useState<"Cash" | "Card" | "Bank Transfer" | "Insurance Split">("Cash");
 
-  const handleBulkPay = useCallback(async () => {
+  const handleBulkPay = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    setShowBulkPayModal(true);
+  }, [selectedIds]);
+
+  const handleConfirmBulkPay = useCallback(async () => {
     if (selectedIds.size === 0 || bulkPaying) return;
     setBulkPaying(true);
+    setShowBulkPayModal(false);
     const ids: string[] = Array.from(selectedIds);
     for (const id of ids) {
       const inv = (invoices as InvoiceSummary[] | undefined)?.find((i: InvoiceSummary) => i.id === id);
       if (inv && inv.status !== "Paid") {
-        await updateStatus.mutateAsync({ id, amountPaid: inv.balance as number, paymentMethod: "Cash" });
+        await updateStatus.mutateAsync({ id, amountPaid: inv.balance as number, paymentMethod: bulkPayMethod });
       }
     }
     clearSelection();
     setBulkPaying(false);
-  }, [selectedIds, invoices, updateStatus, clearSelection, bulkPaying]);
+  }, [selectedIds, invoices, updateStatus, clearSelection, bulkPaying, bulkPayMethod]);
 
   const handleRowClick = (inv: InvoiceSummary) => {
     setSelectedInvoice(inv);
@@ -527,6 +546,65 @@ const BillingOverview = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Bulk Pay Method Modal */}
+      <Dialog open={showBulkPayModal} onOpenChange={setShowBulkPayModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Process Bulk Payment</DialogTitle>
+            <DialogDescription>
+              Select payment method for {selectedIds.size} invoice{selectedIds.size !== 1 ? "s" : ""} (₦{selectedTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })})
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            {(["Cash", "Card", "Bank Transfer", "Insurance Split"] as const).map((method) => (
+              <label
+                key={method}
+                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                  bulkPayMethod === method
+                    ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200"
+                    : "border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="bulkPayMethod"
+                  value={method}
+                  checked={bulkPayMethod === method}
+                  onChange={() => setBulkPayMethod(method)}
+                  className="accent-blue-600"
+                />
+                <div className="flex items-center gap-2">
+                  {method === "Cash" && <Banknote className="w-4 h-4 text-emerald-600" />}
+                  {method === "Card" && <CreditCard className="w-4 h-4 text-blue-600" />}
+                  {method === "Bank Transfer" && <CreditCard className="w-4 h-4 text-purple-600" />}
+                  {method === "Insurance Split" && <CreditCard className="w-4 h-4 text-amber-600" />}
+                  <span className="text-sm font-medium">{method}</span>
+                </div>
+              </label>
+            ))}
+          </div>
+          <DialogFooter className="gap-2">
+            <DialogClose asChild>
+              <Button type="button" variant="outline" size="sm">Cancel</Button>
+            </DialogClose>
+            <Button
+              type="button"
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2"
+              onClick={handleConfirmBulkPay}
+              disabled={bulkPaying}
+            >
+              {bulkPaying ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Check className="w-4 h-4" />
+              )}
+              {bulkPaying ? "Processing..." : "Confirm Payment"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* New Invoice Modal */}
       <NewInvoiceModal

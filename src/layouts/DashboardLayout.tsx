@@ -45,6 +45,16 @@ const SidebarItem = ({ icon: Icon, label, href, active, onClick }: any) => (
 );
 
 const SidebarGroup = ({ icon: Icon, label, children, currentPath, isOpen, onToggle }: any) => {
+  const isChildActive = (href: string) => {
+    if (currentPath === href) return true;
+    if (currentPath.startsWith(href + "/")) {
+      const moreSpecific = children.find(
+        (c: any) => c.href !== href && currentPath.startsWith(c.href)
+      );
+      return !moreSpecific;
+    }
+    return false;
+  };
   return (
     <div>
       <button
@@ -65,7 +75,7 @@ const SidebarGroup = ({ icon: Icon, label, children, currentPath, isOpen, onTogg
               key={child.href}
               href={child.href}
               label={child.label}
-              active={currentPath.startsWith(child.href)}
+              active={isChildActive(child.href)}
             />
           ))}
         </div>

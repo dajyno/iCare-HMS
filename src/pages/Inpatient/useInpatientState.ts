@@ -133,6 +133,7 @@ export function useInpatientState() {
               : [],
           },
           attendingPhysician: "Unassigned",
+          admissionDate: a.admission_date,
           daysAdmitted: computeDaysAdmitted(a.admission_date),
           careStatus: "Stable",
           vitalsHistory: [],
@@ -163,17 +164,6 @@ export function useInpatientState() {
     fetchInitialData();
     return () => { cancelled = true; };
   }, []);
-
-  const wards = useMemo(
-    () =>
-      Array.from(new Set(state.activeAdmissions.map((a) => a.wardCode)))
-        .sort()
-        .map((code) => ({
-          code,
-          admissions: state.activeAdmissions.filter((a) => a.wardCode === code),
-        })),
-    [state.activeAdmissions]
-  );
 
   const computeFluidBalance = useCallback(
     (admissionId: string) => {
@@ -254,12 +244,14 @@ export function useInpatientState() {
       chiefComplaints: string;
       attendingPhysician: string;
     }) => {
+      const now = new Date().toISOString();
       const newAdmission: ActiveAdmission = {
         admissionId: `ADM-${Date.now()}`,
         wardCode: payload.wardCode,
         bedNo: payload.bedNo,
         patient: payload.patient,
         attendingPhysician: payload.attendingPhysician,
+        admissionDate: now,
         daysAdmitted: 0,
         careStatus: "Stable",
         vitalsHistory: [],
@@ -427,7 +419,9 @@ export function useInpatientState() {
       const admission = state.activeAdmissions.find((a) => a.admissionId === admissionId);
       if (!admission) return;
 
-      const bedStayDays = admission.daysAdmitted;
+      const bedStayDays = admission.admissionDate
+        ? Math.max(0, Math.floor((Date.now() - new Date(admission.admissionDate).getTime()) / (1000 * 60 * 60 * 24)))
+        : 0;
       const bedRatePerDay = getBedPrice(admission.wardCode, admission.bedNo);
       const bedStayCost = bedStayDays * bedRatePerDay;
 
@@ -586,8 +580,30 @@ export function useInpatientState() {
     []
   );
 
+  const liveAdmissions = useMemo(
+    () =>
+      state.activeAdmissions.map((a) => ({
+        ...a,
+        daysAdmitted: a.admissionDate
+          ? Math.max(0, Math.floor((Date.now() - new Date(a.admissionDate).getTime()) / (1000 * 60 * 60 * 24)))
+          : 0,
+      })),
+    [state.activeAdmissions]
+  );
+
+  const wards = useMemo(
+    () =>
+      Array.from(new Set(liveAdmissions.map((a) => a.wardCode)))
+        .sort()
+        .map((code) => ({
+          code,
+          admissions: liveAdmissions.filter((a) => a.wardCode === code),
+        })),
+    [liveAdmissions]
+  );
+
   return {
-    state,
+    state: { ...state, activeAdmissions: liveAdmissions },
     wards,
     loading,
     computeFluidBalance,
