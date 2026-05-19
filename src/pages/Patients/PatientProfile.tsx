@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
@@ -130,6 +130,26 @@ const PatientProfile = () => {
     },
     enabled: !!id,
   });
+
+  const labByConsultation = useMemo(() => {
+    if (!Array.isArray(labRequests)) return new Map();
+    const m = new Map<string, any[]>();
+    for (const lr of labRequests) {
+      const cId = lr.consultationId || lr.consultation_id;
+      if (cId) { if (!m.has(cId)) m.set(cId, []); m.get(cId)!.push(lr); }
+    }
+    return m;
+  }, [labRequests]);
+
+  const rxByConsultation = useMemo(() => {
+    if (!Array.isArray(prescriptions)) return new Map();
+    const m = new Map<string, any[]>();
+    for (const rx of prescriptions) {
+      const cId = rx.consultationId || rx.consultation_id;
+      if (cId) { if (!m.has(cId)) m.set(cId, []); m.get(cId)!.push(rx); }
+    }
+    return m;
+  }, [prescriptions]);
 
   const { data: vitals } = useQuery({
     queryKey: ["patient-vitals", id],
@@ -815,6 +835,42 @@ const PatientProfile = () => {
                           {vs.oxygenSaturation != null && <span className="text-slate-500"><span className="font-semibold">SpO₂:</span> {vs.oxygenSaturation}%</span>}
                         </div>
                       )}
+                      {(() => {
+                        const cLabs = labByConsultation.get(c.id);
+                        const cRx = rxByConsultation.get(c.id);
+                        return (
+                          <>
+                            {Array.isArray(cLabs) && cLabs.length > 0 && (
+                              <div className="mt-3 pt-2 border-t border-slate-100">
+                                <p className="text-[10px] font-bold uppercase text-slate-400 mb-1 flex items-center gap-1"><FlaskConical className="w-3 h-3" /> Lab Requests</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {cLabs.map((lr: any) => (
+                                    <span key={lr.id} className="text-[11px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{lr.test?.name || "Unknown test"}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {Array.isArray(cRx) && cRx.length > 0 && (
+                              <div className="mt-3 pt-2 border-t border-slate-100">
+                                <p className="text-[10px] font-bold uppercase text-slate-400 mb-1 flex items-center gap-1"><Pill className="w-3 h-3" /> Prescriptions</p>
+                                <div className="space-y-1">
+                                  {cRx.map((rx: any) => (
+                                    <div key={rx.id} className="text-[11px] text-slate-600">
+                                      <span className="font-semibold">{rx.items?.length || 0} medication(s)</span>
+                                      <span className="text-slate-400 mx-1">·</span>
+                                      <span className={`font-medium ${
+                                        (rx.status || "").toLowerCase() === "unpaid" ? "text-amber-600" :
+                                        (rx.status || "").toLowerCase() === "paid" ? "text-emerald-600" :
+                                        "text-slate-400"
+                                      }`}>{rx.status || "Pending"}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 </CardContent>

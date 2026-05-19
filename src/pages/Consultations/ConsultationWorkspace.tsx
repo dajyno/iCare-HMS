@@ -29,10 +29,13 @@ const consultationSchema = z.object({
   followUpTime: z.string().optional(),
   prescriptions: z.array(z.object({
     medicationId: z.string(),
+    medicationName: z.string().optional(),
     dosage: z.string(),
     frequency: z.string(),
     duration: z.string(),
     instructions: z.string().optional(),
+    route: z.string().optional(),
+    quantity: z.number().optional(),
   })).optional(),
   labRequests: z.array(z.object({
     testId: z.string(),
@@ -211,16 +214,31 @@ const ConsultationWorkspace = () => {
       if (rxError) throw rxError;
       const itemRows = items.map((p: any) => ({
         prescription_id: prescription.id, medication_id: p.medicationId,
-        dosage: p.dosage, frequency: p.frequency, duration: p.duration, instructions: p.instructions || null,
+        dosage: p.dosage, frequency: p.frequency, duration: p.duration,
+        instructions: p.route || null, quantity: p.quantity || 1,
       }));
       const { error: itemsError } = await supabase.from("prescription_items").insert(itemRows);
       if (itemsError) throw itemsError;
+      const medIds = items.map((p: any) => p.medicationId);
+      const { data: medPrices } = await supabase.from("medications").select("id, unit_price").in("id", medIds);
+      const priceMap = new Map((medPrices || []).map((m: any) => [m.id, m.unit_price || 0]));
+      const totalAmount = itemRows.reduce((sum, item) => sum + (priceMap.get(item.medication_id) || 0) * item.quantity, 0);
+      const { error: invError } = await supabase.from("invoices").insert({
+        invoice_number: `PHA-${Date.now()}`,
+        patient_id: pId, prescription_id: prescription.id,
+        source_type: "Pharmacy", status: "Unpaid",
+        total_amount: totalAmount, amount_paid: 0, balance: totalAmount,
+      });
+      if (invError) throw invError;
+      const { error: statusError } = await supabase.from("prescriptions").update({ status: "Unpaid" }).eq("id", prescription.id);
+      if (statusError) throw statusError;
     },
     onSuccess: () => {
       setSuccess("Prescriptions saved");
       replacePrescriptions([]);
       queryClient.invalidateQueries({ queryKey: ["consultations"] });
       queryClient.invalidateQueries({ queryKey: ["patient-rx"] });
+      queryClient.invalidateQueries({ queryKey: ["pharmacy-prescriptions"] });
       setTimeout(() => setSuccess(null), 3000);
     },
     onError: (err: any) => {
@@ -324,10 +342,24 @@ const ConsultationWorkspace = () => {
         if (rxError) throw rxError;
         const itemRows = formData.prescriptions.map((p: any) => ({
           prescription_id: prescription.id, medication_id: p.medicationId,
-          dosage: p.dosage, frequency: p.frequency, duration: p.duration, instructions: p.instructions || null,
+          dosage: p.dosage, frequency: p.frequency, duration: p.duration,
+          instructions: p.route || null, quantity: p.quantity || 1,
         }));
         const { error: itemsError } = await supabase.from("prescription_items").insert(itemRows);
         if (itemsError) throw itemsError;
+        const medIds = formData.prescriptions.map((p: any) => p.medicationId);
+        const { data: medPrices } = await supabase.from("medications").select("id, unit_price").in("id", medIds);
+        const priceMap = new Map((medPrices || []).map((m: any) => [m.id, m.unit_price || 0]));
+        const totalAmount = itemRows.reduce((sum, item) => sum + (priceMap.get(item.medication_id) || 0) * item.quantity, 0);
+        const { error: invError } = await supabase.from("invoices").insert({
+          invoice_number: `PHA-${Date.now()}`,
+          patient_id: pId, prescription_id: prescription.id,
+          source_type: "Pharmacy", status: "Unpaid",
+          total_amount: totalAmount, amount_paid: 0, balance: totalAmount,
+        });
+        if (invError) throw invError;
+        const { error: statusError } = await supabase.from("prescriptions").update({ status: "Unpaid" }).eq("id", prescription.id);
+        if (statusError) throw statusError;
       }
 
       if (formData.labRequests?.length > 0) {
@@ -538,7 +570,7 @@ const ConsultationWorkspace = () => {
                     <CardDescription>Medications to be dispensed by pharmacy</CardDescription>
                   </div>
                   <div className="flex gap-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => appendPrescription({ medicationId: "", dosage: "", frequency: "", duration: "" })}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => appendPrescription({ medicationId: "", dosage: "", frequency: "", duration: "", route: "", quantity: 1 })}>
                       <Plus className="w-4 h-4 mr-2" /> Add Drug
                     </Button>
                     <Button type="button" size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => savePrescriptions.mutate()} disabled={savePrescriptions.isPending || (watchPrescriptions?.length || 0) === 0}>
@@ -552,10 +584,14 @@ const ConsultationWorkspace = () => {
                   ) : (
                     <div className="divide-y divide-slate-100">
                       {prescriptionFields.map((field, index) => (
-                        <div key={field.id} className="p-4 grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                          <div className="md:col-span-1 space-y-2">
+                        <div key={field.id} className="p-4 grid grid-cols-2 md:grid-cols-7 gap-4 items-end">
+                          <div className="md:col-span-2 space-y-2">
                             <Label>Medication</Label>
-                            <SearchableSelect value={watchPrescriptions?.[index]?.medicationId || ""} onValueChange={(val) => setValue(`prescriptions.${index}.medicationId` as any, val as any)} placeholder="Select drug" options={(Array.isArray(medications) ? medications : []).map((m: any) => ({ value: m.id, label: `${m.name} (${m.strength})` }))} />
+                            <SearchableSelect value={watchPrescriptions?.[index]?.medicationId || ""} onValueChange={(val) => {
+                              setValue(`prescriptions.${index}.medicationId` as any, val as any);
+                              const med = Array.isArray(medications) ? medications.find((m: any) => m.id === val) : null;
+                              if (med) setValue(`prescriptions.${index}.medicationName` as any, med.name as any);
+                            }} placeholder="Select drug" options={(Array.isArray(medications) ? medications : []).map((m: any) => ({ value: m.id, label: `${m.name} (${m.strength}) — ₦${m.unitPrice || 0}` }))} />
                           </div>
                           <div className="space-y-2">
                             <Label>Dosage</Label>
@@ -568,6 +604,26 @@ const ConsultationWorkspace = () => {
                           <div className="space-y-2">
                             <Label>Duration</Label>
                             <Input {...register(`prescriptions.${index}.duration` as any)} placeholder="5 days, 1 week..." />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Route</Label>
+                            <select {...register(`prescriptions.${index}.route` as any)} className="w-full h-10 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                              <option value="">Select...</option>
+                              <option value="Oral">Oral</option>
+                              <option value="IV">IV</option>
+                              <option value="IM">IM</option>
+                              <option value="Subcutaneous">Subcutaneous</option>
+                              <option value="Topical">Topical</option>
+                              <option value="Inhalation">Inhalation</option>
+                              <option value="Ophthalmic">Ophthalmic</option>
+                              <option value="Otic">Otic</option>
+                              <option value="Rectal">Rectal</option>
+                              <option value="Sublingual">Sublingual</option>
+                            </select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Qty</Label>
+                            <Input {...register(`prescriptions.${index}.quantity` as any)} type="number" min="1" defaultValue={1} placeholder="1" />
                           </div>
                           <Button type="button" variant="ghost" size="icon" className="text-rose-500" onClick={() => removePrescription(index)}>
                             <Trash2 className="w-4 h-4" />
