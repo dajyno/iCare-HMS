@@ -19,6 +19,12 @@ $$;
 
 -- 2. INSERT RLS POLICIES (needed for client-side writes)
 -- ============================================================
+drop policy if exists "Authenticated users can update consultations" on public.consultations;
+create policy "Authenticated users can update consultations"
+  on public.consultations for update
+  to authenticated
+  using (true);
+
 drop policy if exists "Authenticated users can insert prescriptions" on public.prescriptions;
 create policy "Authenticated users can insert prescriptions"
   on public.prescriptions for insert
