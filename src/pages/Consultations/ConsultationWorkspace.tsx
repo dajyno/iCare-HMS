@@ -124,7 +124,7 @@ const ConsultationWorkspace = () => {
   const { data: existingConsultation, isLoading: existingLoading } = useQuery({
     queryKey: ["existing-consultation", patientId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("consultations").select("*").eq("patient_id", patientId).in("status", ["VitalsRecorded", "InProgress"]).order("created_at", { ascending: false }).limit(1);
+      const { data, error } = await supabase.from("consultations").select("*").eq("patient_id", patientId).order("created_at", { ascending: false }).limit(1);
       if (error) throw error;
       return data && data.length > 0 ? toCamel(data[0]) : null;
     },
@@ -165,6 +165,12 @@ const ConsultationWorkspace = () => {
 
   const ensureConsultation = async (pId: string): Promise<string> => {
     if (consultationIdRef.current) return consultationIdRef.current;
+    const { data: existing } = await supabase.from("consultations").select("id").eq("patient_id", pId).in("status", ["VitalsRecorded", "InProgress"]).order("created_at", { ascending: false }).limit(1);
+    if (existing && existing.length > 0) {
+      consultationIdRef.current = existing[0].id;
+      setConsultationId(existing[0].id);
+      return existing[0].id;
+    }
     const { data, error } = await supabase.from("consultations").insert({
       patient_id: pId,
       doctor_id: user?.id,
@@ -304,7 +310,7 @@ const ConsultationWorkspace = () => {
       let cId = consultationIdRef.current;
 
       if (!cId) {
-        const { data, error } = await supabase.from("consultations").select("id").eq("patient_id", pId).in("status", ["VitalsRecorded", "InProgress"]).order("created_at", { ascending: false }).limit(1);
+        const { data, error } = await supabase.from("consultations").select("id").eq("patient_id", pId).order("created_at", { ascending: false }).limit(1);
         if (error) throw error;
         cId = data?.[0]?.id || null;
       }
