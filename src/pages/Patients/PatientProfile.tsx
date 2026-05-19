@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import SearchableSelect from "@/components/ui/searchable-select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import ConsultationDetailCard from "@/src/components/ConsultationDetailCard";
 
 const categoryBadge: Record<string, string> = {
   Individual: "bg-blue-50 text-blue-700", Family: "bg-emerald-50 text-emerald-700",
@@ -155,6 +156,16 @@ const PatientProfile = () => {
     }
     return m;
   }, [prescriptions]);
+
+  const radByConsultation = useMemo(() => {
+    if (!Array.isArray(radiologyRequestsData)) return new Map();
+    const m = new Map<string, any[]>();
+    for (const rr of radiologyRequestsData) {
+      const cId = rr.consultationId || rr.consultation_id;
+      if (cId) { if (!m.has(cId)) m.set(cId, []); m.get(cId)!.push(rr); }
+    }
+    return m;
+  }, [radiologyRequestsData]);
 
   const { data: vitals } = useQuery({
     queryKey: ["patient-vitals", id],
@@ -808,79 +819,32 @@ const PatientProfile = () => {
               <Plus className="w-4 h-4 mr-2" /> New Consultation
             </Button>
           </div>
+
+          {/* Summary Header */}
+          {Array.isArray(consultations) && consultations.length > 0 && (
+            <div className="flex flex-wrap gap-3 text-sm text-slate-600 bg-slate-50 rounded-lg px-4 py-3">
+              <span className="font-semibold">{consultations.length} consultation{consultations.length !== 1 ? "s" : ""}</span>
+              <span className="text-slate-300">·</span>
+              <span className="font-semibold">{Array.isArray(prescriptions) ? prescriptions.length : 0} prescriptions</span>
+              <span className="text-slate-300">·</span>
+              <span className="font-semibold">{Array.isArray(labRequests) ? labRequests.length : 0} lab tests</span>
+              <span className="text-slate-300">·</span>
+              <span className="font-semibold">{Array.isArray(radiologyRequestsData) ? radiologyRequestsData.length : 0} radiology</span>
+            </div>
+          )}
+
           {!Array.isArray(consultations) || consultations.length === 0 ? (
             <div className="text-center py-12 text-slate-400">No consultation records found.</div>
           ) : (
-            consultations.map((c: any) => {
-              const vs = c.vitalSigns;
-              return (
-              <Card key={c.id} className="border-none shadow-sm ring-1 ring-slate-200">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Stethoscope className="w-4 h-4 text-blue-500" />
-                        <span className="font-bold text-slate-900">{c.chiefComplaint}</span>
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                          c.status === "Completed" ? "bg-emerald-50 text-emerald-700" :
-                          c.status === "InProgress" ? "bg-blue-50 text-blue-700" :
-                          "bg-amber-50 text-amber-700"
-                        }`}>{c.status === "VitalsRecorded" ? "Vitals Recorded" : c.status === "InProgress" ? "In Progress" : "Completed"}</span>
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1">
-                        {c.createdAt ? new Date(c.createdAt).toLocaleString() : ""} — Dr. {c.doctor?.fullName || "Unknown"}
-                      </p>
-                      {c.diagnosis && <p className="text-sm text-slate-700 mt-2"><span className="font-semibold">Diagnosis:</span> {c.diagnosis}</p>}
-                      {c.clinicalNotes && <p className="text-sm text-slate-600 mt-1">{c.clinicalNotes}</p>}
-                      {vs && (vs.temperature != null || vs.bloodPressure || vs.pulseRate != null) && (
-                        <div className="flex flex-wrap gap-3 mt-3 text-xs">
-                          {vs.temperature != null && <span className="text-slate-500"><span className="font-semibold">Temp:</span> {vs.temperature}°C</span>}
-                          {vs.bloodPressure && <span className="text-slate-500"><span className="font-semibold">BP:</span> {vs.bloodPressure}</span>}
-                          {vs.pulseRate != null && <span className="text-slate-500"><span className="font-semibold">Pulse:</span> {vs.pulseRate} bpm</span>}
-                          {vs.oxygenSaturation != null && <span className="text-slate-500"><span className="font-semibold">SpO₂:</span> {vs.oxygenSaturation}%</span>}
-                        </div>
-                      )}
-                      {(() => {
-                        const cLabs = labByConsultation.get(c.id);
-                        const cRx = rxByConsultation.get(c.id);
-                        return (
-                          <>
-                            {Array.isArray(cLabs) && cLabs.length > 0 && (
-                              <div className="mt-3 pt-2 border-t border-slate-100">
-                                <p className="text-[10px] font-bold uppercase text-slate-400 mb-1 flex items-center gap-1"><FlaskConical className="w-3 h-3" /> Lab Requests</p>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {cLabs.map((lr: any) => (
-                                    <span key={lr.id} className="text-[11px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{lr.test?.name || "Unknown test"}</span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            {Array.isArray(cRx) && cRx.length > 0 && (
-                              <div className="mt-3 pt-2 border-t border-slate-100">
-                                <p className="text-[10px] font-bold uppercase text-slate-400 mb-1 flex items-center gap-1"><Pill className="w-3 h-3" /> Prescriptions</p>
-                                <div className="space-y-1">
-                                  {cRx.map((rx: any) => (
-                                    <div key={rx.id} className="text-[11px] text-slate-600">
-                                      <span className="font-semibold">{rx.items?.length || 0} medication(s)</span>
-                                      <span className="text-slate-400 mx-1">·</span>
-                                      <span className={`font-medium ${
-                                        (rx.status || "").toLowerCase() === "unpaid" ? "text-amber-600" :
-                                        (rx.status || "").toLowerCase() === "paid" ? "text-emerald-600" :
-                                        "text-slate-400"
-                                      }`}>{rx.status || "Pending"}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );})
+            consultations.map((c: any) => (
+              <ConsultationDetailCard
+                key={c.id}
+                consultation={c}
+                prescriptions={rxByConsultation.get(c.id) || []}
+                labRequests={labByConsultation.get(c.id) || []}
+                radiologyRequests={radByConsultation.get(c.id) || []}
+              />
+            ))
           )}
         </TabsContent>
 

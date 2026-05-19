@@ -287,8 +287,9 @@ const ConsultationWorkspace = () => {
       if (items.length === 0) return;
       const pId = selectedPatient?.id;
       if (!pId) throw new Error("No patient selected");
+      const cId = await ensureConsultation(pId);
       const inserts = items.map((rr: any) => ({
-        patient_id: pId, exam_id: rr.examId, requested_by_id: user?.id, status: "Requested",
+        patient_id: pId, exam_id: rr.examId, requested_by_id: user?.id, consultation_id: cId, status: "Requested",
       }));
       const { error } = await supabase.from("radiology_requests").insert(inserts);
       if (error) throw error;
@@ -296,6 +297,7 @@ const ConsultationWorkspace = () => {
     onSuccess: () => {
       setSuccess("Radiology requests saved");
       replaceRads([]);
+      queryClient.refetchQueries({ queryKey: ["consultations"] });
       queryClient.invalidateQueries({ queryKey: ["radiology-requests"] });
       queryClient.invalidateQueries({ queryKey: ["patient-radiology-requests"] });
       setTimeout(() => setSuccess(null), 3000);
@@ -382,7 +384,7 @@ const ConsultationWorkspace = () => {
 
       if (formData.radiologyRequests?.length > 0) {
         const radInserts = formData.radiologyRequests.map((rr: any) => ({
-          patient_id: pId, exam_id: rr.examId, requested_by_id: user?.id, status: "Requested",
+          patient_id: pId, exam_id: rr.examId, requested_by_id: user?.id, consultation_id: cId, status: "Requested",
         }));
         const { error } = await supabase.from("radiology_requests").insert(radInserts);
         if (error) throw error;

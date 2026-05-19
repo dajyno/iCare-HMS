@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import {
-  Clock, Play, CheckCircle2, Plus, Loader2, AlertCircle
+  Clock, Play, CheckCircle2, Plus, Loader2, AlertCircle, Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import Pagination from "@/components/ui/pagination";
+import ConsultationDetailCard from "@/src/components/ConsultationDetailCard";
 
 const statusConfig: Record<string, { icon: any; label: string; color: string; bg: string }> = {
   VitalsRecorded: { icon: Clock, label: "Vitals Recorded", color: "text-amber-600", bg: "bg-amber-50" },
@@ -20,6 +22,8 @@ const ConsultationList = () => {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [selectedConsultation, setSelectedConsultation] = useState<any>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const { data: consultations, isLoading, isError, error } = useQuery({
     queryKey: ["consultations"],
@@ -42,6 +46,51 @@ const ConsultationList = () => {
       if (error) throw error;
       return toCamel(data);
     },
+  });
+
+  const { data: prescriptions } = useQuery({
+    queryKey: ["sheet-rx", selectedConsultation?.patientId],
+    queryFn: async () => {
+      if (!selectedConsultation?.patientId) return [];
+      const { data, error } = await supabase
+        .from("prescriptions")
+        .select("*, items:prescription_items(*, medication:medications(name, strength))")
+        .eq("patient_id", selectedConsultation.patientId)
+        .order("date", { ascending: false });
+      if (error) throw error;
+      return toCamel(data || []);
+    },
+    enabled: !!selectedConsultation?.patientId,
+  });
+
+  const { data: labRequests } = useQuery({
+    queryKey: ["sheet-labs", selectedConsultation?.patientId],
+    queryFn: async () => {
+      if (!selectedConsultation?.patientId) return [];
+      const { data, error } = await supabase
+        .from("lab_requests")
+        .select("*, test:lab_tests(name, category)")
+        .eq("patient_id", selectedConsultation.patientId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return toCamel(data || []);
+    },
+    enabled: !!selectedConsultation?.patientId,
+  });
+
+  const { data: radiologyRequests } = useQuery({
+    queryKey: ["sheet-radiology", selectedConsultation?.patientId],
+    queryFn: async () => {
+      if (!selectedConsultation?.patientId) return [];
+      const { data, error } = await supabase
+        .from("radiology_requests")
+        .select("*, exam:radiology_exams(name)")
+        .eq("patient_id", selectedConsultation.patientId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return toCamel(data || []);
+    },
+    enabled: !!selectedConsultation?.patientId,
   });
 
   const patientMap = useMemo(() => {
@@ -88,6 +137,26 @@ const ConsultationList = () => {
     }
     navigate(`/consultations/workspace/${pid}`);
   }, [navigate, queryClient]);
+
+  const handleOpenDetails = useCallback((c: any) => {
+    setSelectedConsultation(c);
+    setSheetOpen(true);
+  }, []);
+
+  const sheetRx = useMemo(() => {
+    if (!Array.isArray(prescriptions) || !selectedConsultation) return [];
+    return prescriptions.filter((rx: any) => rx.consultationId === selectedConsultation.id);
+  }, [prescriptions, selectedConsultation]);
+
+  const sheetLabs = useMemo(() => {
+    if (!Array.isArray(labRequests) || !selectedConsultation) return [];
+    return labRequests.filter((lr: any) => lr.consultationId === selectedConsultation.id);
+  }, [labRequests, selectedConsultation]);
+
+  const sheetRad = useMemo(() => {
+    if (!Array.isArray(radiologyRequests) || !selectedConsultation) return [];
+    return radiologyRequests.filter((rr: any) => rr.consultationId === selectedConsultation.id);
+  }, [radiologyRequests, selectedConsultation]);
 
   if (isLoading) return (
     <div className="h-[60vh] flex items-center justify-center">
@@ -166,26 +235,40 @@ const ConsultationList = () => {
                         {c.chiefComplaint || "—"}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className={`h-8 text-xs font-semibold ${
-                            c.status === "Completed" ? "text-slate-400" : c.status === "InProgress" ? "text-blue-600" : "text-amber-600"
-                          }`}
-                          onClick={async () => {
-                            try {
-                              if (c.status === "VitalsRecorded") {
-                                await handleStartConsultation(c);
-                              } else {
-                                navigate(`/consultations/workspace/${c.patientId || c.patient_id}`);
-                              }
-                            } catch (err) {
-                              console.error("Failed to start consultation:", err);
-                            }
-                          }}
-                        >
-                          {c.status === "Completed" ? "View" : c.status === "InProgress" ? "Continue" : "Start"}
-                        </Button>
+                        <div className="flex items-center justify-center gap-1">
+                          {c.status === "Completed" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 text-xs font-semibold text-slate-500 hover:text-slate-700"
+                              onClick={() => handleOpenDetails(c)}
+                            >
+                              <Eye className="w-3.5 h-3.5 mr-1" /> Details
+                            </Button>
+                          )}
+                          {c.status === "VitalsRecorded" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 text-xs font-semibold text-amber-600"
+                              onClick={async () => {
+                                try { await handleStartConsultation(c); } catch (err) { console.error("Failed to start consultation:", err); }
+                              }}
+                            >
+                              Start
+                            </Button>
+                          )}
+                          {c.status === "InProgress" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 text-xs font-semibold text-blue-600"
+                              onClick={() => navigate(`/consultations/workspace/${c.patientId || c.patient_id}`)}
+                            >
+                              Continue
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -196,6 +279,25 @@ const ConsultationList = () => {
           <Pagination currentPage={page} pageSize={pageSize} totalItems={sorted.length} onPageChange={setPage} onPageSizeChange={setPageSize} />
         </div>
       )}
+
+      {/* Detail Sheet */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader className="px-4">
+            <SheetTitle>Consultation Details</SheetTitle>
+          </SheetHeader>
+          {selectedConsultation && (
+            <div className="px-4 pb-8">
+              <ConsultationDetailCard
+                consultation={selectedConsultation}
+                prescriptions={sheetRx}
+                labRequests={sheetLabs}
+                radiologyRequests={sheetRad}
+              />
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
