@@ -8,7 +8,8 @@ import {
   ArrowLeft, User, Phone, Mail, MapPin, Calendar, Edit, Save,
   Stethoscope, FlaskConical, Pill, Activity, AlertCircle, Loader2,
   BadgeCheck, FolderOpen, Users, Building, Shield, Clock, Plus,
-  HeartPulse, Microscope, Receipt, Bone, Thermometer, Scale, Droplets, Ruler
+  HeartPulse, Microscope, Receipt, Bone, Thermometer, Scale, Droplets, Ruler,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +47,7 @@ const PatientProfile = () => {
   const [rxForm, setRxForm] = useState<any>({});
   const [showBillModal, setShowBillModal] = useState(false);
   const [billForm, setBillForm] = useState<any>({});
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [selectedLabResult, setSelectedLabResult] = useState<any>(null);
   const [companySuggestions, setCompanySuggestions] = useState<string[]>([]);
   const [hmoSuggestions, setHmoSuggestions] = useState<string[]>([]);
@@ -997,7 +999,7 @@ const PatientProfile = () => {
             <div className="text-center py-12 text-slate-400">No billing records found.</div>
           ) : (
             invoices.map((inv: any) => (
-              <Card key={inv.id} className="border-none shadow-sm ring-1 ring-slate-200">
+              <Card key={inv.id} className="border-none shadow-sm ring-1 ring-slate-200 cursor-pointer hover:ring-sky-300 hover:shadow-md transition-all" onClick={() => setSelectedInvoice(inv)}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
                     <div>
@@ -1015,12 +1017,15 @@ const PatientProfile = () => {
                   </div>
                   {Array.isArray(inv.items) && inv.items.length > 0 && (
                     <div className="mt-3 border-t border-slate-100 pt-3 space-y-1">
-                      {inv.items.map((item: any, i: number) => (
+                      {inv.items.slice(0, 3).map((item: any, i: number) => (
                         <div key={i} className="flex justify-between text-sm text-slate-600">
                           <span>{item.description} x{item.quantity}</span>
                           <span>₦{item.total?.toLocaleString()}</span>
                         </div>
                       ))}
+                      {inv.items.length > 3 && (
+                        <p className="text-xs text-slate-400 text-center pt-1">+{inv.items.length - 3} more items — click to view all</p>
+                      )}
                     </div>
                   )}
                   {inv.status !== "Paid" && (
@@ -1035,6 +1040,75 @@ const PatientProfile = () => {
             ))
           )}
         </TabsContent>
+
+        {/* ========== INVOICE DETAIL DIALOG ========== */}
+        <Dialog open={!!selectedInvoice} onOpenChange={(open) => { if (!open) setSelectedInvoice(null); }}>
+          <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-blue-500" />
+                {selectedInvoice?.invoiceNumber || "Invoice"}
+              </DialogTitle>
+              <DialogDescription>
+                {selectedInvoice?.createdAt ? new Date(selectedInvoice.createdAt).toLocaleString() : ""}
+              </DialogDescription>
+            </DialogHeader>
+            {selectedInvoice && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Badge variant="outline" className={`text-xs font-bold uppercase tracking-wider ${
+                    selectedInvoice.status === "Paid" ? "bg-emerald-50 text-emerald-700" :
+                    selectedInvoice.status === "PartiallyPaid" ? "bg-amber-50 text-amber-700" :
+                    "bg-red-50 text-red-700"
+                  }`}>{selectedInvoice.status}</Badge>
+                  <span className="text-lg font-extrabold text-slate-900">₦{selectedInvoice.totalAmount?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+
+                <div className="border rounded-lg divide-y divide-slate-100">
+                  <div className="px-4 py-2 bg-slate-50 flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <span>Item</span>
+                    <span className="text-right">Amount</span>
+                  </div>
+                  {Array.isArray(selectedInvoice.items) && selectedInvoice.items.map((item: any, i: number) => (
+                    <div key={i} className="px-4 py-3 flex items-center justify-between text-sm">
+                      <div>
+                        <p className="font-medium text-slate-900">{item.description || "Item"}</p>
+                        <p className="text-xs text-slate-400">Qty: {item.quantity} × ₦{item.unitPrice?.toLocaleString() || 0}</p>
+                      </div>
+                      <span className="font-semibold text-slate-900">₦{item.total?.toLocaleString() || 0}</span>
+                    </div>
+                  ))}
+                  <div className="px-4 py-3 flex items-center justify-between bg-slate-50 text-sm font-bold">
+                    <span>Subtotal</span>
+                    <span>₦{selectedInvoice.totalAmount?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="p-3 rounded-lg bg-slate-50">
+                    <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">Amount Paid</p>
+                    <p className="text-lg font-bold text-emerald-600">₦{selectedInvoice.amountPaid?.toLocaleString() || "0"}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-50">
+                    <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">Balance</p>
+                    <p className="text-lg font-bold text-red-600">₦{selectedInvoice.balance?.toLocaleString() || "0"}</p>
+                  </div>
+                </div>
+
+                {selectedInvoice.sourceType && (
+                  <div className="text-sm text-slate-500">
+                    <span className="font-medium">Source: </span>{selectedInvoice.sourceType}
+                  </div>
+                )}
+              </div>
+            )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setSelectedInvoice(null)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </Tabs>
 
       {/* ======== EDIT MODAL ======== */}

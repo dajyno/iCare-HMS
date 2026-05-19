@@ -580,27 +580,19 @@ export function useInpatientState() {
     []
   );
 
-  const liveAdmissions = useMemo(
-    () =>
-      state.activeAdmissions.map((a) => ({
-        ...a,
-        daysAdmitted: a.admissionDate
-          ? Math.max(0, Math.floor((Date.now() - new Date(a.admissionDate).getTime()) / (1000 * 60 * 60 * 24)))
-          : 0,
-      })),
-    [state.activeAdmissions]
-  );
+  const liveAdmissions = state.activeAdmissions.map((a) => ({
+    ...a,
+    daysAdmitted: a.admissionDate
+      ? Math.max(0, Math.floor((Date.now() - new Date(a.admissionDate).getTime()) / (1000 * 60 * 60 * 24)))
+      : 0,
+  }));
 
-  const wards = useMemo(
-    () =>
-      Array.from(new Set(liveAdmissions.map((a) => a.wardCode)))
-        .sort()
-        .map((code) => ({
-          code,
-          admissions: liveAdmissions.filter((a) => a.wardCode === code),
-        })),
-    [liveAdmissions]
-  );
+  const wards = Array.from(new Set(liveAdmissions.map((a) => a.wardCode)))
+    .sort()
+    .map((code) => ({
+      code,
+      admissions: liveAdmissions.filter((a) => a.wardCode === code),
+    }));
 
   return {
     state: { ...state, activeAdmissions: liveAdmissions },
