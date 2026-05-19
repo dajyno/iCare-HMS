@@ -19,8 +19,8 @@ import SearchableSelect from "@/components/ui/searchable-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const consultationSchema = z.object({
-  patientId: z.string().min(1),
-  chiefComplaint: z.string().min(3),
+  patientId: z.string().optional(),
+  chiefComplaint: z.string().optional(),
   symptoms: z.string().optional(),
   diagnosis: z.string().optional(),
   clinicalNotes: z.string().optional(),
@@ -146,7 +146,7 @@ const ConsultationWorkspace = () => {
       const cId = existingConsultation.id;
       setConsultationId(cId);
       consultationIdRef.current = cId;
-      setValue("chiefComplaint", existingConsultation.chiefComplaint || "");
+      setValue("chiefComplaint", existingConsultation.chiefComplaint || "Consultation");
       setValue("symptoms", existingConsultation.symptoms || "");
       setValue("diagnosis", existingConsultation.diagnosis || "");
       setValue("clinicalNotes", existingConsultation.clinicalNotes || "");
@@ -411,7 +411,15 @@ const ConsultationWorkspace = () => {
 
   const onComplete = (data: any) => {
     setError(null);
+    const pId = data.patientId || selectedPatient?.id;
+    if (!pId) { setError("No patient selected. Please select a patient first."); return; }
     completeConsultation.mutate(data);
+  };
+
+  const onFormError = (formErrors: any) => {
+    const first = Object.entries(formErrors)[0];
+    if (first) setError(`Form error: ${first[0]} — ${(first[1] as any)?.message || "invalid"}`);
+    else setError("Please fix the form errors before submitting.");
   };
 
   if (patientsLoading || existingLoading) {
@@ -423,7 +431,7 @@ const ConsultationWorkspace = () => {
   }
 
   return (
-    <form onSubmit={handleSubmit(onComplete)} className="space-y-8 animate-in fade-in duration-500 max-w-5xl mx-auto pb-20">
+    <form onSubmit={handleSubmit(onComplete, onFormError)} className="space-y-8 animate-in fade-in duration-500 max-w-5xl mx-auto pb-20">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button type="button" variant="ghost" size="icon" onClick={() => navigate("/consultations")} className="h-9 w-9">
@@ -547,7 +555,7 @@ const ConsultationWorkspace = () => {
                     <Textarea id="clinicalNotes" {...register("clinicalNotes")} placeholder="Detailed examination notes..." className="min-h-[120px]" />
                   </div>
                   <div className="flex justify-end">
-                    <Button type="button" size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={handleSubmit((data) => saveClinicalNotes.mutate(data))} disabled={saveClinicalNotes.isPending}>
+                    <Button type="button" size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={handleSubmit((data) => saveClinicalNotes.mutate(data), onFormError)} disabled={saveClinicalNotes.isPending}>
                       {saveClinicalNotes.isPending ? "Saving..." : <><Save className="w-3 h-3 mr-1" /> Save Clinical Notes</>}
                     </Button>
                   </div>
