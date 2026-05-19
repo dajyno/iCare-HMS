@@ -112,6 +112,7 @@ const VitalSigns = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["all-vitals"] });
+      queryClient.invalidateQueries({ queryKey: ["consultations"] });
       setShowAddModal(false);
       setForm({});
     },

@@ -201,7 +201,7 @@ const ConsultationWorkspace = () => {
     },
     onSuccess: () => {
       setSuccess("Clinical notes saved");
-      queryClient.invalidateQueries({ queryKey: ["consultations"] });
+      queryClient.refetchQueries({ queryKey: ["consultations"] });
       setTimeout(() => setSuccess(null), 3000);
     },
     onError: (err: any) => {
@@ -244,7 +244,7 @@ const ConsultationWorkspace = () => {
     onSuccess: () => {
       setSuccess("Prescriptions saved");
       replacePrescriptions([]);
-      queryClient.invalidateQueries({ queryKey: ["consultations"] });
+      queryClient.refetchQueries({ queryKey: ["consultations"] });
       if (selectedPatient?.id) {
         queryClient.invalidateQueries({ queryKey: ["patient-rx", selectedPatient.id] });
       }
@@ -272,7 +272,7 @@ const ConsultationWorkspace = () => {
     onSuccess: () => {
       setSuccess("Lab requests saved");
       replaceLabs([]);
-      queryClient.invalidateQueries({ queryKey: ["consultations"] });
+      queryClient.refetchQueries({ queryKey: ["consultations"] });
       queryClient.invalidateQueries({ queryKey: ["patient-labs"] });
       setTimeout(() => setSuccess(null), 3000);
     },
@@ -397,8 +397,8 @@ const ConsultationWorkspace = () => {
         });
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["consultations"] });
+    onSuccess: async () => {
+      await queryClient.refetchQueries({ queryKey: ["consultations"] });
       queryClient.invalidateQueries({ queryKey: ["patient-consultations"] });
       queryClient.invalidateQueries({ queryKey: ["all-vitals"] });
       if (selectedPatient?.id) {
