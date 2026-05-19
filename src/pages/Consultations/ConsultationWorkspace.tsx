@@ -121,14 +121,16 @@ const ConsultationWorkspace = () => {
     enabled: !!patientId,
   });
 
+  const lookupId = selectedPatient?.id || patientId;
+
   const { data: existingConsultation, isLoading: existingLoading } = useQuery({
-    queryKey: ["existing-consultation", patientId],
+    queryKey: ["existing-consultation", lookupId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("consultations").select("*").eq("patient_id", patientId).order("created_at", { ascending: false }).limit(1);
+      const { data, error } = await supabase.from("consultations").select("*").eq("patient_id", lookupId).in("status", ["VitalsRecorded", "InProgress"]).order("created_at", { ascending: false }).limit(1);
       if (error) throw error;
       return data && data.length > 0 ? toCamel(data[0]) : null;
     },
-    enabled: !!patientId,
+    enabled: !!lookupId,
   });
 
   useEffect(() => {
@@ -310,7 +312,7 @@ const ConsultationWorkspace = () => {
       let cId = consultationIdRef.current;
 
       if (!cId) {
-        const { data, error } = await supabase.from("consultations").select("id").eq("patient_id", pId).order("created_at", { ascending: false }).limit(1);
+        const { data, error } = await supabase.from("consultations").select("id").eq("patient_id", pId).in("status", ["VitalsRecorded", "InProgress"]).order("created_at", { ascending: false }).limit(1);
         if (error) throw error;
         cId = data?.[0]?.id || null;
       }
@@ -457,13 +459,6 @@ const ConsultationWorkspace = () => {
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
           <button type="button" className="ml-auto text-red-500 hover:text-red-700 font-bold" onClick={() => setError(null)}>&times;</button>
-        </div>
-      )}
-
-      {success && (
-        <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
-          <span>{success}</span>
-          <button type="button" className="ml-auto text-emerald-500 hover:text-emerald-700 font-bold" onClick={() => setSuccess(null)}>&times;</button>
         </div>
       )}
 
@@ -728,6 +723,13 @@ const ConsultationWorkspace = () => {
               </Card>
             </TabsContent>
           </Tabs>
+
+          {success && (
+            <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
+              <span>{success}</span>
+              <button type="button" className="ml-auto text-emerald-500 hover:text-emerald-700 font-bold" onClick={() => setSuccess(null)}>&times;</button>
+            </div>
+          )}
 
           <div className="flex justify-end gap-4">
             <Button type="button" variant="outline" className="h-12 px-8" onClick={() => navigate("/consultations")}>Cancel</Button>
