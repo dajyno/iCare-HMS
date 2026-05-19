@@ -130,47 +130,58 @@ export function useInpatientState() {
     }
 
     async function migrateLegacyWards(wardConfig: any[]) {
-      const legacy = loadPersistedState();
-      if (legacy.wardConfiguration.length === 0) return wardConfig;
-      for (const legacyWard of legacy.wardConfiguration) {
-        const exists = wardConfig?.some((w) => w.name === legacyWard.name);
-        if (exists) continue;
-        const { data: wardData, error: wardError } = await supabase
-          .from("wards")
-          .insert({ name: legacyWard.name, type: legacyWard.department })
-          .select()
-          .single();
-        if (wardError) { console.warn("Legacy ward migration failed:", wardError); continue; }
-        const bedInserts = legacyWard.beds.map((b: any) => ({
-          ward_id: wardData.id,
-          bed_number: b.bedCode,
-          status: b.status === "Maintenance/Sanitizing" ? "Maintenance" : b.status,
-        }));
-        await supabase.from("beds").insert(bedInserts);
+      try {
+        const legacy = loadPersistedState();
+        if (legacy.wardConfiguration.length === 0) return wardConfig;
+        for (const legacyWard of legacy.wardConfiguration) {
+          const exists = wardConfig?.some((w) => w.name === legacyWard.name);
+          if (exists) continue;
+          const { data: wardData, error: wardError } = await supabase
+            .from("wards")
+            .insert({ name: legacyWard.name, type: legacyWard.department, beds_count: legacyWard.beds.length })
+            .select()
+            .single();
+          if (wardError) { console.warn("Legacy ward migration failed:", wardError); continue; }
+          const bedInserts = legacyWard.beds.map((b: any) => ({
+            ward_id: wardData.id,
+            bed_number: b.bedCode,
+            status: b.status === "Maintenance/Sanitizing" ? "Maintenance" : b.status,
+          }));
+          const { error: bedsError } = await supabase.from("beds").insert(bedInserts);
+          if (bedsError) console.warn("Legacy bed migration failed:", bedsError);
+        }
+        try { localStorage.removeItem(PERSIST_KEY); } catch {}
+        return fetchWards();
+      } catch (err) {
+        console.warn("Legacy ward migration exception:", err);
+        return wardConfig;
       }
-      try { localStorage.removeItem(PERSIST_KEY); } catch {}
-      return fetchWards();
     }
 
     async function fetchInitialData() {
       setLoading(true);
-      let [wardConfig, activeAdmissions] = await Promise.all([
-        fetchWards(),
-        fetchAdmissions(),
-      ]);
-      if (!cancelled) {
-        wardConfig = await migrateLegacyWards(wardConfig);
+      try {
+        let [wardConfig, activeAdmissions] = await Promise.all([
+          fetchWards(),
+          fetchAdmissions(),
+        ]);
         if (!cancelled) {
-          setState({
-            wardConfiguration: wardConfig ?? [],
-            activeAdmissions: activeAdmissions ?? [],
-          });
-          setLoading(false);
+          wardConfig = await migrateLegacyWards(wardConfig);
+          if (!cancelled) {
+            setState({
+              wardConfiguration: wardConfig ?? [],
+              activeAdmissions: activeAdmissions ?? [],
+            });
+          }
         }
+      } catch (err) {
+        console.error("fetchInitialData failed:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
 
-    fetchInitialData();
+    fetchInitialData().catch((err) => console.error("fetchInitialData unhandled:", err));
     return () => { cancelled = true; };
   }, []);
 
@@ -570,7 +581,7 @@ export function useInpatientState() {
       try {
         const { data: wardData, error: wardError } = await supabase
           .from("wards")
-          .insert({ name: ward.name, type: ward.department })
+          .insert({ name: ward.name, type: ward.department, beds_count: ward.bedCount })
           .select()
           .single();
         if (wardError) throw wardError;

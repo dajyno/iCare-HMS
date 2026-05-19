@@ -23,6 +23,7 @@ import StatusBadge from "./StatusBadge";
 import { format } from "date-fns";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { getHospitalName } from "@/src/lib/hospitalConfig";
+import { useAuth } from "../../context/AuthContext";
 
 const mapStatus = (dbStatus: string) => {
   const map: Record<string, string> = {
@@ -53,6 +54,7 @@ const LabDetailView = ({
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const resultValuesRef = useRef(resultValues);
   resultValuesRef.current = resultValues;
@@ -125,8 +127,6 @@ const LabDetailView = ({
     const latestUnits = unitsRef.current;
     const latestInterps = interpretationsRef.current;
     const latestFile = fileRef.current;
-
-    const { data: { user } } = await supabase.auth.getUser();
 
     for (const o of orders) {
       const val = latestResults[o.id] ?? "";

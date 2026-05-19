@@ -85,6 +85,8 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["radiology-exams-all"] });
       queryClient.invalidateQueries({ queryKey: ["radiology-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["radiologyExams"] });
+      queryClient.invalidateQueries({ queryKey: ["radiology-categories-with-exams"] });
       setEditingId(null);
       setShowEditCustomCategory(false);
       setEditCustomCategory("");
@@ -105,6 +107,8 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["radiology-exams-all"] });
+      queryClient.invalidateQueries({ queryKey: ["radiologyExams"] });
+      queryClient.invalidateQueries({ queryKey: ["radiology-categories-with-exams"] });
       setShowAdd(false);
       setAddName("");
       setAddPrice("");
@@ -140,6 +144,7 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
       if (catError) { setErrorMsg(catError.message); return; }
       categoryId = newCat.id;
       queryClient.invalidateQueries({ queryKey: ["radiology-categories-all"] });
+      queryClient.invalidateQueries({ queryKey: ["radiology-categories-with-exams"] });
     }
     if (!categoryId) return;
     updateMutation.mutate({
@@ -163,6 +168,7 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
       if (catError) { setErrorMsg(catError.message); return; }
       categoryId = newCat.id;
       queryClient.invalidateQueries({ queryKey: ["radiology-categories-all"] });
+      queryClient.invalidateQueries({ queryKey: ["radiology-categories-with-exams"] });
     }
     if (!categoryId) return;
     addMutation.mutate({

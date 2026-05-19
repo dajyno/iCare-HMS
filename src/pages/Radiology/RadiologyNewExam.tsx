@@ -16,7 +16,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { radiologyCategories } from "./RadiologyCategories";
 import ChipGrid from "./ChipGrid";
 
 const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; initialPatientId?: string }) => {
@@ -25,9 +24,13 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
   const [patientId, setPatientId] = useState(initialPatientId || "");
   const [patientQuery, setPatientQuery] = useState("");
   const [folderNo, setFolderNo] = useState("");
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
-    new Set(radiologyCategories.map((c) => c.id))
-  );
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (displayCategories.length > 0 && expandedCategories.size === 0) {
+      setExpandedCategories(new Set(displayCategories.map((c) => c.id)));
+    }
+  }, [displayCategories, expandedCategories]);
   const [customInputs, setCustomInputs] = useState<Record<string, string>>({});
   const [customSaved, setCustomSaved] = useState<Record<string, string[]>>({});
   const [customInputVisible, setCustomInputVisible] = useState<Record<string, boolean>>({});
@@ -44,6 +47,30 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
       return toCamel(data);
     },
   });
+
+  const { data: dbCategories } = useQuery({
+    queryKey: ["radiology-categories-with-exams"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("radiology_categories")
+        .select("*, radiology_exams(id, name)")
+        .order("name");
+      if (error) throw error;
+      return toCamel(data);
+    },
+  });
+
+  const displayCategories = useMemo(() => {
+    if (dbCategories && dbCategories.length > 0) {
+      return dbCategories.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        icon: "Scan",
+        exams: (c.radiologyExams || []).map((e: any) => e.name),
+      }));
+    }
+    return [];
+  }, [dbCategories]);
 
   useEffect(() => {
     if (initialPatientId && Array.isArray(patients)) {
@@ -281,6 +308,8 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["radiology-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["radiologyExams"] });
+      queryClient.invalidateQueries({ queryKey: ["radiology-categories-with-exams"] });
       onBack();
     },
     onError: (err) => {
@@ -385,7 +414,12 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
 
         {/* Searchable Chip-Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {radiologyCategories.map((category) => {
+          {displayCategories.length === 0 ? (
+            <div className="col-span-full text-center py-16 text-slate-400">
+              <Scan className="w-10 h-10 mx-auto mb-2 text-slate-200" />
+              <p className="text-sm">No categories found. Add categories in Radiology Settings first.</p>
+            </div>
+          ) : displayCategories.map((category) => {
             const isExpanded = expandedCategories.has(category.id);
             const catSelectedCount =
               category.exams.filter((t) => selectedExams.has(t)).length +

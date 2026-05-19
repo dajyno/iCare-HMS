@@ -74,6 +74,7 @@ const LabManageCategories = ({ open, onClose }: Props) => {
       queryClient.invalidateQueries({ queryKey: ["lab-tests-all"] });
       queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
       queryClient.invalidateQueries({ queryKey: ["lab-tests"] });
+      queryClient.invalidateQueries({ queryKey: ["labTests"] });
       setEditingId(null);
     },
     onError: (err: Error) => {
@@ -92,6 +93,7 @@ const LabManageCategories = ({ open, onClose }: Props) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lab-tests-all"] });
       queryClient.invalidateQueries({ queryKey: ["lab-tests"] });
+      queryClient.invalidateQueries({ queryKey: ["labTests"] });
       setShowAdd(false);
       setAddName("");
       setAddCategory("");

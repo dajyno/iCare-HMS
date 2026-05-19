@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/src/lib/supabase";
 import type {
   ActiveAdmission,
   MedicationSchedule,
@@ -239,14 +240,34 @@ const MedicationMAR = ({
   };
 
   const handleSingleClick = useCallback(
-    (drugId: string, slot: string) => {
+    async (drugId: string, slot: string) => {
       const med = admission.medicationSchedule.find(
         (m) => m.drugId === drugId
       );
       const log = med?.administrationLog.find((l) => l.slot === slot);
       if (log?.status === "Administered") {
+        try {
+          const { data: medData } = await supabase
+            .from("medications")
+            .select("quantity_in_stock")
+            .eq("id", drugId)
+            .single();
+          if (medData) {
+            await supabase
+              .from("medications")
+              .update({ quantity_in_stock: medData.quantity_in_stock + 1 })
+              .eq("id", drugId);
+          }
+        } catch (err) {
+          console.warn("Failed to restore medication stock:", err);
+        }
         onRecordAdministration(drugId, slot, "Missed", "Reverted from Administered");
       } else if (log?.status === "Pending" || !log) {
+        try {
+          await supabase.rpc("decrement_stock", { med_id: drugId, qty: 1 });
+        } catch (err) {
+          console.warn("Failed to decrement medication stock:", err);
+        }
         onRecordAdministration(drugId, slot, "Administered", "");
       }
     },
