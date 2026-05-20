@@ -20,6 +20,10 @@ import InpatientOverview from "./pages/Inpatient/InpatientOverview";
 import InventoryList from "./pages/Inventory/InventoryList";
 import RadiologyModule from "./pages/Radiology/RadiologyModule";
 import AccountingPage from "./pages/Accounting/AccountingPage";
+import RegistriesPage from "./pages/Accounting/registries/RegistriesPage";
+import LedgerPage from "./pages/Accounting/ledger/LedgerPage";
+import BanksPage from "./pages/Accounting/banks/BanksPage";
+import ReportsPage from "./pages/Accounting/reports/ReportsPage";
 import Settings from "./pages/Dashboard/Settings";
 import Profile from "./pages/Dashboard/Profile";
 import StaffLayout from "./pages/Staff/StaffLayout";
@@ -217,6 +221,38 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <AccountingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/accounting/registries"
+              element={
+                <ProtectedRoute>
+                  <RegistriesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/accounting/ledger"
+              element={
+                <ProtectedRoute>
+                  <LedgerPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/accounting/banks"
+              element={
+                <ProtectedRoute>
+                  <BanksPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/accounting/reports"
+              element={
+                <ProtectedRoute>
+                  <ReportsPage />
                 </ProtectedRoute>
               }
             />
