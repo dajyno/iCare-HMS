@@ -138,18 +138,31 @@ const LabDetailView = ({
         if (!interp.startsWith("[ATTACHMENT:")) interp = fileTag + interp;
       }
 
+      const upsertPayload: any = {
+        request_id: o.id,
+        patient_id: o.patientId,
+        result_value: val,
+        unit: unit || null,
+        reference_range: o.test?.referenceRange ?? null,
+        interpretation: interp || null,
+        edited_by: user?.id ?? null,
+        edited_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase
         .from("lab_results")
-        .upsert({
-          request_id: o.id,
-          patient_id: o.patientId,
-          result_value: val,
-          unit: unit || null,
-          reference_range: o.test?.referenceRange ?? null,
-          interpretation: interp || null,
-          edited_by: user?.id ?? null,
-          edited_at: new Date().toISOString(),
-        }, { onConflict: "request_id" });
+        .upsert(upsertPayload, { onConflict: "request_id", ignoreDuplicates: false });
+
+      if (error && error.message?.includes("edited_at")) {
+        // Fallback: column not yet added to schema
+        delete upsertPayload.edited_at;
+        const { error: retryError } = await supabase
+          .from("lab_results")
+          .upsert(upsertPayload, { onConflict: "request_id", ignoreDuplicates: false });
+        if (retryError) throw retryError;
+      } else if (error) {
+        throw error;
+      }
       if (error) throw error;
 
       if (markCompleted) {

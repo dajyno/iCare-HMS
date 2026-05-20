@@ -113,6 +113,7 @@ export function useInpatientState() {
           .order("admission_date", { ascending: false });
         if (cancelled) return null;
         if (error) { console.warn("Admissions fetch error:", error); return null; }
+        console.log(`[admissions] Fetched ${data?.length ?? 0} rows from Supabase`, data);
         return (data || []).map((a: any) => ({
           admissionId: a.id,
           wardCode: a.ward?.name ?? "Unknown",
