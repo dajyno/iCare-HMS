@@ -80,7 +80,7 @@ const ConsultationList = () => {
       if (!selectedConsultation?.patientId) return [];
       const { data, error } = await supabase
         .from("lab_requests")
-        .select("*, test:lab_tests(name, category)")
+        .select("*, test:lab_tests(name, category), results:lab_results(*)")
         .eq("patient_id", selectedConsultation.patientId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -95,7 +95,7 @@ const ConsultationList = () => {
       if (!selectedConsultation?.patientId) return [];
       const { data, error } = await supabase
         .from("radiology_requests")
-        .select("*, exam:radiology_exams(name)")
+        .select("*, exam:radiology_exams(name), result:radiology_results(*)")
         .eq("patient_id", selectedConsultation.patientId)
         .order("created_at", { ascending: false });
       if (error) throw error;

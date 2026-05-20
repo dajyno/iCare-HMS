@@ -181,12 +181,21 @@ export default function ConsultationDetailCard({
                     <FlaskConical className="w-3.5 h-3.5 text-purple-500" />
                     <span className="text-[10px] font-bold uppercase text-slate-400">Lab Requests</span>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="space-y-2">
                     {labRequests.map((lr: any) => (
-                      <Badge key={lr.id} className="bg-purple-50 text-purple-700 border-0 text-[11px] font-medium">
-                        {lr.test?.name || lr.testName || "Unknown test"}
-                        <span className="text-purple-400 ml-1">· {lr.status || "Requested"}</span>
-                      </Badge>
+                      <div key={lr.id}>
+                        <Badge className="bg-purple-50 text-purple-700 border-0 text-[11px] font-medium">
+                          {lr.test?.name || lr.testName || "Unknown test"}
+                          <span className="text-purple-400 ml-1">· {lr.status || "Requested"}</span>
+                        </Badge>
+                        {lr.status === "Completed" && lr.results && (
+                          <div className="mt-2 ml-2 bg-purple-50/50 rounded-lg p-3 text-sm space-y-1">
+                            {lr.results.resultValue && <p><span className="font-semibold">Result:</span> {lr.results.resultValue}{lr.results.unit ? ` ${lr.results.unit}` : ""}</p>}
+                            {lr.results.referenceRange && <p className="text-xs text-slate-500"><span className="font-semibold">Ref Range:</span> {lr.results.referenceRange}</p>}
+                            {lr.results.interpretation && <p className="text-xs text-slate-600"><span className="font-semibold">Note:</span> {lr.results.interpretation}</p>}
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -199,12 +208,20 @@ export default function ConsultationDetailCard({
                     <Bone className="w-3.5 h-3.5 text-orange-500" />
                     <span className="text-[10px] font-bold uppercase text-slate-400">Radiology Requests</span>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="space-y-2">
                     {radiologyRequests.map((rr: any) => (
-                      <Badge key={rr.id} className="bg-orange-50 text-orange-700 border-0 text-[11px] font-medium">
-                        {rr.exam?.name || rr.examName || "Unknown exam"}
-                        <span className="text-orange-400 ml-1">· {rr.status || "Requested"}</span>
-                      </Badge>
+                      <div key={rr.id}>
+                        <Badge className="bg-orange-50 text-orange-700 border-0 text-[11px] font-medium">
+                          {rr.exam?.name || rr.examName || "Unknown exam"}
+                          <span className="text-orange-400 ml-1">· {rr.status || "Requested"}</span>
+                        </Badge>
+                        {rr.status === "Completed" && rr.result && (
+                          <div className="mt-2 ml-2 bg-orange-50/50 rounded-lg p-3 text-sm space-y-1">
+                            {rr.result.findings && <p><span className="font-semibold">Findings:</span> {rr.result.findings}</p>}
+                            {rr.result.conclusion && <p className="text-xs text-slate-600"><span className="font-semibold">Conclusion:</span> {rr.result.conclusion}</p>}
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </div>

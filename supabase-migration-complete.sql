@@ -99,13 +99,21 @@ create policy "Users can update lab results"
 -- edited_by stores staff name as text (no FK) to avoid auth.users vs public.users mismatch
 do $$
 begin
+  -- Drop the FK constraint if it exists (from prior migration attempt)
+  if exists (
+    select 1 from information_schema.table_constraints
+    where table_schema = 'public' and table_name = 'lab_results'
+      and constraint_name = 'lab_results_edited_by_fkey'
+  ) then
+    alter table public.lab_results drop constraint lab_results_edited_by_fkey;
+  end if;
+
   if not exists (
     select 1 from information_schema.columns
     where table_schema = 'public' and table_name = 'lab_results' and column_name = 'edited_by'
   ) then
     alter table public.lab_results add column edited_by text;
   else
-    -- If column exists as uuid FK, recreate it as text
     alter table public.lab_results alter column edited_by type text using edited_by::text;
   end if;
 end

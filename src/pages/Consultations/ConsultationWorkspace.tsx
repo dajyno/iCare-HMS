@@ -9,6 +9,7 @@ import * as z from "zod";
 import {
   ClipboardList, Pill, Save, Trash2, Plus, ArrowLeft, Loader2,
   Thermometer, Activity, HeartPulse, Droplets, Scale, AlertCircle,
+  FlaskConical, Bone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -226,12 +227,15 @@ const ConsultationWorkspace = () => {
         }))
       );
       if (rxItems.length > 0) replacePrescriptions(rxItems);
+      setSavedPrescriptions(existingPrescriptions);
     }
     if (existingLabRequests?.length > 0) {
       replaceLabs(existingLabRequests.map((lr: any) => ({ testId: lr.testId })));
+      setSavedLabs(existingLabRequests);
     }
     if (existingRadiologyRequests?.length > 0) {
       replaceRads(existingRadiologyRequests.map((rr: any) => ({ examId: rr.examId })));
+      setSavedRadiology(existingRadiologyRequests);
     }
   }, [existingPrescriptions, existingLabRequests, existingRadiologyRequests]);
 
@@ -334,19 +338,37 @@ const ConsultationWorkspace = () => {
   const saveLabRequests = useMutation({
     mutationFn: async () => {
       const items = watchLabRequests || [];
-      if (items.length === 0) return;
+      if (items.length === 0) return null;
       const pId = selectedPatient?.id;
       if (!pId) throw new Error("No patient selected");
       const cId = await ensureConsultation(pId);
       const inserts = items.map((lr: any) => ({
         patient_id: pId, test_id: lr.testId, consultation_id: cId, status: "Requested",
       }));
-      const { error } = await supabase.from("lab_requests").insert(inserts);
+      const { data, error } = await supabase.from("lab_requests").insert(inserts).select("*, test:lab_tests(name, category, price)");
       if (error) throw error;
+      const savedData = toCamel(data || []);
+      for (const lr of savedData) {
+        const testPrice = lr.test?.price || 0;
+        const { data: inv, error: invError } = await supabase.from("invoices").insert({
+          invoice_number: `LAB-${Date.now()}-${lr.id.substring(0, 8)}`,
+          patient_id: pId, lab_request_id: lr.id,
+          source_type: "Laboratory", status: "Unpaid",
+          total_amount: testPrice, amount_paid: 0, balance: testPrice,
+        }).select("id").single();
+        if (invError) throw invError;
+        await supabase.from("invoice_items").insert({
+          invoice_id: inv.id, description: lr.test?.name || "Lab test",
+          quantity: 1, unit_price: testPrice, total: testPrice,
+        });
+        await supabase.from("lab_requests").update({ invoice_id: inv.id, payment_status: "Unpaid" }).eq("id", lr.id);
+      }
+      return savedData;
     },
-    onSuccess: () => {
+    onSuccess: (savedLabsData) => {
       setSuccess("Lab requests saved");
       replaceLabs([]);
+      if (savedLabsData && savedLabsData.length > 0) setSavedLabs((prev) => [...prev, ...savedLabsData]);
       queryClient.refetchQueries({ queryKey: ["consultations"] });
       queryClient.invalidateQueries({ queryKey: ["patient-labs"] });
       setTimeout(() => setSuccess(null), 3000);
@@ -359,19 +381,37 @@ const ConsultationWorkspace = () => {
   const saveRadiology = useMutation({
     mutationFn: async () => {
       const items = watchRadiologyRequests || [];
-      if (items.length === 0) return;
+      if (items.length === 0) return null;
       const pId = selectedPatient?.id;
       if (!pId) throw new Error("No patient selected");
       const cId = await ensureConsultation(pId);
       const inserts = items.map((rr: any) => ({
         patient_id: pId, exam_id: rr.examId, requested_by_id: user?.id, consultation_id: cId, status: "Requested",
       }));
-      const { error } = await supabase.from("radiology_requests").insert(inserts);
+      const { data, error } = await supabase.from("radiology_requests").insert(inserts).select("*, exam:radiology_exams(name, price)");
       if (error) throw error;
+      const savedData = toCamel(data || []);
+      for (const rr of savedData) {
+        const examPrice = rr.exam?.price || 0;
+        const { data: inv, error: invError } = await supabase.from("invoices").insert({
+          invoice_number: `RAD-${Date.now()}-${rr.id.substring(0, 8)}`,
+          patient_id: pId, radiology_request_id: rr.id,
+          source_type: "Radiology", status: "Unpaid",
+          total_amount: examPrice, amount_paid: 0, balance: examPrice,
+        }).select("id").single();
+        if (invError) throw invError;
+        await supabase.from("invoice_items").insert({
+          invoice_id: inv.id, description: rr.exam?.name || "Radiology exam",
+          quantity: 1, unit_price: examPrice, total: examPrice,
+        });
+        await supabase.from("radiology_requests").update({ invoice_id: inv.id, payment_status: "Unpaid" }).eq("id", rr.id);
+      }
+      return savedData;
     },
-    onSuccess: () => {
+    onSuccess: (savedRadData) => {
       setSuccess("Radiology requests saved");
       replaceRads([]);
+      if (savedRadData && savedRadData.length > 0) setSavedRadiology((prev) => [...prev, ...savedRadData]);
       queryClient.refetchQueries({ queryKey: ["consultations"] });
       queryClient.invalidateQueries({ queryKey: ["radiology-requests"] });
       queryClient.invalidateQueries({ queryKey: ["patient-radiology-requests"] });
@@ -453,16 +493,46 @@ const ConsultationWorkspace = () => {
         const labInserts = formData.labRequests.map((lr: any) => ({
           patient_id: pId, test_id: lr.testId, consultation_id: cId, status: "Requested",
         }));
-        const { error } = await supabase.from("lab_requests").insert(labInserts);
+        const { data: savedLabs, error } = await supabase.from("lab_requests").insert(labInserts).select("*, test:lab_tests(name, price)");
         if (error) throw error;
+        for (const lr of toCamel(savedLabs || [])) {
+          const testPrice = lr.test?.price || 0;
+          const { data: inv, error: invError } = await supabase.from("invoices").insert({
+            invoice_number: `LAB-${Date.now()}-${lr.id.substring(0, 8)}`,
+            patient_id: pId, lab_request_id: lr.id,
+            source_type: "Laboratory", status: "Unpaid",
+            total_amount: testPrice, amount_paid: 0, balance: testPrice,
+          }).select("id").single();
+          if (invError) throw invError;
+          await supabase.from("invoice_items").insert({
+            invoice_id: inv.id, description: lr.test?.name || "Lab test",
+            quantity: 1, unit_price: testPrice, total: testPrice,
+          });
+          await supabase.from("lab_requests").update({ invoice_id: inv.id, payment_status: "Unpaid" }).eq("id", lr.id);
+        }
       }
 
       if (formData.radiologyRequests?.length > 0) {
         const radInserts = formData.radiologyRequests.map((rr: any) => ({
           patient_id: pId, exam_id: rr.examId, requested_by_id: user?.id, consultation_id: cId, status: "Requested",
         }));
-        const { error } = await supabase.from("radiology_requests").insert(radInserts);
+        const { data: savedRads, error } = await supabase.from("radiology_requests").insert(radInserts).select("*, exam:radiology_exams(name, price)");
         if (error) throw error;
+        for (const rr of toCamel(savedRads || [])) {
+          const examPrice = rr.exam?.price || 0;
+          const { data: inv, error: invError } = await supabase.from("invoices").insert({
+            invoice_number: `RAD-${Date.now()}-${rr.id.substring(0, 8)}`,
+            patient_id: pId, radiology_request_id: rr.id,
+            source_type: "Radiology", status: "Unpaid",
+            total_amount: examPrice, amount_paid: 0, balance: examPrice,
+          }).select("id").single();
+          if (invError) throw invError;
+          await supabase.from("invoice_items").insert({
+            invoice_id: inv.id, description: rr.exam?.name || "Radiology exam",
+            quantity: 1, unit_price: examPrice, total: examPrice,
+          });
+          await supabase.from("radiology_requests").update({ invoice_id: inv.id, payment_status: "Unpaid" }).eq("id", rr.id);
+        }
       }
 
       if (formData.followUpDate && formData.followUpTime) {
@@ -487,6 +557,9 @@ const ConsultationWorkspace = () => {
       setConsultationId(null);
       consultationIdRef.current = null;
       setSelectedPatient(null);
+      setSavedPrescriptions([]);
+      setSavedLabs([]);
+      setSavedRadiology([]);
       navigate("/consultations");
     },
     onError: (err: any) => {
@@ -798,6 +871,62 @@ const ConsultationWorkspace = () => {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Previously Saved Orders */}
+              {(savedPrescriptions.length > 0 || savedLabs.length > 0 || savedRadiology.length > 0) && (
+                <Card className="border-none shadow-sm ring-1 ring-slate-200 bg-slate-50/50">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-slate-500">Previously Saved Orders</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4 pt-0">
+                    {savedPrescriptions.length > 0 && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase text-slate-400 mb-2 flex items-center gap-1"><Pill className="w-3 h-3" /> Saved Prescriptions</p>
+                        <div className="space-y-2">
+                          {savedPrescriptions.map((rx: any) => (
+                            <div key={rx.id} className="bg-white rounded-lg p-3 text-sm">
+                              {(rx.items || []).map((item: any, i: number) => (
+                                <div key={i} className="flex items-center justify-between">
+                                  <span className="font-medium text-slate-900">
+                                    {item.medication?.name || "Unknown"}
+                                    {item.medication?.strength && <span className="text-slate-500 font-normal"> {item.medication.strength}</span>}
+                                  </span>
+                                  <span className="text-xs text-slate-500">{item.dosage} · {item.frequency} · {item.duration} · Qty: {item.quantity}</span>
+                                </div>
+                              ))}
+                              <span className={`text-[10px] font-medium ${rx.status === "Unpaid" ? "text-amber-600" : rx.status === "Paid" ? "text-emerald-600" : "text-slate-400"}`}>{rx.status || "Pending"}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {savedLabs.length > 0 && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase text-slate-400 mb-2 flex items-center gap-1"><FlaskConical className="w-3 h-3" /> Saved Lab Requests</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {savedLabs.map((lr: any) => (
+                            <span key={lr.id} className="text-[11px] bg-white text-purple-700 px-2 py-0.5 rounded-full border border-purple-100">
+                              {lr.test?.name || "Unknown test"} · {lr.status || "Requested"}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {savedRadiology.length > 0 && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase text-slate-400 mb-2 flex items-center gap-1"><Bone className="w-3 h-3" /> Saved Radiology Requests</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {savedRadiology.map((rr: any) => (
+                            <span key={rr.id} className="text-[11px] bg-white text-orange-700 px-2 py-0.5 rounded-full border border-orange-100">
+                              {rr.exam?.name || "Unknown exam"} · {rr.status || "Requested"}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
           </Tabs>
 
