@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { generateInvoiceNumber } from "@/src/lib/invoiceNumber";
 import type {
@@ -55,7 +55,10 @@ async function getDefaultDepartmentId(): Promise<string | null> {
 export function useInpatientState() {
   const [state, setState] = useState<InpatientMasterState>(loadPersistedState);
   const [loading, setLoading] = useState(true);
+  const [loadingWards, setLoadingWards] = useState(true);
+  const [loadingAdmissions, setLoadingAdmissions] = useState(true);
   const [diagnostic, setDiagnostic] = useState<string | null>(null);
+  const realtimeRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
     try {
@@ -292,12 +295,18 @@ export function useInpatientState() {
 
     async function fetchInitialData() {
       setLoading(true);
+      setLoadingWards(true);
+      setLoadingAdmissions(true);
       setDiagnostic(null);
       try {
+        setLoadingWards(true);
+        setLoadingAdmissions(true);
         let [wardConfig, activeAdmissions] = await Promise.all([
           fetchWards(),
           fetchAdmissions(),
         ]);
+        setLoadingWards(false);
+        setLoadingAdmissions(false);
         if (cancelled) return;
         wardConfig = await migrateLegacyWards(wardConfig);
         if (cancelled) return;
@@ -356,11 +365,65 @@ export function useInpatientState() {
         }
       } finally {
         if (!cancelled) setLoading(false);
+        // Set up Realtime subscription after initial load completes
+        if (!cancelled) setupRealtimeSubscription();
+      }
+    }
+
+    function setupRealtimeSubscription() {
+      try {
+        const channel = supabase
+          .channel("inpatient-admissions")
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "admissions" },
+            async (payload: any) => {
+              if (cancelled) return;
+              console.log("[realtime] admissions change:", payload.eventType);
+
+              // Re-fetch admissions in background
+              const fresh = await fetchAdmissions();
+              if (cancelled || fresh === null) return;
+
+              let clinicalMap: Map<string, any> | null = null;
+              if (fresh.length > 0) {
+                try {
+                  clinicalMap = await fetchClinicalData(fresh);
+                } catch (e) {
+                  console.warn("[realtime] clinical fetch failed:", e);
+                }
+              }
+              if (cancelled) return;
+
+              setState((prev) => {
+                const merge = (admissions: any[]) =>
+                  admissions.map((a: any) => {
+                    const c = clinicalMap?.get(a.admissionId);
+                    if (c) return { ...a, ...c };
+                    const p = prev.activeAdmissions.find((pa: any) => pa.admissionId === a.admissionId);
+                    if (p) return { ...a, vitalsHistory: p.vitalsHistory, medicationSchedule: p.medicationSchedule, fluidLedger: p.fluidLedger, clinicalNotes: p.clinicalNotes };
+                    return a;
+                  });
+                return { ...prev, activeAdmissions: merge(fresh) };
+              });
+            }
+          )
+          .subscribe();
+
+        realtimeRef.current = channel;
+      } catch (e) {
+        console.warn("[realtime] Failed to set up subscription:", e);
       }
     }
 
     fetchInitialData().catch((err) => console.error("fetchInitialData unhandled:", err));
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      if (realtimeRef.current) {
+        supabase.removeChannel(realtimeRef.current);
+        realtimeRef.current = null;
+      }
+    };
   }, []);
 
   const computeFluidBalance = useCallback(

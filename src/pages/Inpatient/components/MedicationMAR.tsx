@@ -144,6 +144,7 @@ const MedicationMAR = ({
   const [verifyDialog, setVerifyDialog] = useState<{
     drugId: string;
     slot: string;
+    mode: "administer" | "miss";
   } | null>(null);
   const [verifyNote, setVerifyNote] = useState("");
 
@@ -240,57 +241,48 @@ const MedicationMAR = ({
   };
 
   const handleSingleClick = useCallback(
-    async (drugId: string, slot: string) => {
+    (drugId: string, slot: string) => {
       const med = admission.medicationSchedule.find(
         (m) => m.drugId === drugId
       );
       const log = med?.administrationLog.find((l) => l.slot === slot);
-      const doseQty = med?.quantity ?? 1;
       if (log?.status === "Administered") {
-        try {
-          const { data: medData } = await supabase
-            .from("medications")
-            .select("quantity_in_stock")
-            .eq("id", drugId)
-            .single();
-          if (medData) {
-            await supabase
-              .from("medications")
-              .update({ quantity_in_stock: medData.quantity_in_stock + doseQty })
-              .eq("id", drugId);
-          }
-        } catch (err) {
-          console.warn("Failed to restore medication stock:", err);
-        }
-        onRecordAdministration(drugId, slot, "Missed", "Reverted from Administered");
-      } else if (log?.status === "Pending" || !log) {
-        try {
-          await supabase.rpc("decrement_stock", { med_id: drugId, qty: doseQty });
-        } catch (err) {
-          console.warn("Failed to decrement medication stock:", err);
-        }
-        onRecordAdministration(drugId, slot, "Administered", "");
+        // Already administered — single click does nothing, use double-click for missed/revert
+        return;
       }
+      // Open confirmation dialog
+      setVerifyDialog({ drugId, slot, mode: "administer" });
+      setVerifyNote("");
     },
-    [admission.medicationSchedule, onRecordAdministration]
+    [admission.medicationSchedule]
   );
 
   const handleDoubleClick = useCallback(
     (drugId: string, slot: string) => {
-      setVerifyDialog({ drugId, slot });
+      setVerifyDialog({ drugId, slot, mode: "miss" });
       setVerifyNote("");
     },
     []
   );
 
-  const handleVerifySubmit = () => {
+  const handleVerifySubmit = async () => {
     if (!verifyDialog) return;
-    onRecordAdministration(
-      verifyDialog.drugId,
-      verifyDialog.slot,
-      "Missed",
-      verifyNote
-    );
+    const { drugId, slot, mode } = verifyDialog;
+
+    if (mode === "administer") {
+      // Decrement stock
+      const med = admission.medicationSchedule.find((m) => m.drugId === drugId);
+      const doseQty = med?.quantity ?? 1;
+      try {
+        await supabase.rpc("decrement_stock", { med_id: drugId, qty: doseQty });
+      } catch (err) {
+        console.warn("Failed to decrement medication stock:", err);
+      }
+      onRecordAdministration(drugId, slot, "Administered", "");
+    } else {
+      onRecordAdministration(drugId, slot, "Missed", verifyNote);
+    }
+
     setVerifyDialog(null);
     setVerifyNote("");
   };
@@ -602,29 +594,47 @@ const MedicationMAR = ({
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
             <DialogTitle className="text-base flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-red-500" />
-              Missed / Skipped Medication
+              {verifyDialog?.mode === "administer" ? (
+                <Check className="w-4 h-4 text-emerald-500" />
+              ) : (
+                <AlertTriangle className="w-4 h-4 text-red-500" />
+              )}
+              {verifyDialog?.mode === "administer"
+                ? "Confirm Administration"
+                : "Missed / Skipped Medication"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <p className="text-sm text-slate-600">
-              Confirm medication was not administered for slot{" "}
-              <strong>{verifyDialog?.slot}</strong>. A clinical note is
-              required.
-            </p>
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">
-                Clinical Note <span className="text-red-500">*</span>
-              </Label>
-              <textarea
-                value={verifyNote}
-                onChange={(e) => setVerifyNote(e.target.value)}
-                placeholder="Reason for missed/skipped dose..."
-                className="w-full min-h-[80px] px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
-                autoFocus
-              />
+          {verifyDialog?.mode === "administer" ? (
+            <div className="space-y-3">
+              <p className="text-sm text-slate-600">
+                Confirm that the medication was administered for slot{" "}
+                <strong>{verifyDialog.slot}</strong>.
+              </p>
+              <p className="text-xs text-slate-400">
+                This will record the dose as administered and decrement stock.
+              </p>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-slate-600">
+                Confirm medication was not administered for slot{" "}
+                <strong>{verifyDialog?.slot}</strong>. A clinical note is
+                required.
+              </p>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">
+                  Clinical Note <span className="text-red-500">*</span>
+                </Label>
+                <textarea
+                  value={verifyNote}
+                  onChange={(e) => setVerifyNote(e.target.value)}
+                  placeholder="Reason for missed/skipped dose..."
+                  className="w-full min-h-[80px] px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
+                  autoFocus
+                />
+              </div>
+            </div>
+          )}
           <DialogFooter className="gap-2">
             <Button
               variant="outline"
@@ -635,13 +645,19 @@ const MedicationMAR = ({
             </Button>
             <Button
               size="sm"
-              disabled={!verifyNote.trim()}
+              disabled={
+                verifyDialog?.mode === "miss" && !verifyNote.trim()
+              }
               onClick={handleVerifySubmit}
-              variant="destructive"
+              variant={
+                verifyDialog?.mode === "administer" ? "default" : "destructive"
+              }
               className="gap-1.5"
             >
               <Check className="w-3.5 h-3.5" />
-              Confirm Missed
+              {verifyDialog?.mode === "administer"
+                ? "Confirm Administer"
+                : "Confirm Missed"}
             </Button>
           </DialogFooter>
         </DialogContent>
