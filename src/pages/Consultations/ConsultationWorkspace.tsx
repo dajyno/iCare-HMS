@@ -133,6 +133,51 @@ const ConsultationWorkspace = () => {
     enabled: !!lookupId,
   });
 
+  const { data: existingPrescriptions } = useQuery({
+    queryKey: ["existing-prescriptions", consultationId],
+    queryFn: async () => {
+      if (!consultationId) return [];
+      const { data, error } = await supabase
+        .from("prescriptions")
+        .select("*, items:prescription_items(*, medication:medications(name, strength))")
+        .eq("consultation_id", consultationId)
+        .order("date", { ascending: false });
+      if (error) throw error;
+      return toCamel(data || []);
+    },
+    enabled: !!consultationId,
+  });
+
+  const { data: existingLabRequests } = useQuery({
+    queryKey: ["existing-labs", consultationId],
+    queryFn: async () => {
+      if (!consultationId) return [];
+      const { data, error } = await supabase
+        .from("lab_requests")
+        .select("*, test:lab_tests(name, category)")
+        .eq("consultation_id", consultationId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return toCamel(data || []);
+    },
+    enabled: !!consultationId,
+  });
+
+  const { data: existingRadiologyRequests } = useQuery({
+    queryKey: ["existing-radiology", consultationId],
+    queryFn: async () => {
+      if (!consultationId) return [];
+      const { data, error } = await supabase
+        .from("radiology_requests")
+        .select("*, exam:radiology_exams(name)")
+        .eq("consultation_id", consultationId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return toCamel(data || []);
+    },
+    enabled: !!consultationId,
+  });
+
   useEffect(() => {
     if (patientId && Array.isArray(patients)) {
       const p = patients.find((p: any) => p.id === patientId);
@@ -162,6 +207,30 @@ const ConsultationWorkspace = () => {
       }
     }
   }, [existingConsultation]);
+
+  useEffect(() => {
+    if (existingPrescriptions?.length > 0) {
+      const rxItems = existingPrescriptions.flatMap((rx: any) =>
+        (rx.items || []).map((item: any) => ({
+          medicationId: item.medicationId,
+          medicationName: item.medication?.name || "",
+          dosage: item.dosage,
+          frequency: item.frequency,
+          duration: item.duration,
+          instructions: item.instructions || "",
+          route: item.instructions || "",
+          quantity: item.quantity || 1,
+        }))
+      );
+      if (rxItems.length > 0) replacePrescriptions(rxItems);
+    }
+    if (existingLabRequests?.length > 0) {
+      replaceLabs(existingLabRequests.map((lr: any) => ({ testId: lr.testId })));
+    }
+    if (existingRadiologyRequests?.length > 0) {
+      replaceRads(existingRadiologyRequests.map((rr: any) => ({ examId: rr.examId })));
+    }
+  }, [existingPrescriptions, existingLabRequests, existingRadiologyRequests]);
 
   const clearFeedback = () => { setError(null); setSuccess(null); };
 

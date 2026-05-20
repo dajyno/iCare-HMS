@@ -848,19 +848,6 @@ const PatientProfile = () => {
             </Button>
           </div>
 
-          {/* Summary Header */}
-          {Array.isArray(enrichedConsultations) && enrichedConsultations.length > 0 && (
-            <div className="flex flex-wrap gap-3 text-sm text-slate-600 bg-slate-50 rounded-lg px-4 py-3">
-              <span className="font-semibold">{enrichedConsultations.length} consultation{enrichedConsultations.length !== 1 ? "s" : ""}</span>
-              <span className="text-slate-300">·</span>
-              <span className="font-semibold">{Array.isArray(prescriptions) ? prescriptions.length : 0} prescriptions</span>
-              <span className="text-slate-300">·</span>
-              <span className="font-semibold">{Array.isArray(labRequests) ? labRequests.length : 0} lab tests</span>
-              <span className="text-slate-300">·</span>
-              <span className="font-semibold">{Array.isArray(radiologyRequestsData) ? radiologyRequestsData.length : 0} radiology</span>
-            </div>
-          )}
-
           {!Array.isArray(enrichedConsultations) || enrichedConsultations.length === 0 ? (
             <div className="text-center py-12 text-slate-400">No consultation records found.</div>
           ) : (
