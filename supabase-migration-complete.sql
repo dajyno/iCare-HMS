@@ -134,6 +134,20 @@ create policy "Users can read all beds"
   to authenticated
   using (true);
 
+-- SELECT RLS for patients (needed for admission joins)
+drop policy if exists "Users can read all patients" on public.patients;
+create policy "Users can read all patients"
+  on public.patients for select
+  to authenticated
+  using (true);
+
+-- SELECT RLS for wards (needed for admission joins)
+drop policy if exists "Users can read all wards" on public.wards;
+create policy "Users can read all wards"
+  on public.wards for select
+  to authenticated
+  using (true);
+
 -- Admissions: make admitting_doctor_id nullable (FK was already dropped)
 alter table public.admissions alter column admitting_doctor_id drop not null;
 

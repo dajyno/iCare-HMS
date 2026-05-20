@@ -488,6 +488,10 @@ const LabDetailView = ({
                       }
                       return null;
                     })()}
+                    <div className="flex items-center gap-4 pt-2 border-t border-slate-100 text-[11px] text-slate-500">
+                      <span>Requested: {o?.createdAt ? format(new Date(o.createdAt), "MMM dd, yyyy HH:mm") : "—"}</span>
+                      <span>Completed: {(() => { const r = existingResults?.find((r: any) => r.requestId === o.id); return r?.date ? format(new Date(r.date), "MMM dd, yyyy HH:mm") : "—"; })()}</span>
+                    </div>
                   </div>
                 ) : (
                   <div className="p-5 space-y-3">

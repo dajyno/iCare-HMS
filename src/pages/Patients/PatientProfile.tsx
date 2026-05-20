@@ -1380,12 +1380,13 @@ const PatientProfile = () => {
                   )}
                 </div>
               )}
-              <div className="text-xs text-slate-400">
+              <div className="text-xs text-slate-400 space-y-1">
+                <p>Requested: {selectedLabResult.createdAt ? new Date(selectedLabResult.createdAt).toLocaleString() : "—"}</p>
                 {selectedLabResult.results?.date && (
-                  <p>Result date: {new Date(selectedLabResult.results.date).toLocaleString()}</p>
+                  <p>Completed: {new Date(selectedLabResult.results.date).toLocaleString()}</p>
                 )}
                 {((selectedLabResult.results as any)?.editedAt || (selectedLabResult.results as any)?.editedBy) && (
-                  <p className="flex items-center gap-1 mt-1">
+                  <p className="flex items-center gap-1">
                     <Edit3 className="w-3 h-3" />
                     Edited by <span className="font-medium text-slate-600">{(selectedLabResult.results as any)?.editedBy ?? "Lab Technician"}</span>
                     {(selectedLabResult.results as any)?.editedAt && <span> on {new Date((selectedLabResult.results as any).editedAt).toLocaleString()}</span>}

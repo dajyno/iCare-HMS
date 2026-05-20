@@ -340,7 +340,8 @@ const LabOrderTable = ({
                     onClick={() => {
                       const clicked = row.original;
                       const target = clicked.isBatch ? clicked.raw : clicked.raw;
-                      if (clicked.dbStatus === "Completed" && !clicked.isBatch) {
+                      const isDone = clicked.dbStatus === "Completed" || clicked.status === "Done";
+                      if (isDone && !clicked.isBatch) {
                         onViewResult(target);
                       } else {
                         onSelectOrder(target);

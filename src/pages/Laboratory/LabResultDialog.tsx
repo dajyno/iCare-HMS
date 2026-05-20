@@ -196,7 +196,7 @@ const LabResultDialog = ({
               )}
 
               {/* Timestamps */}
-              <div className="flex items-center gap-4 pt-2 border-t border-slate-100">
+              <div className="space-y-2 pt-3 border-t border-slate-100">
                 <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
                   <CalendarClock className="w-3.5 h-3.5" />
                   <span>Requested: {order?.createdAt ? format(new Date(order.createdAt), "MMM dd, yyyy HH:mm") : "—"}</span>
@@ -205,17 +205,13 @@ const LabResultDialog = ({
                   <CalendarClock className="w-3.5 h-3.5" />
                   <span>Completed: {result?.date ? format(new Date(result.date), "MMM dd, yyyy HH:mm") : "—"}</span>
                 </div>
+                {(result as any)?.editedAt || (result as any)?.editedBy ? (
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                    <Edit3 className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Edited by <span className="font-medium text-slate-700">{(result as any)?.editedBy ?? "Lab Technician"}</span>{(result as any)?.editedAt && <span> on {format(new Date((result as any).editedAt), "MMM dd, yyyy HH:mm")}</span>}</span>
+                  </div>
+                ) : null}
               </div>
-
-              {(result as any)?.editedAt || (result as any)?.editedBy ? (
-                <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-                  <Edit3 className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="text-[11px] text-slate-500">
-                    Edited by <span className="font-medium text-slate-700">{(result as any)?.editedBy ?? "Lab Technician"}</span>
-                    {(result as any)?.editedAt && <span> on {format(new Date((result as any).editedAt), "MMM dd, yyyy HH:mm")}</span>}
-                  </span>
-                </div>
-              ) : null}
             </div>
           ) : (
             <div className="py-8 text-center text-sm text-slate-400">
