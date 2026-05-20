@@ -341,6 +341,7 @@ const LabOrderTable = ({
                       const clicked = row.original;
                       const target = clicked.isBatch ? clicked.raw : clicked.raw;
                       const isDone = clicked.dbStatus === "Completed" || clicked.status === "Done";
+                      console.log("[lab-click]", { id: clicked.id, dbStatus: clicked.dbStatus, status: clicked.status, isDone, isBatch: clicked.isBatch });
                       if (isDone && !clicked.isBatch) {
                         onViewResult(target);
                       } else {
