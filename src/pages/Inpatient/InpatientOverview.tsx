@@ -39,6 +39,7 @@ const InpatientOverview = () => {
     recordAdministration,
     recordFluidEntry,
     authorizeDischarge,
+    saveClinicalNotes,
     updateWardConfig,
     updateBedStatus,
     addWard,
@@ -166,14 +167,7 @@ const InpatientOverview = () => {
                 authorizeDischarge(selectedPatient.admissionId, summary)
               }
               onSaveClinicalNotes={(notes) =>
-                setState((prev) => ({
-                  ...prev,
-                  activeAdmissions: prev.activeAdmissions.map((a) =>
-                    a.admissionId === selectedPatient.admissionId
-                      ? { ...a, clinicalNotes: notes }
-                      : a
-                  ),
-                }))
+                saveClinicalNotes(selectedPatient.admissionId, notes)
               }
               searchMedications={searchMedications}
               getBedPrice={getBedPrice}

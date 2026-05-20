@@ -111,6 +111,17 @@ export function useInpatientState() {
 
     async function fetchAdmissions(): Promise<any[] | null> {
       try {
+        // Diagnostic: count all admitted admissions (ignores join failures)
+        try {
+          const { count } = await (supabase as any)
+            .from("admissions")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "Admitted");
+          console.log(`[admissions] Diagnostic count of admitted rows: ${count}`);
+        } catch (e) {
+          console.warn("[admissions] Diagnostic count failed:", e);
+        }
+
         const { data, error } = await supabase
           .from("admissions")
           .select("*, patient:patients(*), ward:wards(name), bed:beds(bed_number)")
@@ -186,6 +197,99 @@ export function useInpatientState() {
       }
     }
 
+    async function fetchClinicalData(admissions: any[]): Promise<Map<string, any>> {
+      const result = new Map<string, any>();
+      if (!admissions || admissions.length === 0) return result;
+
+      const ids = admissions.map((a: any) => a.admissionId);
+      const s = supabase as any;
+
+      admissions.forEach((a: any) => {
+        result.set(a.admissionId, {
+          vitalsHistory: [],
+          medicationSchedule: [],
+          fluidLedger: { intake: [], output: [] },
+          clinicalNotes: "",
+        });
+      });
+
+      await Promise.all([
+        (async () => {
+          const { data } = await s
+            .from("inpatient_vitals")
+            .select("*")
+            .in("admission_id", ids)
+            .order("recorded_at", { ascending: true });
+          if (data) {
+            for (const v of data) {
+              const r = result.get(v.admission_id);
+              if (r) r.vitalsHistory.push({
+                timestamp: v.recorded_at,
+                bp: v.bp,
+                pulse: v.pulse,
+                temp: Number(v.temp),
+                spo2: v.spo2,
+                observations: v.observations || "",
+              });
+            }
+          }
+        })(),
+        (async () => {
+          const { data } = await s
+            .from("inpatient_medication_schedules")
+            .select("*")
+            .in("admission_id", ids)
+            .order("created_at", { ascending: true });
+          if (data) {
+            for (const m of data) {
+              const r = result.get(m.admission_id);
+              if (r) r.medicationSchedule.push({
+                scheduleEntryId: m.id,
+                drugId: m.drug_id,
+                name: m.drug_name,
+                quantity: m.quantity,
+                unitPrice: Number(m.unit_price),
+                frequency: m.frequency,
+                assignedSlots: m.assigned_slots || [],
+                administrationLog: m.admin_log || [],
+              });
+            }
+          }
+        })(),
+        (async () => {
+          const { data } = await s
+            .from("inpatient_fluid_entries")
+            .select("*")
+            .in("admission_id", ids)
+            .order("recorded_at", { ascending: true });
+          if (data) {
+            for (const f of data) {
+              const r = result.get(f.admission_id);
+              if (r) {
+                const entry = { itemId: f.id, timestamp: f.recorded_at, source: f.source, volume: Number(f.volume) };
+                if (f.type === "intake") r.fluidLedger.intake.push(entry);
+                else r.fluidLedger.output.push(entry);
+              }
+            }
+          }
+        })(),
+        (async () => {
+          const { data } = await s
+            .from("inpatient_clinical_notes")
+            .select("admission_id, content")
+            .in("admission_id", ids);
+          if (data) {
+            for (const n of data) {
+              const r = result.get(n.admission_id);
+              if (r) r.clinicalNotes = n.content;
+            }
+          }
+        })(),
+      ]);
+
+      return result;
+    }
+
     async function fetchInitialData() {
       setLoading(true);
       setDiagnostic(null);
@@ -220,9 +324,29 @@ export function useInpatientState() {
           wardConfig = persisted.wardConfiguration;
         }
 
+        // Load clinical data from DB, fall back to localStorage
+        let clinicalMap: Map<string, any> | null = null;
+        if (activeAdmissions && activeAdmissions.length > 0) {
+          try {
+            clinicalMap = await fetchClinicalData(activeAdmissions);
+          } catch (e) {
+            console.warn("[clinical] Failed to load clinical data from DB:", e);
+          }
+        }
+
+        const mergeClinical = (admissions: any[]) =>
+          admissions.map((a: any) => {
+            const clinical = clinicalMap?.get(a.admissionId);
+            if (clinical) return { ...a, ...clinical };
+            // Fallback: merge from persisted localStorage
+            const persistedAdm = persisted.activeAdmissions.find((p: any) => p.admissionId === a.admissionId);
+            if (persistedAdm) return { ...a, vitalsHistory: persistedAdm.vitalsHistory, medicationSchedule: persistedAdm.medicationSchedule, fluidLedger: persistedAdm.fluidLedger, clinicalNotes: persistedAdm.clinicalNotes };
+            return a;
+          });
+
         setState({
           wardConfiguration: wardConfig ?? [],
-          activeAdmissions: activeAdmissions ?? [],
+          activeAdmissions: mergeClinical(activeAdmissions ?? []),
         });
       } catch (err) {
         console.error("fetchInitialData failed:", err);
@@ -426,20 +550,33 @@ export function useInpatientState() {
   );
 
   const commitVitals = useCallback(
-    (admissionId: string, vitals: Omit<VitalsRecord, "timestamp">) => {
-      const record: VitalsRecord = {
-        ...vitals,
-        timestamp: new Date().toISOString(),
-      };
-      const hasVitals = vitals.bp && vitals.bp !== "—" && vitals.pulse > 0;
+    async (admissionId: string, vitals: Omit<VitalsRecord, "timestamp">) => {
+      const now = new Date().toISOString();
+      const record: VitalsRecord = { ...vitals, timestamp: now };
+
+      try {
+        const s = supabase as any;
+        const { error } = await s.from("inpatient_vitals").insert({
+          admission_id: admissionId,
+          bp: vitals.bp,
+          pulse: vitals.pulse,
+          temp: vitals.temp,
+          spo2: vitals.spo2,
+          observations: vitals.observations || null,
+          recorded_at: now,
+        });
+        if (error) {
+          console.warn("[vitals] DB insert failed (table may not exist yet), saving locally:", error);
+        }
+      } catch (e) {
+        console.warn("[vitals] DB insert exception, saving locally:", e);
+      }
+
       setState((prev) => ({
         ...prev,
         activeAdmissions: prev.activeAdmissions.map((a) =>
           a.admissionId === admissionId
-            ? {
-                ...a,
-                vitalsHistory: [...a.vitalsHistory, record],
-              }
+            ? { ...a, vitalsHistory: [...a.vitalsHistory, record] }
             : a
         ),
       }));
@@ -447,8 +584,41 @@ export function useInpatientState() {
     []
   );
 
+  const s = supabase as any;
+
+  const persistMedSchedule = useCallback(
+    async (admissionId: string, med: MedicationSchedule) => {
+      try {
+        const { data, error } = await s.from("inpatient_medication_schedules").insert({
+          admission_id: admissionId,
+          drug_id: med.drugId,
+          drug_name: med.name,
+          quantity: med.quantity,
+          unit_price: med.unitPrice,
+          frequency: med.frequency,
+          assigned_slots: med.assignedSlots,
+          admin_log: med.administrationLog,
+        }).select("id").single();
+        if (error || !data) {
+          console.warn("[meds] DB insert failed:", error);
+          return null;
+        }
+        return data.id as string;
+      } catch (e) {
+        console.warn("[meds] DB insert exception:", e);
+        return null;
+      }
+    },
+    [s]
+  );
+
   const assignMedication = useCallback(
-    (admissionId: string, med: MedicationSchedule) => {
+    async (admissionId: string, med: MedicationSchedule) => {
+      const dbId = await persistMedSchedule(admissionId, med);
+      const entry: MedicationSchedule = dbId
+        ? { ...med, scheduleEntryId: dbId }
+        : { ...med, scheduleEntryId: med.scheduleEntryId || `med-${Date.now()}` };
+
       setState((prev) => ({
         ...prev,
         activeAdmissions: prev.activeAdmissions.map((a) =>
@@ -459,21 +629,35 @@ export function useInpatientState() {
                   (m) => m.drugId === med.drugId
                 )
                   ? a.medicationSchedule.map((m) =>
-                      m.drugId === med.drugId
-                        ? { ...m, ...med, scheduleEntryId: m.scheduleEntryId }
-                        : m
+                      m.drugId === med.drugId ? entry : m
                     )
-                  : [...a.medicationSchedule, med],
+                  : [...a.medicationSchedule, entry],
               }
             : a
         ),
       }));
     },
-    []
+    [persistMedSchedule]
   );
 
   const updateMedication = useCallback(
-    (admissionId: string, drugId: string, updated: MedicationSchedule) => {
+    async (admissionId: string, drugId: string, updated: MedicationSchedule) => {
+      if (updated.scheduleEntryId && !updated.scheduleEntryId.startsWith("med-")) {
+        try {
+          await s.from("inpatient_medication_schedules").update({
+            drug_id: updated.drugId,
+            drug_name: updated.name,
+            quantity: updated.quantity,
+            unit_price: updated.unitPrice,
+            frequency: updated.frequency,
+            assigned_slots: updated.assignedSlots,
+            admin_log: updated.administrationLog,
+          }).eq("id", updated.scheduleEntryId);
+        } catch (e) {
+          console.warn("[meds] DB update failed:", e);
+        }
+      }
+
       setState((prev) => ({
         ...prev,
         activeAdmissions: prev.activeAdmissions.map((a) =>
@@ -490,63 +674,107 @@ export function useInpatientState() {
         ),
       }));
     },
-    []
+    [s]
   );
 
   const removeMedication = useCallback(
-    (admissionId: string, drugId: string) => {
-      setState((prev) => ({
-        ...prev,
-        activeAdmissions: prev.activeAdmissions.map((a) =>
-          a.admissionId === admissionId
-            ? {
-                ...a,
-                medicationSchedule: a.medicationSchedule.filter(
-                  (m) => m.scheduleEntryId !== drugId && m.drugId !== drugId
-                ),
-              }
-            : a
-        ),
-      }));
+    async (admissionId: string, drugId: string) => {
+      setState((prev) => {
+        const admission = prev.activeAdmissions.find((a) => a.admissionId === admissionId);
+        const target = admission?.medicationSchedule.find(
+          (m) => m.scheduleEntryId === drugId || m.drugId === drugId
+        );
+        if (target?.scheduleEntryId && !target.scheduleEntryId.startsWith("med-")) {
+          s.from("inpatient_medication_schedules").delete().eq("id", target.scheduleEntryId)
+            .then(({ error }: any) => {
+              if (error) console.warn("[meds] DB delete failed:", error);
+            });
+        }
+        return {
+          ...prev,
+          activeAdmissions: prev.activeAdmissions.map((a) =>
+            a.admissionId === admissionId
+              ? {
+                  ...a,
+                  medicationSchedule: a.medicationSchedule.filter(
+                    (m) => m.scheduleEntryId !== drugId && m.drugId !== drugId
+                  ),
+                }
+              : a
+          ),
+        };
+      });
     },
-    []
+    [s]
   );
 
   const recordAdministration = useCallback(
-    (admissionId: string, drugId: string, slot: string, status: "Administered" | "Missed" | "Skipped", note: string) => {
-      setState((prev) => ({
-        ...prev,
-        activeAdmissions: prev.activeAdmissions.map((a) =>
-          a.admissionId === admissionId
-            ? {
-                ...a,
-                medicationSchedule: a.medicationSchedule.map((m) =>
-                  m.drugId === drugId
-                    ? {
-                        ...m,
-                        administrationLog: m.administrationLog.map((log) =>
-                          log.slot === slot
-                            ? { ...log, status, loggedAt: new Date().toISOString(), note }
-                            : log
-                        ),
-                      }
-                    : m
-                ),
-              }
-            : a
-        ),
-      }));
+    async (admissionId: string, drugId: string, slot: string, status: "Administered" | "Missed" | "Skipped", note: string) => {
+      const now = new Date().toISOString();
+
+      setState((prev) => {
+        const admission = prev.activeAdmissions.find((a) => a.admissionId === admissionId);
+        const target = admission?.medicationSchedule.find((m) => m.drugId === drugId);
+        if (target?.scheduleEntryId && !target.scheduleEntryId.startsWith("med-")) {
+          const updatedLog = target.administrationLog.map((log) =>
+            log.slot === slot ? { ...log, status, loggedAt: now, note } : log
+          );
+          s.from("inpatient_medication_schedules").update({ admin_log: updatedLog })
+            .eq("id", target.scheduleEntryId)
+            .then(({ error }: any) => {
+              if (error) console.warn("[meds] Admin log DB update failed:", error);
+            });
+        }
+
+        return {
+          ...prev,
+          activeAdmissions: prev.activeAdmissions.map((a) =>
+            a.admissionId === admissionId
+              ? {
+                  ...a,
+                  medicationSchedule: a.medicationSchedule.map((m) =>
+                    m.drugId === drugId
+                      ? {
+                          ...m,
+                          administrationLog: m.administrationLog.map((log) =>
+                            log.slot === slot
+                              ? { ...log, status, loggedAt: now, note }
+                              : log
+                          ),
+                        }
+                      : m
+                  ),
+                }
+              : a
+          ),
+        };
+      });
     },
-    []
+    [s]
   );
 
   const recordFluidEntry = useCallback(
-    (admissionId: string, type: "intake" | "output", entry: Omit<FluidEntry, "itemId" | "timestamp">) => {
+    async (admissionId: string, type: "intake" | "output", entry: Omit<FluidEntry, "itemId" | "timestamp">) => {
+      const now = new Date().toISOString();
       const fluidEntry: FluidEntry = {
         ...entry,
         itemId: `${type === "intake" ? "IN" : "OUT"}-${Date.now()}`,
-        timestamp: new Date().toISOString(),
+        timestamp: now,
       };
+
+      try {
+        const { error } = await s.from("inpatient_fluid_entries").insert({
+          admission_id: admissionId,
+          type,
+          source: entry.source,
+          volume: entry.volume,
+          recorded_at: now,
+        });
+        if (error) console.warn("[fluids] DB insert failed:", error);
+      } catch (e) {
+        console.warn("[fluids] DB insert exception:", e);
+      }
+
       setState((prev) => ({
         ...prev,
         activeAdmissions: prev.activeAdmissions.map((a) =>
@@ -562,7 +790,7 @@ export function useInpatientState() {
         ),
       }));
     },
-    []
+    [s]
   );
 
   const getBedPrice = useCallback(
@@ -580,8 +808,14 @@ export function useInpatientState() {
 
   const authorizeDischarge = useCallback(
     async (admissionId: string, dischargeSummary: string) => {
+      const s2 = supabase as any;
       const admission = state.activeAdmissions.find((a) => a.admissionId === admissionId);
       if (!admission) return;
+
+      const now = new Date().toISOString();
+      const updatedNotes = admission.clinicalNotes
+        ? `${admission.clinicalNotes}\n[${new Date().toLocaleString()}] Discharged: ${dischargeSummary}`
+        : `[${new Date().toLocaleString()}] Discharged: ${dischargeSummary}`;
 
       const bedStayDays = admission.admissionDate
         ? Math.max(1, Math.floor((Date.now() - new Date(admission.admissionDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)
@@ -598,6 +832,78 @@ export function useInpatientState() {
 
       const totalAmount = bedStayCost + medsTotal || 0;
 
+      // Persist discharge to Supabase
+      try {
+        await Promise.all([
+          s2.from("admissions").update({ status: "Discharged" }).eq("id", admissionId),
+          s2.from("beds")
+            .update({ status: "Available" })
+            .eq("bed_number", admission.bedNo),
+          s2.from("discharges").insert({
+            admission_id: admissionId,
+            discharge_date: now,
+            summary: dischargeSummary,
+            status: "Completed",
+          }),
+          updatedNotes
+            ? s2.from("inpatient_clinical_notes").upsert(
+                { admission_id: admissionId, content: updatedNotes, recorded_at: now },
+                { onConflict: "admission_id" }
+              )
+            : Promise.resolve(),
+        ]);
+      } catch (err) {
+        console.warn("[discharge] DB persistence failed:", err);
+      }
+
+      // Create invoice if there are charges
+      if (totalAmount > 0) {
+        try {
+          const invoiceNumber = await generateInvoiceNumber(supabase);
+          const { data: invoice, error: invError } = await s2
+            .from("invoices")
+            .insert([{
+              invoice_number: invoiceNumber,
+              patient_id: admission.patient.folderNo,
+              total_amount: totalAmount,
+              amount_paid: 0,
+              balance: totalAmount,
+              status: "Unpaid",
+            }])
+            .select()
+            .single();
+
+          if (invError) throw invError;
+
+          if (invoice) {
+            const { error: itemsError } = await s2
+              .from("invoice_items")
+              .insert([
+                {
+                  invoice_id: invoice.id,
+                  description: `Bed Stay - ${admission.wardCode} ${admission.bedNo} (${bedStayDays} days @ ₦${bedRatePerDay}/day)`,
+                  quantity: bedStayDays,
+                  unit_price: bedRatePerDay,
+                  total: bedStayCost,
+                },
+                {
+                  invoice_id: invoice.id,
+                  description: `Administered Medications (${admission.medicationSchedule.length} drugs)`,
+                  quantity: 1,
+                  unit_price: medsTotal,
+                  total: medsTotal,
+                },
+              ]);
+
+            if (itemsError) throw itemsError;
+          }
+          console.log(`Invoice ${invoiceNumber} created for ₦${totalAmount}`);
+        } catch (err) {
+          console.error("Failed to create invoice in Supabase:", err);
+        }
+      }
+
+      // Update local state
       setState((prev) => ({
         ...prev,
         activeAdmissions: prev.activeAdmissions.map((a) =>
@@ -605,9 +911,7 @@ export function useInpatientState() {
             ? {
                 ...a,
                 careStatus: "Discharged" as const,
-                clinicalNotes: a.clinicalNotes
-                  ? `${a.clinicalNotes}\n[${new Date().toLocaleString()}] Discharged: ${dischargeSummary}`
-                  : `[${new Date().toLocaleString()}] Discharged: ${dischargeSummary}`,
+                clinicalNotes: updatedNotes,
               }
             : a
         ),
@@ -618,60 +922,6 @@ export function useInpatientState() {
           ),
         })),
       }));
-
-      if (totalAmount <= 0) {
-        console.log("Discharge processed: no chargeable items");
-        return;
-      }
-
-      const invoiceNumber = await generateInvoiceNumber(supabase);
-      const invoicePayload = {
-        invoice_number: invoiceNumber,
-        patient_id: admission.patient.folderNo,
-        total_amount: totalAmount,
-        amount_paid: 0,
-        balance: totalAmount,
-        status: "Unpaid",
-      };
-
-      try {
-        const { data: invoice, error: invError } = await (supabase as any)
-          .from("invoices")
-          .insert([invoicePayload])
-          .select()
-          .single();
-
-        if (invError) throw invError;
-
-        if (invoice) {
-          const lineItems = [
-            {
-              invoice_id: invoice.id,
-              description: `Bed Stay - ${admission.wardCode} ${admission.bedNo} (${bedStayDays} days @ ₦${bedRatePerDay}/day)`,
-              quantity: bedStayDays,
-              unit_price: bedRatePerDay,
-              total: bedStayCost,
-            },
-            {
-              invoice_id: invoice.id,
-              description: `Administered Medications (${admission.medicationSchedule.length} drugs)`,
-              quantity: 1,
-              unit_price: medsTotal,
-              total: medsTotal,
-            },
-          ];
-
-          const { error: itemsError } = await (supabase as any)
-            .from("invoice_items")
-            .insert(lineItems);
-
-          if (itemsError) throw itemsError;
-        }
-
-        console.log(`Invoice ${invoiceNumber} created for ₦${totalAmount}`);
-      } catch (err) {
-        console.error("Failed to create invoice in Supabase:", err);
-      }
     },
     [state.activeAdmissions, state.wardConfiguration, getBedPrice]
   );
@@ -772,6 +1022,27 @@ export function useInpatientState() {
     []
   );
 
+  const saveClinicalNotes = useCallback(
+    async (admissionId: string, notes: string) => {
+      try {
+        const { error } = await s.from("inpatient_clinical_notes").upsert(
+          { admission_id: admissionId, content: notes, recorded_at: new Date().toISOString() },
+          { onConflict: "admission_id" }
+        );
+        if (error) console.warn("[notes] DB upsert failed:", error);
+      } catch (e) {
+        console.warn("[notes] DB upsert exception:", e);
+      }
+      setState((prev) => ({
+        ...prev,
+        activeAdmissions: prev.activeAdmissions.map((a) =>
+          a.admissionId === admissionId ? { ...a, clinicalNotes: notes } : a
+        ),
+      }));
+    },
+    [s]
+  );
+
   const liveAdmissions = state.activeAdmissions.map((a) => ({
     ...a,
     daysAdmitted: a.admissionDate
@@ -802,6 +1073,7 @@ export function useInpatientState() {
     recordAdministration,
     recordFluidEntry,
     authorizeDischarge,
+    saveClinicalNotes,
     updateWardConfig,
     updateBedStatus,
     addWard,
