@@ -37,6 +37,21 @@ function computeDaysAdmitted(admissionDate: string): number {
   return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
 }
 
+async function getDefaultDepartmentId(): Promise<string | null> {
+  try {
+    const { data } = await supabase.from("departments").select("id").limit(1).maybeSingle();
+    if (data?.id) return data.id;
+    const { data: newDept } = await supabase
+      .from("departments")
+      .insert({ name: "General", description: "General Department" })
+      .select("id")
+      .single();
+    return newDept?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function useInpatientState() {
   const [state, setState] = useState<InpatientMasterState>(loadPersistedState);
   const [loading, setLoading] = useState(true);
@@ -133,12 +148,13 @@ export function useInpatientState() {
       try {
         const legacy = loadPersistedState();
         if (legacy.wardConfiguration.length === 0) return wardConfig;
+        const deptId = await getDefaultDepartmentId();
         for (const legacyWard of legacy.wardConfiguration) {
           const exists = wardConfig?.some((w) => w.name === legacyWard.name);
           if (exists) continue;
           const { data: wardData, error: wardError } = await supabase
             .from("wards")
-            .insert({ name: legacyWard.name, type: legacyWard.department, beds_count: legacyWard.beds.length })
+            .insert({ name: legacyWard.name, type: legacyWard.department, beds_count: legacyWard.beds.length, department_id: deptId })
             .select()
             .single();
           if (wardError) { console.warn("Legacy ward migration failed:", wardError); continue; }
@@ -256,7 +272,7 @@ export function useInpatientState() {
   );
 
   const finalizeAdmission = useCallback(
-    (payload: {
+    async (payload: {
       patient: { folderNo: string; name: string; age: number; allergies: string[] };
       wardCode: string;
       bedNo: string;
@@ -279,6 +295,39 @@ export function useInpatientState() {
         fluidLedger: { intake: [], output: [] },
         clinicalNotes: "",
       };
+
+      try {
+        const { data: patientData } = await supabase
+          .from("patients")
+          .select("id")
+          .eq("patient_id", payload.patient.folderNo)
+          .single();
+        const { data: wardData } = await supabase
+          .from("wards")
+          .select("id")
+          .eq("name", payload.wardCode)
+          .single();
+        const { data: bedData } = await supabase
+          .from("beds")
+          .select("id")
+          .eq("bed_number", payload.bedNo)
+          .single();
+
+        if (patientData && wardData && bedData) {
+          await supabase.from("admissions").insert({
+            patient_id: patientData.id,
+            ward_id: wardData.id,
+            bed_id: bedData.id,
+            admission_date: now,
+            status: "Admitted",
+            diagnosis: payload.provisionalDiagnosis,
+            notes: payload.chiefComplaints,
+          });
+          await supabase.from("beds").update({ status: "Occupied" }).eq("id", bedData.id);
+        }
+      } catch (err) {
+        console.warn("Failed to persist admission to Supabase:", err);
+      }
 
       setState((prev) => ({
         ...prev,
@@ -462,7 +511,7 @@ export function useInpatientState() {
         const adminCount = m.administrationLog.filter(
           (l) => l.status === "Administered"
         ).length;
-        return sum + adminCount * (m.unitPrice || 150);
+        return sum + adminCount * (m.unitPrice || 150) * (m.quantity || 1);
       }, 0);
 
       const totalAmount = bedStayCost + medsTotal || 0;
@@ -579,9 +628,10 @@ export function useInpatientState() {
   const addWard = useCallback(
     async (ward: Omit<WardConfig, "beds"> & { bedCount: number }) => {
       try {
+        const deptId = await getDefaultDepartmentId();
         const { data: wardData, error: wardError } = await supabase
           .from("wards")
-          .insert({ name: ward.name, type: ward.department, beds_count: ward.bedCount })
+          .insert({ name: ward.name, type: ward.department, beds_count: ward.bedCount, department_id: deptId })
           .select()
           .single();
         if (wardError) throw wardError;

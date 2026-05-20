@@ -245,6 +245,7 @@ const MedicationMAR = ({
         (m) => m.drugId === drugId
       );
       const log = med?.administrationLog.find((l) => l.slot === slot);
+      const doseQty = med?.quantity ?? 1;
       if (log?.status === "Administered") {
         try {
           const { data: medData } = await supabase
@@ -255,7 +256,7 @@ const MedicationMAR = ({
           if (medData) {
             await supabase
               .from("medications")
-              .update({ quantity_in_stock: medData.quantity_in_stock + 1 })
+              .update({ quantity_in_stock: medData.quantity_in_stock + doseQty })
               .eq("id", drugId);
           }
         } catch (err) {
@@ -264,7 +265,7 @@ const MedicationMAR = ({
         onRecordAdministration(drugId, slot, "Missed", "Reverted from Administered");
       } else if (log?.status === "Pending" || !log) {
         try {
-          await supabase.rpc("decrement_stock", { med_id: drugId, qty: 1 });
+          await supabase.rpc("decrement_stock", { med_id: drugId, qty: doseQty });
         } catch (err) {
           console.warn("Failed to decrement medication stock:", err);
         }
