@@ -129,7 +129,7 @@ const NewIncomeModal = ({ open, onClose, banks }: Props) => {
                 <SearchableSelect
                   value={isCash ? "" : bankId}
                   onValueChange={(v) => setBankId(v)}
-                  options={banks.map((b) => ({ value: b.bank_id, label: `${b.bank_name} — ${b.account_name}` }))}
+                  options={banks.map((b) => ({ value: b.bank_id, label: b.bank_name }))}
                   placeholder={isCash ? "N/A — Cash transaction" : "Select bank"}
                   disabled={isCash}
                 />

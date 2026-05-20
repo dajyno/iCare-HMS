@@ -21,7 +21,7 @@ const LedgerPage = () => {
   const [dateTo, setDateTo] = useState("");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
   const printRef = useRef<HTMLDivElement>(null);
 
   const entries = useMemo(() => {
@@ -287,8 +287,23 @@ const LedgerPage = () => {
 
       {filteredEntries.length > pageSize && (
         <div className="flex items-center justify-between px-1">
-          <div className="text-xs text-slate-400">
-            Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredEntries.length)} of {filteredEntries.length}
+          <div className="flex items-center gap-3">
+            <div className="text-xs text-slate-400">
+              Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredEntries.length)} of {filteredEntries.length}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <label className="text-[10px] text-slate-400">Per page</label>
+              <select
+                value={pageSize}
+                onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                className="h-7 rounded-lg border border-input bg-background px-2 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" className="h-8 text-xs" disabled={currentPage <= 1} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>
