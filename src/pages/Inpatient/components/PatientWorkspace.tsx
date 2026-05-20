@@ -29,7 +29,7 @@ interface PatientWorkspaceProps {
   ) => void;
   onAuthorizeDischarge: (summary: string) => void;
   onSaveClinicalNotes: (notes: string) => void;
-  searchMedications: (query: string) => Promise<{ drugId: string; name: string }[]>;
+  searchMedications: (query: string) => Promise<{ drugId: string; name: string; unitPrice: number }[]>;
   getBedPrice: (wardCode: string, bedNo: string) => number;
 }
 

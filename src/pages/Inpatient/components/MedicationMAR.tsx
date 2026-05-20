@@ -125,7 +125,7 @@ const MedicationMAR = ({
     status: "Administered" | "Missed" | "Skipped",
     note: string
   ) => void;
-  searchMedications: (query: string) => Promise<{ drugId: string; name: string }[]>;
+  searchMedications: (query: string) => Promise<{ drugId: string; name: string; unitPrice: number }[]>;
 }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingDrugId, setEditingDrugId] = useState<string | null>(null);
@@ -135,6 +135,7 @@ const MedicationMAR = ({
   const [selectedDrug, setSelectedDrug] = useState<{
     drugId: string;
     name: string;
+    unitPrice: number;
   } | null>(null);
   const [freq, setFreq] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -185,7 +186,7 @@ const MedicationMAR = ({
 
   const openEditDialog = (med: MedicationSchedule) => {
     setEditingDrugId(med.scheduleEntryId || med.drugId);
-    setSelectedDrug({ drugId: med.drugId, name: med.name });
+    setSelectedDrug({ drugId: med.drugId, name: med.name, unitPrice: med.unitPrice || 150 });
     setDrugQuery(med.name);
     setFreq(med.frequency);
     setQuantity(med.quantity || 1);
@@ -454,6 +455,7 @@ const MedicationMAR = ({
                           onClick={() => {
                             setSelectedDrug(m);
                             setDrugQuery(m.name);
+                            setUnitPrice(m.unitPrice);
                           }}
                           className="w-full px-3 py-2 text-left text-sm hover:bg-sky-50"
                         >

@@ -474,21 +474,22 @@ export function useInpatientState() {
       try {
         const { data, error } = await supabase
           .from("medications")
-          .select("id, name, strength")
+          .select("id, name, strength, unit_price")
           .ilike("name", `%${query}%`)
           .limit(10);
         if (error) throw error;
         return (data || []).map((m: any) => ({
           drugId: m.id,
           name: `${m.name}${m.strength ? ` - ${m.strength}` : ""}`,
+          unitPrice: Number(m.unit_price) || 150,
         }));
       } catch {
         const fallback = [
-          { drugId: "D-99", name: "Amoxicillin - 500mg Capsule" },
-          { drugId: "D-12", name: "Ceftriaxone - 1g Injection" },
-          { drugId: "D-45", name: "Paracetamol - 500mg Tablet" },
-          { drugId: "D-78", name: "Metronidazole - 400mg Tablet" },
-          { drugId: "D-33", name: "Omeprazole - 20mg Capsule" },
+          { drugId: "D-99", name: "Amoxicillin - 500mg Capsule", unitPrice: 0.5 },
+          { drugId: "D-12", name: "Ceftriaxone - 1g Injection", unitPrice: 1.2 },
+          { drugId: "D-45", name: "Paracetamol - 500mg Tablet", unitPrice: 0.5 },
+          { drugId: "D-78", name: "Metronidazole - 400mg Tablet", unitPrice: 0.8 },
+          { drugId: "D-33", name: "Omeprazole - 20mg Capsule", unitPrice: 45.0 },
         ];
         return fallback.filter((m) => m.name.toLowerCase().includes(query.toLowerCase()));
       }
