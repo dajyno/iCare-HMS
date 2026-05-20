@@ -95,6 +95,26 @@ create policy "Users can update lab results"
   to authenticated
   using (true);
 
+-- Add edited_by and edited_at columns to lab_results for tracking who edited results
+alter table public.lab_results add column if not exists edited_by uuid references public.users(id);
+alter table public.lab_results add column if not exists edited_at timestamptz;
+
+-- Admissions: make admitting_doctor_id nullable (FK was already dropped)
+alter table public.admissions alter column admitting_doctor_id drop not null;
+
+-- INSERT/UPDATE RLS for admissions
+drop policy if exists "Authenticated users can insert admissions" on public.admissions;
+create policy "Authenticated users can insert admissions"
+  on public.admissions for insert
+  to authenticated
+  with check (true);
+
+drop policy if exists "Authenticated users can update admissions" on public.admissions;
+create policy "Authenticated users can update admissions"
+  on public.admissions for update
+  to authenticated
+  using (true);
+
 -- Wards: drop type check constraint (accept free-text department names)
 alter table public.wards drop constraint if exists wards_type_check;
 alter table public.wards drop constraint if exists check_type;

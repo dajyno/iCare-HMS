@@ -56,6 +56,45 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
     [staffRecords]
   );
 
+  const { data: dbLabTests } = useQuery({
+    queryKey: ["lab-tests-all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("lab_tests")
+        .select("id, name, category, price")
+        .eq("status", "active")
+        .order("name", { ascending: true });
+      if (error) throw error;
+      return toCamel(data);
+    },
+  });
+
+  const customTestCategories = useMemo(() => {
+    if (!Array.isArray(dbLabTests)) return [];
+    const hardcodedNames = new Set(testDictionary);
+    const filtered = dbLabTests.filter((t: any) => !hardcodedNames.has(t.name));
+    const grouped: Record<string, any[]> = {};
+    for (const t of filtered) {
+      const cat = t.category ?? "Other";
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(t);
+    }
+    return Object.entries(grouped)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([name, tests]) => ({ name, tests }));
+  }, [dbLabTests]);
+
+  const [selectedDbTests, setSelectedDbTests] = useState<Set<string>>(new Set());
+
+  const toggleDbTest = useCallback((testId: string) => {
+    setSelectedDbTests((prev) => {
+      const next = new Set(prev);
+      if (next.has(testId)) next.delete(testId);
+      else next.add(testId);
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     if (initialPatientId && Array.isArray(patients)) {
       const match = patients.find((p: any) => p.id === initialPatientId);
@@ -88,8 +127,16 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
         if (name.trim()) names.push(name.trim());
       }
     }
+    if (Array.isArray(dbLabTests)) {
+      const dbTestMap = new Map<string, string>();
+      for (const t of dbLabTests) dbTestMap.set(t.id, t.name);
+      for (const id of selectedDbTests) {
+        const name = dbTestMap.get(id);
+        if (name) names.push(name);
+      }
+    }
     return names;
-  }, [selectedTests, customSaved]);
+  }, [selectedTests, customSaved, dbLabTests, selectedDbTests]);
 
   const toggleCategory = (id: string) => {
     setExpandedCategories((prev) => {
@@ -545,6 +592,52 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
             );
           })}
         </div>
+
+        {/* Custom Tests — from database */}
+        {customTestCategories.length > 0 && (
+          <div className="mt-6">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#005EB8]" />
+              <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
+                Custom Tests ({customTestCategories.reduce((s, c) => s + c.tests.length, 0)})
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {customTestCategories.map((cat) => {
+                const catSelectedCount = cat.tests.filter((t) => selectedDbTests.has(t.id)).length;
+                return (
+                  <div
+                    key={cat.name}
+                    className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
+                  >
+                    <div className="px-4 py-2.5 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                          {cat.name}
+                        </span>
+                        {catSelectedCount > 0 && (
+                          <span className="text-[10px] font-bold text-[#005EB8] bg-[#005EB8]/10 px-1.5 py-0.5 rounded">
+                            {catSelectedCount}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="p-3 space-y-1.5">
+                      {cat.tests.map((test) => (
+                        <ToggleTile
+                          key={test.id}
+                          label={test.name}
+                          selected={selectedDbTests.has(test.id)}
+                          onToggle={() => toggleDbTest(test.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Hormone Profiles - Specialized Inputs */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm">

@@ -23,6 +23,7 @@ import StatusBadge from "./StatusBadge";
 import { format } from "date-fns";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { getHospitalName } from "@/src/lib/hospitalConfig";
+import { useAuth } from "../../context/AuthContext";
 
 const mapStatus = (dbStatus: string) => {
   const map: Record<string, string> = {
@@ -53,6 +54,7 @@ const LabDetailView = ({
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const resultValuesRef = useRef(resultValues);
   resultValuesRef.current = resultValues;
@@ -92,7 +94,7 @@ const LabDetailView = ({
       const ids = orders.map((o: any) => o.id);
       const { data, error } = await supabase
         .from("lab_results")
-        .select("*")
+        .select("*, technician:users!technician_id(full_name)")
         .in("request_id", ids);
       if (error) throw error;
       return toCamel(data ?? []);
@@ -145,6 +147,8 @@ const LabDetailView = ({
           unit: unit || null,
           reference_range: o.test?.referenceRange ?? null,
           interpretation: interp || null,
+          edited_by: user?.id ?? null,
+          edited_at: new Date().toISOString(),
         }, { onConflict: "request_id" });
       if (error) throw error;
 
@@ -455,6 +459,23 @@ const LabDetailView = ({
                         </span>
                       </div>
                     )}
+                    {(() => {
+                      const r = existingResults?.find((r: any) => r.requestId === o.id);
+                      if (r?.editedAt || r?.technician?.fullName) {
+                        const editedBy = r.technician?.fullName ?? "Lab Technician";
+                        const editedDate = r.editedAt ? format(new Date(r.editedAt), "MMM dd, yyyy HH:mm") : "";
+                        return (
+                          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100">
+                            <Edit3 className="w-3 h-3 text-slate-400" />
+                            <span className="text-[11px] text-slate-500">
+                              Edited by <span className="font-medium text-slate-700">{editedBy}</span>
+                              {editedDate && <span> on {editedDate}</span>}
+                            </span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                 ) : (
                   <div className="p-5 space-y-3">

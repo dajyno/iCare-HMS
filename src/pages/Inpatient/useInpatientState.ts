@@ -34,7 +34,7 @@ function computeDaysAdmitted(admissionDate: string): number {
   const admitted = new Date(admissionDate);
   const now = new Date();
   const diff = now.getTime() - admitted.getTime();
-  return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+  return Math.max(1, Math.floor(diff / (1000 * 60 * 60 * 24)) + 1);
 }
 
 async function getDefaultDepartmentId(): Promise<string | null> {
@@ -184,14 +184,25 @@ export function useInpatientState() {
         if (!cancelled) {
           wardConfig = await migrateLegacyWards(wardConfig);
           if (!cancelled) {
+            const persisted = loadPersistedState();
+            const mergedAdmissions = activeAdmissions && activeAdmissions.length > 0
+              ? activeAdmissions
+              : persisted.activeAdmissions;
+            const mergedWards = wardConfig && wardConfig.length > 0
+              ? wardConfig
+              : persisted.wardConfiguration;
             setState({
-              wardConfiguration: wardConfig ?? [],
-              activeAdmissions: activeAdmissions ?? [],
+              wardConfiguration: mergedWards,
+              activeAdmissions: mergedAdmissions,
             });
           }
         }
       } catch (err) {
         console.error("fetchInitialData failed:", err);
+        const persisted = loadPersistedState();
+        if (!cancelled) {
+          setState(persisted);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -313,20 +324,35 @@ export function useInpatientState() {
           .eq("bed_number", payload.bedNo)
           .single();
 
+        let doctorId: string | null = null;
+        try {
+          const { data: userData } = await supabase
+            .from("users")
+            .select("id")
+            .ilike("full_name", `%${payload.attendingPhysician.replace(/^Dr\.\s*/i, "")}%`)
+            .single();
+          doctorId = userData?.id ?? null;
+        } catch {
+          /* doctor not found in public.users — column is nullable so OK */
+        }
+
         if (patientData && wardData && bedData) {
-          await supabase.from("admissions").insert({
+          const { error: admError } = await supabase.from("admissions").insert({
             patient_id: patientData.id,
             ward_id: wardData.id,
             bed_id: bedData.id,
             admission_date: now,
             status: "Admitted",
+            admitting_doctor_id: doctorId,
             diagnosis: payload.provisionalDiagnosis,
             notes: payload.chiefComplaints,
           });
+          if (admError) throw admError;
           await supabase.from("beds").update({ status: "Occupied" }).eq("id", bedData.id);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.warn("Failed to persist admission to Supabase:", err);
+        alert("Admission saved locally but failed to sync to server: " + (err?.message || err));
       }
 
       setState((prev) => ({
@@ -502,8 +528,8 @@ export function useInpatientState() {
       if (!admission) return;
 
       const bedStayDays = admission.admissionDate
-        ? Math.max(0, Math.floor((Date.now() - new Date(admission.admissionDate).getTime()) / (1000 * 60 * 60 * 24)))
-        : 0;
+        ? Math.max(1, Math.floor((Date.now() - new Date(admission.admissionDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)
+        : 1;
       const bedRatePerDay = getBedPrice(admission.wardCode, admission.bedNo);
       const bedStayCost = bedStayDays * bedRatePerDay;
 
@@ -693,8 +719,8 @@ export function useInpatientState() {
   const liveAdmissions = state.activeAdmissions.map((a) => ({
     ...a,
     daysAdmitted: a.admissionDate
-      ? Math.max(0, Math.floor((Date.now() - new Date(a.admissionDate).getTime()) / (1000 * 60 * 60 * 24)))
-      : 0,
+      ? Math.max(1, Math.floor((Date.now() - new Date(a.admissionDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)
+      : 1,
   }));
 
   const wards = Array.from(new Set(liveAdmissions.map((a) => a.wardCode)))

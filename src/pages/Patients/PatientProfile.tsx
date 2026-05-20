@@ -9,7 +9,7 @@ import {
   Stethoscope, FlaskConical, Pill, Activity, AlertCircle, Loader2,
   BadgeCheck, FolderOpen, Users, Building, Shield, Clock, Plus,
   HeartPulse, Microscope, Receipt, Bone, Thermometer, Scale, Droplets, Ruler,
-  X
+  X, Edit3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -125,7 +125,7 @@ const PatientProfile = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lab_requests")
-        .select("*, test:lab_tests(name, category), results:lab_results(*)")
+        .select("*, test:lab_tests(name, category), results:lab_results(*, technician:users!technician_id(full_name))")
         .eq("patient_id", id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -1396,6 +1396,13 @@ const PatientProfile = () => {
               <div className="text-xs text-slate-400">
                 {selectedLabResult.results?.date && (
                   <p>Result date: {new Date(selectedLabResult.results.date).toLocaleString()}</p>
+                )}
+                {((selectedLabResult.results as any)?.editedAt || (selectedLabResult.results as any)?.technician?.fullName) && (
+                  <p className="flex items-center gap-1 mt-1">
+                    <Edit3 className="w-3 h-3" />
+                    Edited by <span className="font-medium text-slate-600">{(selectedLabResult.results as any)?.technician?.fullName ?? "Lab Technician"}</span>
+                    {(selectedLabResult.results as any)?.editedAt && <span> on {new Date((selectedLabResult.results as any).editedAt).toLocaleString()}</span>}
+                  </p>
                 )}
               </div>
             </div>
