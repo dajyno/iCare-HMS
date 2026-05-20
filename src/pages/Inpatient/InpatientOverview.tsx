@@ -28,6 +28,7 @@ const InpatientOverview = () => {
   const {
     state,
     loading,
+    diagnostic,
     computeFluidBalance,
     searchPatients,
     finalizeAdmission,
@@ -113,6 +114,14 @@ const InpatientOverview = () => {
           </Button>
         </div>
       </div>
+
+      {/* Diagnostic banner */}
+      {diagnostic && (
+        <div className="flex items-start gap-3 p-4 rounded-lg border border-amber-200 bg-amber-50 text-sm text-amber-800">
+          <span className="text-amber-500 font-bold shrink-0">!</span>
+          <p>{diagnostic}</p>
+        </div>
+      )}
 
       {/* View A: Active Ward Board / View C: Patient Workspace */}
       <AnimatePresence mode="wait">

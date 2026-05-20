@@ -39,7 +39,7 @@ interface NewAdmissionWizardProps {
     provisionalDiagnosis: string;
     chiefComplaints: string;
     attendingPhysician: string;
-  }) => void;
+  }) => Promise<boolean | undefined>;
 }
 
 const StepIndicator = ({ step, total }: { step: number; total: number }) => (
@@ -151,22 +151,21 @@ const NewAdmissionWizard = ({
     onClose();
   }, [onClose]);
 
-  const handleFinalize = () => {
+  const handleFinalize = async () => {
     if (!canFinalize || !selectedPatient) return;
-    const wardName = selectedWardId;
     setFinalizing(true);
-    setTimeout(() => {
-      onFinalize({
-        patient: selectedPatient,
-        wardCode: wardName,
-        bedNo: selectedBedCode,
-        provisionalDiagnosis,
-        chiefComplaints,
-        attendingPhysician: selectedDoctor,
-      });
-      setFinalizing(false);
+    const ok = await onFinalize({
+      patient: selectedPatient,
+      wardCode: selectedWardId,
+      bedNo: selectedBedCode,
+      provisionalDiagnosis,
+      chiefComplaints,
+      attendingPhysician: selectedDoctor,
+    });
+    setFinalizing(false);
+    if (ok) {
       handleClose();
-    }, 800);
+    }
   };
 
   const stepTitles = [

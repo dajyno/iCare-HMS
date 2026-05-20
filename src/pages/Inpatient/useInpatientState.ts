@@ -55,6 +55,7 @@ async function getDefaultDepartmentId(): Promise<string | null> {
 export function useInpatientState() {
   const [state, setState] = useState<InpatientMasterState>(loadPersistedState);
   const [loading, setLoading] = useState(true);
+  const [diagnostic, setDiagnostic] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -67,22 +68,26 @@ export function useInpatientState() {
   useEffect(() => {
     let cancelled = false;
 
-    async function fetchWards() {
+    async function fetchWards(): Promise<any[] | null> {
       try {
         let { data, error } = await supabase
           .from("wards")
           .select("*, department:departments(name), beds(*)")
           .order("name", { ascending: true });
         if (error) {
-          console.warn("Wards join query failed, trying without department join:", error);
+          console.warn("[wards] Join query failed, trying without department join:", error);
           const fallback = await supabase
             .from("wards")
             .select("*, beds(*)")
             .order("name", { ascending: true });
-          if (!fallback.error) { data = fallback.data; error = null; }
+          if (fallback.error) {
+            console.warn("[wards] Fallback also failed:", fallback.error);
+            return null;
+          }
+          data = fallback.data;
         }
         if (cancelled) return null;
-        if (error) { console.warn("Wards fetch error:", error); return null; }
+        console.log(`[wards] Fetched ${data?.length ?? 0} wards from Supabase`, data);
         return (data || []).map((w: any) => ({
           wardId: w.id,
           name: w.name,
@@ -99,12 +104,12 @@ export function useInpatientState() {
           })),
         }));
       } catch (err) {
-        console.warn("Wards fetch exception:", err);
+        console.warn("[wards] Fetch exception:", err);
         return null;
       }
     }
 
-    async function fetchAdmissions() {
+    async function fetchAdmissions(): Promise<any[] | null> {
       try {
         const { data, error } = await supabase
           .from("admissions")
@@ -112,9 +117,15 @@ export function useInpatientState() {
           .eq("status", "Admitted")
           .order("admission_date", { ascending: false });
         if (cancelled) return null;
-        if (error) { console.warn("Admissions fetch error:", error); return null; }
-        console.log(`[admissions] Fetched ${data?.length ?? 0} rows from Supabase`, data);
-        return (data || []).map((a: any) => ({
+        if (error) {
+          console.warn("[admissions] Supabase query error:", error);
+          return null;
+        }
+        console.log(`[admissions] Fetched ${data?.length ?? 0} rows`, data);
+        if (!data || data.length === 0) {
+          return [];
+        }
+        return (data).map((a: any) => ({
           admissionId: a.id,
           wardCode: a.ward?.name ?? "Unknown",
           bedNo: a.bed?.bed_number ?? "Unknown",
@@ -140,7 +151,7 @@ export function useInpatientState() {
           fluidLedger: { intake: [], output: [] },
         }));
       } catch (err) {
-        console.warn("Admissions fetch exception:", err);
+        console.warn("[admissions] Fetch exception:", err);
         return null;
       }
     }
@@ -177,32 +188,47 @@ export function useInpatientState() {
 
     async function fetchInitialData() {
       setLoading(true);
+      setDiagnostic(null);
       try {
         let [wardConfig, activeAdmissions] = await Promise.all([
           fetchWards(),
           fetchAdmissions(),
         ]);
-        if (!cancelled) {
-          wardConfig = await migrateLegacyWards(wardConfig);
-          if (!cancelled) {
-            const persisted = loadPersistedState();
-            const mergedAdmissions = activeAdmissions && activeAdmissions.length > 0
-              ? activeAdmissions
-              : persisted.activeAdmissions;
-            const mergedWards = wardConfig && wardConfig.length > 0
-              ? wardConfig
-              : persisted.wardConfiguration;
-            setState({
-              wardConfiguration: mergedWards,
-              activeAdmissions: mergedAdmissions,
-            });
-          }
+        if (cancelled) return;
+        wardConfig = await migrateLegacyWards(wardConfig);
+        if (cancelled) return;
+
+        const persisted = loadPersistedState();
+
+        if (activeAdmissions === null) {
+          setDiagnostic(
+            "Failed to load admissions from database. Check console for details. " +
+            "Falling back to locally saved data."
+          );
+          activeAdmissions = persisted.activeAdmissions;
+        } else if (activeAdmissions.length === 0 && !persisted.activeAdmissions.length) {
+          setDiagnostic(
+            "No admitted patients found in the database. " +
+            "Use \"+ New Admission\" to admit a patient, or check the admissions table in your Supabase dashboard."
+          );
         }
+
+        if (wardConfig === null) {
+          setDiagnostic((prev) =>
+            (prev ?? "") + " Failed to load ward configuration from database."
+          );
+          wardConfig = persisted.wardConfiguration;
+        }
+
+        setState({
+          wardConfiguration: wardConfig ?? [],
+          activeAdmissions: activeAdmissions ?? [],
+        });
       } catch (err) {
         console.error("fetchInitialData failed:", err);
-        const persisted = loadPersistedState();
+        setDiagnostic("Unexpected error loading inpatient data. See console for details.");
         if (!cancelled) {
-          setState(persisted);
+          setState(loadPersistedState());
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -293,8 +319,84 @@ export function useInpatientState() {
       attendingPhysician: string;
     }) => {
       const now = new Date().toISOString();
+
+      const s = supabase as any;
+
+      // Validate patient exists in DB
+      const { data: patientData, error: patientErr } = await s
+        .from("patients")
+        .select("id")
+        .eq("patient_id", payload.patient.folderNo)
+        .maybeSingle();
+      if (patientErr || !patientData) {
+        alert("Patient not found in database. Please register the patient first.");
+        return;
+      }
+
+      // Validate ward exists
+      const { data: wardData, error: wardErr } = await s
+        .from("wards")
+        .select("id")
+        .eq("name", payload.wardCode)
+        .maybeSingle();
+      if (wardErr || !wardData) {
+        alert("Ward not found. Please configure wards in Inpatient Settings.");
+        return;
+      }
+
+      // Validate bed exists and is not already occupied
+      const { data: bedData, error: bedErr } = await s
+        .from("beds")
+        .select("id, status")
+        .eq("bed_number", payload.bedNo)
+        .eq("ward_id", wardData.id)
+        .maybeSingle();
+      if (bedErr || !bedData) {
+        alert("Bed not found. Please configure beds in Inpatient Settings.");
+        return;
+      }
+      if (bedData.status === "Occupied") {
+        alert("This bed is already occupied. Please select a different bed.");
+        return;
+      }
+
+      // Look up doctor — optional, doesn't block admission
+      let doctorId: string | null = null;
+      const { data: userData } = await s
+        .from("users")
+        .select("id")
+        .ilike("full_name", `%${payload.attendingPhysician.replace(/^Dr\.\s*/i, "")}%`)
+        .maybeSingle();
+      if (userData) doctorId = userData.id;
+
+      // Insert admission into Supabase
+      const { error: admError, data: newAdm } = await s
+        .from("admissions")
+        .insert({
+          patient_id: patientData.id,
+          ward_id: wardData.id,
+          bed_id: bedData.id,
+          admission_date: now,
+          status: "Admitted",
+          admitting_doctor_id: doctorId,
+          diagnosis: payload.provisionalDiagnosis || null,
+          notes: payload.chiefComplaints || null,
+        })
+        .select("id")
+        .single();
+
+      if (admError || !newAdm) {
+        console.error("Failed to create admission:", admError);
+        alert("Failed to save admission to database: " + (admError?.message || admError));
+        return;
+      }
+
+      // Update bed status
+      await s.from("beds").update({ status: "Occupied" }).eq("id", bedData.id);
+
+      // Build admission object for state
       const newAdmission: ActiveAdmission = {
-        admissionId: `ADM-${Date.now()}`,
+        admissionId: newAdm.id,
         wardCode: payload.wardCode,
         bedNo: payload.bedNo,
         patient: payload.patient,
@@ -308,54 +410,6 @@ export function useInpatientState() {
         clinicalNotes: "",
       };
 
-      try {
-        const { data: patientData } = await supabase
-          .from("patients")
-          .select("id")
-          .eq("patient_id", payload.patient.folderNo)
-          .single();
-        const { data: wardData } = await supabase
-          .from("wards")
-          .select("id")
-          .eq("name", payload.wardCode)
-          .single();
-        const { data: bedData } = await supabase
-          .from("beds")
-          .select("id")
-          .eq("bed_number", payload.bedNo)
-          .single();
-
-        let doctorId: string | null = null;
-        try {
-          const { data: userData } = await supabase
-            .from("users")
-            .select("id")
-            .ilike("full_name", `%${payload.attendingPhysician.replace(/^Dr\.\s*/i, "")}%`)
-            .single();
-          doctorId = userData?.id ?? null;
-        } catch {
-          /* doctor not found in public.users — column is nullable so OK */
-        }
-
-        if (patientData && wardData && bedData) {
-          const { error: admError } = await supabase.from("admissions").insert({
-            patient_id: patientData.id,
-            ward_id: wardData.id,
-            bed_id: bedData.id,
-            admission_date: now,
-            status: "Admitted",
-            admitting_doctor_id: doctorId,
-            diagnosis: payload.provisionalDiagnosis,
-            notes: payload.chiefComplaints,
-          });
-          if (admError) throw admError;
-          await supabase.from("beds").update({ status: "Occupied" }).eq("id", bedData.id);
-        }
-      } catch (err: any) {
-        console.warn("Failed to persist admission to Supabase:", err);
-        alert("Admission saved locally but failed to sync to server: " + (err?.message || err));
-      }
-
       setState((prev) => ({
         ...prev,
         activeAdmissions: [...prev.activeAdmissions, newAdmission],
@@ -366,6 +420,7 @@ export function useInpatientState() {
           ),
         })),
       }));
+      return true;
     },
     []
   );
@@ -735,6 +790,7 @@ export function useInpatientState() {
     state: { ...state, activeAdmissions: liveAdmissions },
     wards,
     loading,
+    diagnostic,
     computeFluidBalance,
     searchPatients,
     searchMedications,
