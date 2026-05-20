@@ -41,7 +41,7 @@ const LabResultDialog = ({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lab_results")
-        .select("*, technician:users!technician_id(full_name)")
+        .select("*")
         .eq("request_id", order.id)
         .maybeSingle();
       if (error) throw error;
@@ -207,11 +207,11 @@ const LabResultDialog = ({
                 </div>
               </div>
 
-              {(result as any)?.editedAt || (result as any)?.technician?.fullName ? (
+              {(result as any)?.editedAt || (result as any)?.editedBy ? (
                 <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
                   <Edit3 className="w-3.5 h-3.5 text-slate-400" />
                   <span className="text-[11px] text-slate-500">
-                    Edited by <span className="font-medium text-slate-700">{(result as any)?.technician?.fullName ?? "Lab Technician"}</span>
+                    Edited by <span className="font-medium text-slate-700">{(result as any)?.editedBy ?? "Lab Technician"}</span>
                     {(result as any)?.editedAt && <span> on {format(new Date((result as any).editedAt), "MMM dd, yyyy HH:mm")}</span>}
                   </span>
                 </div>

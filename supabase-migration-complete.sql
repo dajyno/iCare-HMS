@@ -96,8 +96,35 @@ create policy "Users can update lab results"
   using (true);
 
 -- Add edited_by and edited_at columns to lab_results for tracking who edited results
-alter table public.lab_results add column if not exists edited_by uuid references public.users(id);
+-- edited_by stores staff name as text (no FK) to avoid auth.users vs public.users mismatch
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'lab_results' and column_name = 'edited_by'
+  ) then
+    alter table public.lab_results add column edited_by text;
+  else
+    -- If column exists as uuid FK, recreate it as text
+    alter table public.lab_results alter column edited_by type text using edited_by::text;
+  end if;
+end
+$$;
 alter table public.lab_results add column if not exists edited_at timestamptz;
+
+-- SELECT RLS for admissions (was missing — caused empty admitted-patient list)
+drop policy if exists "Users can read all admissions" on public.admissions;
+create policy "Users can read all admissions"
+  on public.admissions for select
+  to authenticated
+  using (true);
+
+-- SELECT RLS for beds (needed for ward/bed grid)
+drop policy if exists "Users can read all beds" on public.beds;
+create policy "Users can read all beds"
+  on public.beds for select
+  to authenticated
+  using (true);
 
 -- Admissions: make admitting_doctor_id nullable (FK was already dropped)
 alter table public.admissions alter column admitting_doctor_id drop not null;

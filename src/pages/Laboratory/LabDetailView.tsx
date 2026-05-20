@@ -94,7 +94,7 @@ const LabDetailView = ({
       const ids = orders.map((o: any) => o.id);
       const { data, error } = await supabase
         .from("lab_results")
-        .select("*, technician:users!technician_id(full_name)")
+        .select("*")
         .in("request_id", ids);
       if (error) throw error;
       return toCamel(data ?? []);
@@ -145,7 +145,7 @@ const LabDetailView = ({
         unit: unit || null,
         reference_range: o.test?.referenceRange ?? null,
         interpretation: interp || null,
-        edited_by: user?.id ?? null,
+        edited_by: (user as any)?.full_name ?? null,
         edited_at: new Date().toISOString(),
       };
 
@@ -163,7 +163,6 @@ const LabDetailView = ({
       } else if (error) {
         throw error;
       }
-      if (error) throw error;
 
       if (markCompleted) {
         const { error } = await supabase
@@ -474,8 +473,8 @@ const LabDetailView = ({
                     )}
                     {(() => {
                       const r = existingResults?.find((r: any) => r.requestId === o.id);
-                      if (r?.editedAt || r?.technician?.fullName) {
-                        const editedBy = r.technician?.fullName ?? "Lab Technician";
+                      if (r?.editedAt || r?.editedBy) {
+                        const editedBy = r.editedBy ?? "Lab Technician";
                         const editedDate = r.editedAt ? format(new Date(r.editedAt), "MMM dd, yyyy HH:mm") : "";
                         return (
                           <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100">
