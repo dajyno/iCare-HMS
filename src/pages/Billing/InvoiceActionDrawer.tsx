@@ -11,6 +11,9 @@ import { useUpdateInvoiceStatus } from "./billingHooks";
 import type { InvoiceSummary } from "./billingTypes";
 import { getHospitalName } from "@/src/lib/hospitalConfig";
 import { format } from "date-fns";
+import { useBankAccounts } from "../Accounting/hooks";
+import SearchableSelect from "@/components/ui/searchable-select";
+import type { SearchableOption } from "@/components/ui/searchable-select";
 
 interface InvoiceActionDrawerProps {
   invoice: InvoiceSummary | null;
@@ -24,13 +27,20 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
   const updateStatus = useUpdateInvoiceStatus();
   const [payAmount, setPayAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<"Cash" | "Card" | "Bank Transfer" | "Insurance Split">("Cash");
+  const [bankAccountId, setBankAccountId] = useState<string | null>(null);
+  const { data: bankAccounts } = useBankAccounts();
 
   useEffect(() => {
     if (invoice) {
       setPayAmount(invoice.balance);
       setPaymentMethod(invoice.paymentMethod as any || "Cash");
+      setBankAccountId(null);
     }
   }, [invoice]);
+
+  useEffect(() => {
+    if (paymentMethod === "Cash") setBankAccountId(null);
+  }, [paymentMethod]);
 
   useEffect(() => {
     if (!open) return;
@@ -43,11 +53,13 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
 
   const handleProcessPayment = () => {
     if (!invoice || payAmount <= 0) return;
+    if (paymentMethod !== "Cash" && !bankAccountId) return;
     updateStatus.mutate(
       {
         id: invoice.id,
         amountPaid: payAmount,
         paymentMethod,
+        bankAccountId,
       },
       { onSuccess: () => onClose() }
     );
@@ -324,6 +336,25 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
                         ))}
                       </div>
                     </div>
+
+                    {paymentMethod !== "Cash" && (
+                      <div>
+                        <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
+                          Deposit to Bank Account
+                        </Label>
+                        <SearchableSelect
+                          value={bankAccountId ?? undefined}
+                          onValueChange={(v) => setBankAccountId(v)}
+                          options={(bankAccounts ?? []).map(
+                            (b): SearchableOption => ({
+                              value: b.bank_id,
+                              label: b.bank_name,
+                            })
+                          )}
+                          placeholder="Select bank account..."
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -352,7 +383,7 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
                   <Button
                     className="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2"
                     onClick={handleProcessPayment}
-                    disabled={updateStatus.isPending || payAmount <= 0}
+                    disabled={updateStatus.isPending || payAmount <= 0 || (paymentMethod !== "Cash" && !bankAccountId)}
                   >
                     {updateStatus.isPending ? (
                       <Loader2 className="w-4 h-4 animate-spin" />

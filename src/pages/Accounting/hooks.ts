@@ -332,6 +332,59 @@ export function usePatients(query: string) {
   });
 }
 
+export function createIncomeFromPayment(params: {
+  amount: number;
+  category: string;
+  bankAccountId: string | null;
+  paymentMethod: string;
+  patientId: string | undefined;
+  patientName: string | undefined;
+  invoiceNumber: string;
+}): IncomeRecord {
+  const local = loadLocal();
+  const bank = local.bank_accounts.find((b) => b.bank_id === params.bankAccountId);
+  const bankName = bank?.bank_name || "";
+
+  const record: IncomeRecord = {
+    id: generateId("INC"),
+    amount: params.amount,
+    category: params.category,
+    bank_id: params.bankAccountId || "CASH",
+    bank_name: bankName,
+    status: "Verified",
+    date: new Date().toISOString().split("T")[0],
+    description: `Payment for ${params.invoiceNumber}`,
+    patient_id: params.patientId,
+    patient_name: params.patientName,
+    payment_method: params.paymentMethod,
+    created_at: new Date().toISOString(),
+  };
+
+  local.income.unshift(record);
+  saveLocal(local);
+
+  try {
+    (supabase as any)
+      .from("accounting_income")
+      .insert({
+        id: record.id,
+        amount: record.amount,
+        category: record.category,
+        bank_id: record.bank_id,
+        status: record.status,
+        date: record.date,
+        description: record.description,
+        patient_id: record.patient_id || null,
+        patient_name: record.patient_name || null,
+        payment_method: record.payment_method,
+      })
+      .then(() => {})
+      .catch(() => {});
+  } catch { /* ignore */ }
+
+  return record;
+}
+
 export function useIncomeCategories() {
   return useQuery<CategoryItem[]>({
     queryKey: ["accounting", "incomeCategories"],

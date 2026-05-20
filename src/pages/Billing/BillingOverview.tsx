@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -33,6 +34,9 @@ import {
 } from "./billingTypes";
 import NewInvoiceModal from "./NewInvoiceModal";
 import InvoiceActionDrawer from "./InvoiceActionDrawer";
+import { useBankAccounts } from "../Accounting/hooks";
+import SearchableSelect from "@/components/ui/searchable-select";
+import type { SearchableOption } from "@/components/ui/searchable-select";
 
 type FilterTab = (typeof SOURCE_TABS)[number];
 
@@ -163,6 +167,12 @@ const BillingOverview = () => {
   const [bulkPaying, setBulkPaying] = useState(false);
   const [showBulkPayModal, setShowBulkPayModal] = useState(false);
   const [bulkPayMethod, setBulkPayMethod] = useState<"Cash" | "Card" | "Bank Transfer" | "Insurance Split">("Cash");
+  const [bulkBankAccountId, setBulkBankAccountId] = useState<string | null>(null);
+  const { data: bankAccounts } = useBankAccounts();
+
+  useEffect(() => {
+    if (bulkPayMethod === "Cash") setBulkBankAccountId(null);
+  }, [bulkPayMethod]);
 
   const handleBulkPay = useCallback(() => {
     if (selectedIds.size === 0) return;
@@ -171,18 +181,19 @@ const BillingOverview = () => {
 
   const handleConfirmBulkPay = useCallback(async () => {
     if (selectedIds.size === 0 || bulkPaying) return;
+    if (bulkPayMethod !== "Cash" && !bulkBankAccountId) return;
     setBulkPaying(true);
     setShowBulkPayModal(false);
     const ids: string[] = Array.from(selectedIds);
     for (const id of ids) {
       const inv = (invoices as InvoiceSummary[] | undefined)?.find((i: InvoiceSummary) => i.id === id);
       if (inv && inv.status !== "Paid") {
-        await updateStatus.mutateAsync({ id, amountPaid: inv.balance as number, paymentMethod: bulkPayMethod });
+        await updateStatus.mutateAsync({ id, amountPaid: inv.balance as number, paymentMethod: bulkPayMethod, bankAccountId: bulkBankAccountId });
       }
     }
     clearSelection();
     setBulkPaying(false);
-  }, [selectedIds, invoices, updateStatus, clearSelection, bulkPaying, bulkPayMethod]);
+  }, [selectedIds, invoices, updateStatus, clearSelection, bulkPaying, bulkPayMethod, bulkBankAccountId]);
 
   const handleRowClick = (inv: InvoiceSummary) => {
     setSelectedInvoice(inv);
@@ -583,6 +594,25 @@ const BillingOverview = () => {
                 </div>
               </label>
             ))}
+
+            {bulkPayMethod !== "Cash" && (
+              <div className="pt-2">
+                <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">
+                  Deposit to Bank Account
+                </Label>
+                <SearchableSelect
+                  value={bulkBankAccountId ?? undefined}
+                  onValueChange={(v) => setBulkBankAccountId(v)}
+                  options={(bankAccounts ?? []).map(
+                    (b): SearchableOption => ({
+                      value: b.bank_id,
+                      label: b.bank_name,
+                    })
+                  )}
+                  placeholder="Select bank account..."
+                />
+              </div>
+            )}
           </div>
           <DialogFooter className="gap-2">
             <DialogClose asChild>
@@ -593,7 +623,7 @@ const BillingOverview = () => {
               size="sm"
               className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2"
               onClick={handleConfirmBulkPay}
-              disabled={bulkPaying}
+              disabled={bulkPaying || (bulkPayMethod !== "Cash" && !bulkBankAccountId)}
             >
               {bulkPaying ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

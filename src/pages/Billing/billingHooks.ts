@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tansta
 import { supabase, toCamel } from "@/src/lib/supabase";
 import type { LineItem, InvoiceSummary, CatalogItem } from "./billingTypes";
 import { computeLineItemAmount, MOCK_INVOICES, MOCK_MEDICATIONS, MOCK_LAB_TESTS } from "./billingTypes";
+import { createIncomeFromPayment } from "../Accounting/hooks";
 
 export function useInvoices() {
   return useQuery<InvoiceSummary[]>({
@@ -360,10 +361,12 @@ export function useUpdateInvoiceStatus() {
       id,
       amountPaid,
       paymentMethod,
+      bankAccountId,
     }: {
       id: string;
       amountPaid: number;
       paymentMethod: "Cash" | "Card" | "Bank Transfer" | "Insurance Split";
+      bankAccountId?: string | null;
     }) => {
       const cache = queryClient.getQueryData<InvoiceSummary[]>(["invoices"]);
       const currentInvoice = cache?.find((inv) => inv.id === id);
@@ -417,6 +420,22 @@ export function useUpdateInvoiceStatus() {
             : inv
         );
         queryClient.setQueryData(["invoices"], updated);
+      }
+
+      if (amountPaid > 0) {
+        const patientName = currentInvoice.patient
+          ? `${currentInvoice.patient.firstName} ${currentInvoice.patient.lastName}`
+          : undefined;
+        createIncomeFromPayment({
+          amount: amountPaid,
+          category: currentInvoice.sourceType,
+          bankAccountId: bankAccountId ?? null,
+          paymentMethod,
+          patientId: currentInvoice.patientId,
+          patientName,
+          invoiceNumber: currentInvoice.invoiceNumber,
+        });
+        queryClient.invalidateQueries({ queryKey: ["accounting"] });
       }
 
       if (status === "Paid") {
