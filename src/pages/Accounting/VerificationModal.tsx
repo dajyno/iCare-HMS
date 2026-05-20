@@ -1,3 +1,4 @@
+import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,9 @@ interface Props {
     date: string;
     bank_name?: string;
     payment_method: string;
+    created_at?: string;
+    patient_name?: string;
+    payee?: string;
   } | null;
   onConfirm: () => void;
   isPending: boolean;
@@ -47,6 +51,10 @@ const VerificationModal = ({ open, onClose, transaction, onConfirm, isPending }:
         <div className="space-y-3 py-2">
           <div className="rounded-lg bg-slate-50 p-4 space-y-2 text-sm">
             <div className="flex justify-between">
+              <span className="text-slate-500">Transaction ID</span>
+              <span className="font-mono text-xs font-bold text-slate-700">{transaction.id}</span>
+            </div>
+            <div className="flex justify-between">
               <span className="text-slate-500">Amount</span>
               <span className="font-bold text-slate-900 tabular-nums">₦{transaction.amount.toLocaleString()}</span>
             </div>
@@ -62,6 +70,12 @@ const VerificationModal = ({ open, onClose, transaction, onConfirm, isPending }:
               <span className="text-slate-500">Date</span>
               <span>{transaction.date}</span>
             </div>
+            {transaction.created_at && (
+              <div className="flex justify-between">
+                <span className="text-slate-500">Timestamp</span>
+                <span className="text-xs">{format(new Date(transaction.created_at), "dd-MMM-yyyy HH:mm:ss")}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-slate-500">Bank</span>
               <span>{transaction.bank_name || "—"}</span>
@@ -70,6 +84,18 @@ const VerificationModal = ({ open, onClose, transaction, onConfirm, isPending }:
               <span className="text-slate-500">Payment Method</span>
               <span>{transaction.payment_method}</span>
             </div>
+            {transaction.patient_name && (
+              <div className="flex justify-between">
+                <span className="text-slate-500">Patient</span>
+                <span>{transaction.patient_name}</span>
+              </div>
+            )}
+            {transaction.payee && (
+              <div className="flex justify-between">
+                <span className="text-slate-500">Payee</span>
+                <span>{transaction.payee}</span>
+              </div>
+            )}
           </div>
           <p className="text-xs text-slate-400">
             Confirming will change status to <strong>Verified</strong>, update the bank balance, and release the patient lock if applicable.

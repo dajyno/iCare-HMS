@@ -5,8 +5,7 @@ import { BarChart3, TrendingUp, TrendingDown, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useIncome, useExpenses } from "../hooks";
-import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from "../types";
+import { useIncome, useExpenses, useIncomeCategories, useExpenseCategories } from "../hooks";
 
 const ReportsPage = () => {
   const navigate = useNavigate();
@@ -19,6 +18,9 @@ const ReportsPage = () => {
   const totalRevenue = verifiedIncome.reduce((s, i) => s + i.amount, 0);
   const totalExpenses = verifiedExpenses.reduce((s, e) => s + e.amount, 0);
   const netProfit = totalRevenue - totalExpenses;
+
+  const { data: incomeCats } = useIncomeCategories();
+  const { data: expenseCats } = useExpenseCategories();
 
   const incomeByCategory = useMemo(() => {
     const map: Record<string, number> = {};
@@ -98,19 +100,19 @@ const ReportsPage = () => {
               <div className="py-8 text-center text-sm text-slate-400">No verified income yet.</div>
             ) : (
               <div className="divide-y divide-slate-100">
-                {INCOME_CATEGORIES.filter((c) => incomeByCategory[c]).map((cat) => (
+                {(incomeCats || []).filter((c) => incomeByCategory[c.name]).map((cat) => (
                   <button
-                    key={cat}
-                    onClick={() => handleDrillDown(cat)}
+                    key={cat.name}
+                    onClick={() => handleDrillDown(cat.name)}
                     className="w-full flex items-center justify-between px-4 py-3 hover:bg-emerald-50/50 transition-colors group text-left"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-slate-700">{cat}</span>
-                      <ArrowRight className="w-3 h-3 text-slate-300 group-hover:text-emerald-500 transition-colors" />
-                    </div>
-                    <span className="font-bold text-emerald-600 tabular-nums">
-                      ₦{(incomeByCategory[cat] || 0).toLocaleString()}
-                    </span>
+                    <span className="text-sm font-medium text-slate-700">{cat.name}</span>
+                    <ArrowRight className="w-3 h-3 text-slate-300 group-hover:text-emerald-500 transition-colors" />
+                  </div>
+                  <span className="font-bold text-emerald-600 tabular-nums">
+                    ₦{(incomeByCategory[cat.name] || 0).toLocaleString()}
+                  </span>
                   </button>
                 ))}
               </div>
@@ -127,19 +129,19 @@ const ReportsPage = () => {
               <div className="py-8 text-center text-sm text-slate-400">No verified expenses yet.</div>
             ) : (
               <div className="divide-y divide-slate-100">
-                {EXPENSE_CATEGORIES.filter((c) => expenseByCategory[c]).map((cat) => (
+                {(expenseCats || []).filter((c) => expenseByCategory[c.name]).map((cat) => (
                   <button
-                    key={cat}
-                    onClick={() => handleDrillDown(cat)}
+                    key={cat.name}
+                    onClick={() => handleDrillDown(cat.name)}
                     className="w-full flex items-center justify-between px-4 py-3 hover:bg-rose-50/50 transition-colors group text-left"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-slate-700">{cat}</span>
-                      <ArrowRight className="w-3 h-3 text-slate-300 group-hover:text-rose-500 transition-colors" />
-                    </div>
-                    <span className="font-bold text-rose-600 tabular-nums">
-                      ₦{(expenseByCategory[cat] || 0).toLocaleString()}
-                    </span>
+                    <span className="text-sm font-medium text-slate-700">{cat.name}</span>
+                    <ArrowRight className="w-3 h-3 text-slate-300 group-hover:text-rose-500 transition-colors" />
+                  </div>
+                  <span className="font-bold text-rose-600 tabular-nums">
+                    ₦{(expenseByCategory[cat.name] || 0).toLocaleString()}
+                  </span>
                   </button>
                 ))}
               </div>

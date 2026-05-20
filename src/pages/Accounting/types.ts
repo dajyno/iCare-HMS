@@ -16,6 +16,7 @@ export interface IncomeRecord {
   date: string;
   description: string;
   patient_id?: string;
+  patient_name?: string;
   payment_method: string;
   created_at: string;
 }
@@ -48,24 +49,9 @@ export type LedgerEntry = {
   source_id: string;
 };
 
-export const INCOME_CATEGORIES = [
-  "Service",
-  "Consultation",
-  "Pharmacy",
-  "Lab",
-  "Radiology",
-  "Inpatient",
-  "Insurance",
-] as const;
-
-export const EXPENSE_CATEGORIES = [
-  "Utility",
-  "Salary",
-  "Maintenance",
-  "Supply",
-  "Equipment",
-  "Administrative",
-] as const;
+export interface CategoryItem {
+  name: string;
+}
 
 export const STATUS_STYLES: Record<string, string> = {
   Pending: "bg-amber-50 text-amber-700 border-amber-200",
@@ -75,6 +61,92 @@ export const STATUS_STYLES: Record<string, string> = {
   Matched: "bg-teal-50 text-teal-700 border-teal-200",
 };
 
+const DEFAULT_INCOME_CATEGORIES: CategoryItem[] = [
+  { name: "Service" },
+  { name: "Consultation" },
+  { name: "Pharmacy" },
+  { name: "Lab" },
+  { name: "Radiology" },
+  { name: "Inpatient" },
+  { name: "Insurance" },
+];
+
+const DEFAULT_EXPENSE_CATEGORIES: CategoryItem[] = [
+  { name: "Utility" },
+  { name: "Salary" },
+  { name: "Maintenance" },
+  { name: "Supply" },
+  { name: "Equipment" },
+  { name: "Administrative" },
+];
+
+const CATEGORIES_KEY = "icare_accounting_categories";
+
+function loadCategories(): { income: CategoryItem[]; expenses: CategoryItem[] } {
+  try {
+    const raw = localStorage.getItem(CATEGORIES_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.income && parsed.expenses) return parsed;
+    }
+  } catch { /* ignore */ }
+  return { income: DEFAULT_INCOME_CATEGORIES, expenses: DEFAULT_EXPENSE_CATEGORIES };
+}
+
+function saveCategories(data: { income: CategoryItem[]; expenses: CategoryItem[] }) {
+  localStorage.setItem(CATEGORIES_KEY, JSON.stringify(data));
+}
+
+export function getIncomeCategories(): CategoryItem[] {
+  return loadCategories().income;
+}
+
+export function getExpenseCategories(): CategoryItem[] {
+  return loadCategories().expenses;
+}
+
+export function addIncomeCategory(name: string) {
+  const data = loadCategories();
+  if (!data.income.find((c) => c.name.toLowerCase() === name.toLowerCase())) {
+    data.income.push({ name });
+    saveCategories(data);
+  }
+}
+
+export function addExpenseCategory(name: string) {
+  const data = loadCategories();
+  if (!data.expenses.find((c) => c.name.toLowerCase() === name.toLowerCase())) {
+    data.expenses.push({ name });
+    saveCategories(data);
+  }
+}
+
+export function removeIncomeCategory(name: string) {
+  const data = loadCategories();
+  data.income = data.income.filter((c) => c.name !== name);
+  saveCategories(data);
+}
+
+export function removeExpenseCategory(name: string) {
+  const data = loadCategories();
+  data.expenses = data.expenses.filter((c) => c.name !== name);
+  saveCategories(data);
+}
+
+export function renameIncomeCategory(oldName: string, newName: string) {
+  const data = loadCategories();
+  const cat = data.income.find((c) => c.name === oldName);
+  if (cat) cat.name = newName;
+  saveCategories(data);
+}
+
+export function renameExpenseCategory(oldName: string, newName: string) {
+  const data = loadCategories();
+  const cat = data.expenses.find((c) => c.name === oldName);
+  if (cat) cat.name = newName;
+  saveCategories(data);
+}
+
 export const MOCK_BANK_ACCOUNTS: BankAccount[] = [
   { bank_id: "B-01", bank_name: "GTBank", account_name: "Operations", account_number: "0123456789", balance: 1500000 },
   { bank_id: "B-02", bank_name: "First Bank", account_name: "Payroll", account_number: "2012345678", balance: 850000 },
@@ -82,11 +154,11 @@ export const MOCK_BANK_ACCOUNTS: BankAccount[] = [
 ];
 
 export const MOCK_INCOME: IncomeRecord[] = [
-  { id: "INC-001", amount: 25000, category: "Service", bank_id: "B-01", bank_name: "GTBank", status: "Verified", date: "2026-05-20", description: "Consultation fee", patient_id: "PT-001", payment_method: "Cash", created_at: "2026-05-20T09:00:00Z" },
-  { id: "INC-002", amount: 45000, category: "Pharmacy", bank_id: "B-01", bank_name: "GTBank", status: "Verified", date: "2026-05-20", description: "Medication sales", patient_id: "PT-002", payment_method: "Card", created_at: "2026-05-20T10:30:00Z" },
-  { id: "INC-003", amount: 12000, category: "Lab", bank_id: "B-02", bank_name: "First Bank", status: "Pending", date: "2026-05-19", description: "Blood test payment", patient_id: "PT-003", payment_method: "Transfer", created_at: "2026-05-19T14:00:00Z" },
-  { id: "INC-004", amount: 80000, category: "Inpatient", bank_id: "B-01", bank_name: "GTBank", status: "Verified", date: "2026-05-19", description: "Admission deposit", patient_id: "PT-004", payment_method: "Cash", created_at: "2026-05-19T11:00:00Z" },
-  { id: "INC-005", amount: 3000, category: "Service", bank_id: "B-03", bank_name: "Access Bank", status: "Pending", date: "2026-05-18", description: "Folder fee", patient_id: "PT-005", payment_method: "Card", created_at: "2026-05-18T08:45:00Z" },
+  { id: "INC-001", amount: 25000, category: "Service", bank_id: "B-01", bank_name: "GTBank", status: "Verified", date: "2026-05-20", description: "Consultation fee", patient_id: "PT-001", patient_name: "Jerel Kevin Parocha", payment_method: "Cash", created_at: "2026-05-20T09:00:00Z" },
+  { id: "INC-002", amount: 45000, category: "Pharmacy", bank_id: "B-01", bank_name: "GTBank", status: "Verified", date: "2026-05-20", description: "Medication sales", patient_id: "PT-002", patient_name: "Charity Enyioko", payment_method: "Card", created_at: "2026-05-20T10:30:00Z" },
+  { id: "INC-003", amount: 12000, category: "Lab", bank_id: "B-02", bank_name: "First Bank", status: "Pending", date: "2026-05-19", description: "Blood test payment", patient_id: "PT-003", patient_name: "Amara Okafor", payment_method: "Transfer", created_at: "2026-05-19T14:00:00Z" },
+  { id: "INC-004", amount: 80000, category: "Inpatient", bank_id: "B-01", bank_name: "GTBank", status: "Verified", date: "2026-05-19", description: "Admission deposit", patient_id: "PT-004", patient_name: "Chuka Okafor", payment_method: "Cash", created_at: "2026-05-19T11:00:00Z" },
+  { id: "INC-005", amount: 3000, category: "Service", bank_id: "B-03", bank_name: "Access Bank", status: "Pending", date: "2026-05-18", description: "Folder fee", patient_id: "PT-005", patient_name: "Ibrahim Musa", payment_method: "Card", created_at: "2026-05-18T08:45:00Z" },
 ];
 
 export const MOCK_EXPENSES: ExpenseRecord[] = [

@@ -5,12 +5,14 @@ import {
   type IncomeRecord,
   type ExpenseRecord,
   type LedgerEntry,
+  type CategoryItem,
   MOCK_BANK_ACCOUNTS,
   MOCK_INCOME,
   MOCK_EXPENSES,
-  computeLedger,
   generateId,
   ACCOUNTING_LOCAL_KEY,
+  getIncomeCategories,
+  getExpenseCategories,
 } from "./types";
 
 type AccountingData = {
@@ -133,7 +135,7 @@ export function useLedger(filter?: string | null, dateRange?: string | null) {
       let entries = [...incomeLedger, ...expenseLedger].sort(
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
       );
-      if (filter) {
+      if (filter && filter !== "All") {
         entries = entries.filter(
           (e) => e.category.toLowerCase() === filter.toLowerCase()
         );
@@ -168,6 +170,7 @@ export function useCreateIncome() {
             date: newRecord.date,
             description: newRecord.description,
             patient_id: newRecord.patient_id,
+            patient_name: newRecord.patient_name,
             payment_method: newRecord.payment_method,
           });
         if (!error) return newRecord;
@@ -278,26 +281,69 @@ export function useVerifyTransaction() {
         else local.bank_accounts[bankIdx].balance -= amount;
       }
       saveLocal(local);
-
       try {
         await Promise.all([
-          (supabase as any)
-            .from("accounting_income")
-            .update({ status: "Verified" })
-            .eq("id", id),
-          (supabase as any)
-            .from("accounting_expenses")
-            .update({ status: "Verified" })
-            .eq("id", id),
-          (supabase as any)
-            .from("bank_accounts")
-            .update({ balance: local.bank_accounts[bankIdx]?.balance })
-            .eq("bank_id", bank_id),
+          (supabase as any).from("accounting_income").update({ status: "Verified" }).eq("id", id),
+          (supabase as any).from("accounting_expenses").update({ status: "Verified" }).eq("id", id),
+          (supabase as any).from("bank_accounts").update({ balance: local.bank_accounts[bankIdx]?.balance }).eq("bank_id", bank_id),
         ]);
       } catch { /* ignore */ }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["accounting"] });
     },
+  });
+}
+
+const MOCK_PATIENTS = [
+  { id: "mock-pt-1", patientId: "MD/0016/23", firstName: "Jerel Kevin", lastName: "Parocha" },
+  { id: "mock-pt-2", patientId: "EG/0042/99", firstName: "Charity", lastName: "Enyioko" },
+  { id: "mock-pt-3", patientId: "FL/0051/88", firstName: "Amara", lastName: "Okafor" },
+  { id: "mock-pt-4", patientId: "AB/0033/77", firstName: "Chuka", lastName: "Okafor" },
+  { id: "mock-pt-5", patientId: "CD/0022/11", firstName: "Ibrahim", lastName: "Musa" },
+];
+
+export function usePatients(query: string) {
+  return useQuery({
+    queryKey: ["accounting", "patients", query],
+    queryFn: async () => {
+      if (!query.trim() || query.trim().length < 2) return [];
+      const lower = query.toLowerCase();
+      const local = MOCK_PATIENTS.filter(
+        (p) =>
+          p.firstName.toLowerCase().includes(lower) ||
+          p.lastName.toLowerCase().includes(lower) ||
+          p.patientId.toLowerCase().includes(lower)
+      );
+      try {
+        const { data, error } = await (supabase as any)
+          .from("patients")
+          .select("id, patient_id, first_name, last_name")
+          .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,patient_id.ilike.%${query}%`)
+          .limit(8);
+        if (error) return local;
+        const supabaseResults = toCamel(data) as { id: string; patientId: string; firstName: string; lastName: string }[];
+        return supabaseResults.length > 0 ? supabaseResults : local;
+      } catch {
+        return local;
+      }
+    },
+    enabled: query.trim().length >= 2,
+  });
+}
+
+export function useIncomeCategories() {
+  return useQuery<CategoryItem[]>({
+    queryKey: ["accounting", "incomeCategories"],
+    queryFn: () => getIncomeCategories(),
+    staleTime: Infinity,
+  });
+}
+
+export function useExpenseCategories() {
+  return useQuery<CategoryItem[]>({
+    queryKey: ["accounting", "expenseCategories"],
+    queryFn: () => getExpenseCategories(),
+    staleTime: Infinity,
   });
 }

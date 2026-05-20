@@ -1,10 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { format } from "date-fns";
-import { Search, RefreshCw, ArrowUpRight, ArrowDownRight, X } from "lucide-react";
+import { Search, X, Printer, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useIncome, useExpenses } from "../hooks";
 import { STATUS_STYLES, type LedgerEntry as LedgerEntryType } from "../types";
 
@@ -14,6 +14,15 @@ const LedgerPage = () => {
   const rangeParam = searchParams.get("range");
   const { data: income } = useIncome();
   const { data: expenses } = useExpenses();
+
+  const [typeFilter, setTypeFilter] = useState<string>("All");
+  const [categoryFilter, setCategoryFilter] = useState<string>(filterParam || "All");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const printRef = useRef<HTMLDivElement>(null);
 
   const entries = useMemo(() => {
     const incomeEntries: LedgerEntryType[] = (income || []).map((inc) => ({
@@ -46,22 +55,43 @@ const LedgerPage = () => {
     );
   }, [income, expenses]);
 
+  const allCategories = useMemo(() => {
+    const cats = new Set(entries.map((e) => e.category));
+    return Array.from(cats).sort();
+  }, [entries]);
+
   const filteredEntries = useMemo(() => {
     let result = entries;
-    if (filterParam) {
+    if (categoryFilter && categoryFilter !== "All") {
+      result = result.filter((e) => e.category === categoryFilter);
+    }
+    if (typeFilter && typeFilter !== "All") {
+      result = result.filter((e) => e.type === typeFilter);
+    }
+    if (dateFrom) {
+      result = result.filter((e) => e.date >= dateFrom);
+    }
+    if (dateTo) {
+      result = result.filter((e) => e.date <= dateTo);
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
       result = result.filter(
-        (e) => e.category.toLowerCase() === filterParam.toLowerCase()
+        (e) =>
+          e.description?.toLowerCase().includes(q) ||
+          e.category.toLowerCase().includes(q) ||
+          e.payee?.toLowerCase().includes(q) ||
+          e.bank_name.toLowerCase().includes(q)
       );
     }
-    if (rangeParam) {
-      result = result.filter((e) => e.date === rangeParam);
-    }
     return result;
-  }, [entries, filterParam, rangeParam]);
+  }, [entries, categoryFilter, typeFilter, dateFrom, dateTo, search]);
 
-  const clearFilters = () => {
-    setSearchParams({});
-  };
+  const totalPages = Math.max(1, Math.ceil(filteredEntries.length / pageSize));
+  const paginatedEntries = filteredEntries.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   const totalDebit = filteredEntries
     .filter((e) => e.type === "Expense")
@@ -70,6 +100,55 @@ const LedgerPage = () => {
     .filter((e) => e.type === "Income")
     .reduce((s, e) => s + e.amount, 0);
 
+  const handlePrint = () => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    const rows = paginatedEntries
+      .map(
+        (e) => `<tr>
+          <td style="padding:8px;border:1px solid #ddd;font-size:12px">${e.date}</td>
+          <td style="padding:8px;border:1px solid #ddd;font-size:12px">${e.type}</td>
+          <td style="padding:8px;border:1px solid #ddd;font-size:12px">${e.category}</td>
+          <td style="padding:8px;border:1px solid #ddd;font-size:12px">${e.description || e.payee || "—"}</td>
+          <td style="padding:8px;border:1px solid #ddd;font-size:12px;text-align:right">₦${e.amount.toLocaleString()}</td>
+          <td style="padding:8px;border:1px solid #ddd;font-size:12px">${e.bank_name}</td>
+          <td style="padding:8px;border:1px solid #ddd;font-size:12px">${e.status}</td>
+        </tr>`
+      )
+      .join("");
+    printWindow.document.write(`
+      <html><head><title>General Ledger</title>
+      <style>body{font-family:Arial,sans-serif;padding:20px}
+      h2{margin-bottom:5px}
+      table{width:100%;border-collapse:collapse;margin-top:10px}
+      th{background:#f5f5f5;padding:8px;border:1px solid #ddd;font-size:11px;text-align:left}
+      .summary{margin-bottom:15px;font-size:13px;color:#555}
+      </style></head><body>
+      <h2>General Ledger</h2>
+      <div class="summary">
+        Period: ${dateFrom || "All"} — ${dateTo || "All"} |
+        Category: ${categoryFilter} |
+        Type: ${typeFilter} |
+        Total Credits: ₦${totalCredit.toLocaleString()} |
+        Total Debits: ₦${totalDebit.toLocaleString()}
+      </div>
+      <table>
+        <thead><tr>
+          <th>Date</th><th>Type</th><th>Category</th><th>Description</th>
+          <th style="text-align:right">Amount</th><th>Bank</th><th>Status</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p style="margin-top:20px;font-size:11px;color:#999;text-align:center">
+        Generated by iCare HMS — ${new Date().toLocaleDateString()}
+      </p>
+      </body></html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 500);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
@@ -77,26 +156,65 @@ const LedgerPage = () => {
           <h1 className="text-2xl font-bold text-slate-900">General Ledger</h1>
           <p className="text-sm text-slate-500">Granular transaction log</p>
         </div>
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={handlePrint}>
+          <Printer className="w-3.5 h-3.5" /> Print
+        </Button>
       </div>
 
-      {(filterParam || rangeParam) && (
-        <div className="flex items-center gap-2 text-sm bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
-          <span className="text-blue-700 font-medium">Active Filters:</span>
-          {filterParam && (
-            <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">
-              Category: {filterParam}
-            </Badge>
-          )}
-          {rangeParam && (
-            <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">
-              Date: {rangeParam}
-            </Badge>
-          )}
-          <button onClick={clearFilters} className="ml-auto text-blue-600 hover:text-blue-800 flex items-center gap-1 text-xs font-medium">
-            <X className="w-3 h-3" /> Clear Filters
+      <div className="bg-white rounded-xl border shadow-sm p-4 space-y-3">
+        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Filters</p>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="space-y-1 min-w-[140px]">
+            <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Category</label>
+            <select
+              value={categoryFilter}
+              onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
+              className="flex h-8 w-full rounded-lg border border-input bg-background px-2 py-1 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="All">All Categories</option>
+              {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1 min-w-[120px]">
+            <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Type</label>
+            <select
+              value={typeFilter}
+              onChange={(e) => { setTypeFilter(e.target.value); setCurrentPage(1); }}
+              className="flex h-8 w-full rounded-lg border border-input bg-background px-2 py-1 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="All">All Types</option>
+              <option value="Income">Income</option>
+              <option value="Expense">Expense</option>
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">From</label>
+            <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setCurrentPage(1); }} className="h-8 text-xs w-36" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">To</label>
+            <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setCurrentPage(1); }} className="h-8 text-xs w-36" />
+          </div>
+          <div className="space-y-1 flex-1 min-w-[180px]">
+            <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Search</label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <Input
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                placeholder="Search entries..."
+                className="pl-8 h-8 text-xs"
+              />
+            </div>
+          </div>
+          <button
+            onClick={() => { setCategoryFilter("All"); setTypeFilter("All"); setDateFrom(""); setDateTo(""); setSearch(""); setCurrentPage(1); }}
+            className="h-8 px-2 text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1"
+          >
+            <X className="w-3 h-3" /> Clear
           </button>
         </div>
-      )}
+      </div>
 
       <div className="grid grid-cols-3 gap-4">
         <Card className="border-none shadow-sm ring-1 ring-slate-200 p-4">
@@ -113,7 +231,7 @@ const LedgerPage = () => {
         </Card>
       </div>
 
-      <Card className="border-none shadow-sm ring-1 ring-slate-200">
+      <Card className="border-none shadow-sm ring-1 ring-slate-200" ref={printRef}>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -129,16 +247,14 @@ const LedgerPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredEntries.length === 0 ? (
+                {paginatedEntries.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
-                      {filterParam || rangeParam
-                        ? "No entries match the current filters."
-                        : "No ledger entries yet."}
+                      No entries match the current filters.
                     </td>
                   </tr>
                 ) : (
-                  filteredEntries.map((entry) => (
+                  paginatedEntries.map((entry) => (
                     <tr key={entry.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3 text-slate-600 tabular-nums whitespace-nowrap">{entry.date}</td>
                       <td className="px-4 py-3">
@@ -168,6 +284,36 @@ const LedgerPage = () => {
           </div>
         </CardContent>
       </Card>
+
+      {filteredEntries.length > pageSize && (
+        <div className="flex items-center justify-between px-1">
+          <div className="text-xs text-slate-400">
+            Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredEntries.length)} of {filteredEntries.length}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="h-8 text-xs" disabled={currentPage <= 1} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>
+              Previous
+            </Button>
+            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+              const start = Math.max(1, Math.min(currentPage - 3, totalPages - 6));
+              return start + i;
+            }).map((page) => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all ${
+                  page === currentPage ? "bg-blue-600 text-white shadow-sm" : "text-slate-500 hover:bg-slate-100"
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+            <Button variant="outline" size="sm" className="h-8 text-xs" disabled={currentPage >= totalPages} onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}>
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

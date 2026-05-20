@@ -1,15 +1,16 @@
-import { useState } from "react";
-import { format } from "date-fns";
-import { Plus, ArrowUpRight, ArrowDownRight, Search, RefreshCw } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, Search, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useIncome, useExpenses, useBankAccounts } from "../hooks";
 import { STATUS_STYLES } from "../types";
 import NewIncomeModal from "./NewIncomeModal";
 import NewExpenseModal from "./NewExpenseModal";
+
+const PAGE_SIZE = 10;
 
 const RegistriesPage = () => {
   const { data: income, isLoading: incLoading } = useIncome();
@@ -19,19 +20,35 @@ const RegistriesPage = () => {
   const [showNewExpense, setShowNewExpense] = useState(false);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("income");
+  const [incomePage, setIncomePage] = useState(1);
+  const [expensePage, setExpensePage] = useState(1);
 
-  const filteredIncome = (income || []).filter(
-    (i) =>
-      i.category.toLowerCase().includes(search.toLowerCase()) ||
-      i.description?.toLowerCase().includes(search.toLowerCase())
+  const filteredIncome = useMemo(
+    () =>
+      (income || []).filter(
+        (i) =>
+          i.category.toLowerCase().includes(search.toLowerCase()) ||
+          i.description?.toLowerCase().includes(search.toLowerCase())
+      ),
+    [income, search]
   );
 
-  const filteredExpenses = (expenses || []).filter(
-    (e) =>
-      e.category.toLowerCase().includes(search.toLowerCase()) ||
-      e.description?.toLowerCase().includes(search.toLowerCase()) ||
-      e.payee?.toLowerCase().includes(search.toLowerCase())
+  const filteredExpenses = useMemo(
+    () =>
+      (expenses || []).filter(
+        (e) =>
+          e.category.toLowerCase().includes(search.toLowerCase()) ||
+          e.description?.toLowerCase().includes(search.toLowerCase()) ||
+          e.payee?.toLowerCase().includes(search.toLowerCase())
+      ),
+    [expenses, search]
   );
+
+  const incomePages = Math.max(1, Math.ceil(filteredIncome.length / PAGE_SIZE));
+  const expensePages = Math.max(1, Math.ceil(filteredExpenses.length / PAGE_SIZE));
+
+  const paginatedIncome = filteredIncome.slice((incomePage - 1) * PAGE_SIZE, incomePage * PAGE_SIZE);
+  const paginatedExpenses = filteredExpenses.slice((expensePage - 1) * PAGE_SIZE, expensePage * PAGE_SIZE);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -50,7 +67,10 @@ const RegistriesPage = () => {
         </div>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs
+        value={tab}
+        onValueChange={(v) => { setTab(v); setIncomePage(1); setExpensePage(1); }}
+      >
         <div className="flex items-center justify-between">
           <TabsList>
             <TabsTrigger value="income">Income</TabsTrigger>
@@ -60,7 +80,7 @@ const RegistriesPage = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setIncomePage(1); setExpensePage(1); }}
               placeholder="Search entries..."
               className="pl-9 h-8 text-xs"
             />
@@ -89,10 +109,10 @@ const RegistriesPage = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {filteredIncome.length === 0 ? (
+                      {paginatedIncome.length === 0 ? (
                         <tr><td colSpan={7} className="px-6 py-12 text-center text-slate-400">No income entries found.</td></tr>
                       ) : (
-                        filteredIncome.map((inc) => (
+                        paginatedIncome.map((inc) => (
                           <tr key={inc.id} className="hover:bg-slate-50 transition-colors">
                             <td className="px-4 py-3 font-mono text-xs text-blue-600 font-bold">{inc.id}</td>
                             <td className="px-4 py-3 text-slate-600 tabular-nums">{inc.date}</td>
@@ -110,6 +130,23 @@ const RegistriesPage = () => {
               )}
             </CardContent>
           </Card>
+          {filteredIncome.length > PAGE_SIZE && (
+            <div className="flex items-center justify-between px-1 mt-4">
+              <div className="text-xs text-slate-400">
+                Showing {(incomePage - 1) * PAGE_SIZE + 1}–{Math.min(incomePage * PAGE_SIZE, filteredIncome.length)} of {filteredIncome.length}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" className="h-8 text-xs" disabled={incomePage <= 1} onClick={() => setIncomePage((p) => Math.max(1, p - 1))}>Previous</Button>
+                {Array.from({ length: Math.min(incomePages, 5) }, (_, i) => {
+                  const start = Math.max(1, Math.min(incomePage - 2, incomePages - 4));
+                  return start + i;
+                }).map((page) => (
+                  <button key={page} onClick={() => setIncomePage(page)} className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all ${page === incomePage ? "bg-blue-600 text-white shadow-sm" : "text-slate-500 hover:bg-slate-100"}`}>{page}</button>
+                ))}
+                <Button variant="outline" size="sm" className="h-8 text-xs" disabled={incomePage >= incomePages} onClick={() => setIncomePage((p) => Math.min(incomePages, p + 1))}>Next</Button>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="expenses" className="mt-4">
@@ -134,10 +171,10 @@ const RegistriesPage = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {filteredExpenses.length === 0 ? (
+                      {paginatedExpenses.length === 0 ? (
                         <tr><td colSpan={7} className="px-6 py-12 text-center text-slate-400">No expense entries found.</td></tr>
                       ) : (
-                        filteredExpenses.map((exp) => (
+                        paginatedExpenses.map((exp) => (
                           <tr key={exp.id} className="hover:bg-slate-50 transition-colors">
                             <td className="px-4 py-3 font-mono text-xs text-amber-600 font-bold">{exp.id}</td>
                             <td className="px-4 py-3 text-slate-600 tabular-nums">{exp.date}</td>
@@ -155,6 +192,23 @@ const RegistriesPage = () => {
               )}
             </CardContent>
           </Card>
+          {filteredExpenses.length > PAGE_SIZE && (
+            <div className="flex items-center justify-between px-1 mt-4">
+              <div className="text-xs text-slate-400">
+                Showing {(expensePage - 1) * PAGE_SIZE + 1}–{Math.min(expensePage * PAGE_SIZE, filteredExpenses.length)} of {filteredExpenses.length}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" className="h-8 text-xs" disabled={expensePage <= 1} onClick={() => setExpensePage((p) => Math.max(1, p - 1))}>Previous</Button>
+                {Array.from({ length: Math.min(expensePages, 5) }, (_, i) => {
+                  const start = Math.max(1, Math.min(expensePage - 2, expensePages - 4));
+                  return start + i;
+                }).map((page) => (
+                  <button key={page} onClick={() => setExpensePage(page)} className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all ${page === expensePage ? "bg-blue-600 text-white shadow-sm" : "text-slate-500 hover:bg-slate-100"}`}>{page}</button>
+                ))}
+                <Button variant="outline" size="sm" className="h-8 text-xs" disabled={expensePage >= expensePages} onClick={() => setExpensePage((p) => Math.min(expensePages, p + 1))}>Next</Button>
+              </div>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 

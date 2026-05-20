@@ -160,7 +160,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     { icon: Bed, label: "Inpatient", href: "/inpatient" },
     { icon: CreditCard, label: "Billing", href: "/billing" },
     { icon: Calculator, label: "Accounting", children: [
-      { label: "Dashboard", href: "/accounting" },
+      { label: "Hub", href: "/accounting" },
       { label: "Registries", href: "/accounting/registries" },
       { label: "General Ledger", href: "/accounting/ledger" },
       { label: "Banks", href: "/accounting/banks" },

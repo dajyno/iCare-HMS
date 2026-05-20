@@ -43,7 +43,7 @@ const AccountingPage = () => {
     await verifyTx.mutateAsync({
       id: verifyTarget.id,
       type: verifyTarget._type,
-      bank_id: verifyTarget.bank_id,
+      bank_id: verifyTarget.bank_id || "CASH",
       amount: verifyTarget.amount,
     });
     setVerifyTarget(null);
@@ -147,7 +147,11 @@ const AccountingPage = () => {
           ) : (
             <div className="divide-y divide-slate-100">
               {pending.data.map((tx: any) => (
-                <div key={`${tx._type}-${tx.id}`} className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors">
+                <div
+                  key={`${tx._type}-${tx.id}`}
+                  className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer"
+                  onClick={() => setVerifyTarget(tx)}
+                >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${tx._type === "Income" ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"}`}>
                       {tx._type === "Income" ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
@@ -162,7 +166,7 @@ const AccountingPage = () => {
                   <div className="flex items-center gap-3 shrink-0">
                     <span className="font-bold text-slate-900 tabular-nums text-sm">₦{tx.amount.toLocaleString()}</span>
                     <Badge variant="outline" className={STATUS_STYLES.Pending}>Pending</Badge>
-                    <Button size="xs" className="bg-emerald-600 hover:bg-emerald-700 text-white h-7" onClick={() => setVerifyTarget(tx)}>
+                    <Button size="xs" className="bg-emerald-600 hover:bg-emerald-700 text-white h-7" onClick={(e) => { e.stopPropagation(); setVerifyTarget(tx); }}>
                       <CheckCircle className="w-3 h-3 mr-1" /> Verify
                     </Button>
                   </div>
