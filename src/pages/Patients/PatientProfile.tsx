@@ -83,7 +83,7 @@ const PatientProfile = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("consultations")
-        .select("*, doctor:users(full_name), vital_signs(*)")
+        .select("*, vital_signs(*)")
         .eq("patient_id", id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -91,6 +91,34 @@ const PatientProfile = () => {
     },
     enabled: !!id,
   });
+
+  const { data: consultationDoctors } = useQuery({
+    queryKey: ["consultation-doctors", consultations],
+    queryFn: async () => {
+      if (!Array.isArray(consultations) || consultations.length === 0) return [];
+      const doctorIds = [...new Set(consultations.map((c: any) => c.doctorId).filter(Boolean))];
+      const { data, error } = await supabase
+        .from("users")
+        .select("id, full_name")
+        .in("id", doctorIds);
+      if (error) throw error;
+      return toCamel(data);
+    },
+    enabled: Array.isArray(consultations) && consultations.length > 0,
+  });
+
+  const doctorMap = useMemo(() => {
+    if (!Array.isArray(consultationDoctors)) return new Map();
+    return new Map(consultationDoctors.map((u: any) => [u.id, u]));
+  }, [consultationDoctors]);
+
+  const enrichedConsultations = useMemo(() => {
+    if (!Array.isArray(consultations)) return [];
+    return consultations.map((c: any) => ({
+      ...c,
+      doctor: doctorMap.get(c.doctorId) || null,
+    }));
+  }, [consultations, doctorMap]);
 
   const { data: labRequests } = useQuery({
     queryKey: ["patient-labs", id],
@@ -821,9 +849,9 @@ const PatientProfile = () => {
           </div>
 
           {/* Summary Header */}
-          {Array.isArray(consultations) && consultations.length > 0 && (
+          {Array.isArray(enrichedConsultations) && enrichedConsultations.length > 0 && (
             <div className="flex flex-wrap gap-3 text-sm text-slate-600 bg-slate-50 rounded-lg px-4 py-3">
-              <span className="font-semibold">{consultations.length} consultation{consultations.length !== 1 ? "s" : ""}</span>
+              <span className="font-semibold">{enrichedConsultations.length} consultation{enrichedConsultations.length !== 1 ? "s" : ""}</span>
               <span className="text-slate-300">·</span>
               <span className="font-semibold">{Array.isArray(prescriptions) ? prescriptions.length : 0} prescriptions</span>
               <span className="text-slate-300">·</span>
@@ -833,10 +861,10 @@ const PatientProfile = () => {
             </div>
           )}
 
-          {!Array.isArray(consultations) || consultations.length === 0 ? (
+          {!Array.isArray(enrichedConsultations) || enrichedConsultations.length === 0 ? (
             <div className="text-center py-12 text-slate-400">No consultation records found.</div>
           ) : (
-            consultations.map((c: any) => (
+            enrichedConsultations.map((c: any) => (
               <ConsultationDetailCard
                 key={c.id}
                 consultation={c}

@@ -38,7 +38,7 @@ export default function ConsultationDetailCard({
   const [expanded, setExpanded] = useState(false);
   const s = statusConfig[consultation.status] || statusConfig.Completed;
   const vs = consultation.vitalSigns || consultation.vital_signs;
-  const doctorName = consultation.doctor?.fullName || consultation.doctor?.full_name || "Unknown";
+  const doctorName = consultation.doctor?.fullName || consultation.doctor?.full_name || consultation._doctor?.fullName || consultation._doctor?.full_name || "Unknown";
   const createdAt = consultation.createdAt || consultation.created_at;
 
   const rxCount = prescriptions.length;

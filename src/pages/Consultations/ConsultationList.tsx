@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Pagination from "@/components/ui/pagination";
 import ConsultationDetailCard from "@/src/components/ConsultationDetailCard";
 
@@ -23,7 +23,7 @@ const ConsultationList = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedConsultation, setSelectedConsultation] = useState<any>(null);
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const { data: consultations, isLoading, isError, error } = useQuery({
     queryKey: ["consultations"],
@@ -48,8 +48,19 @@ const ConsultationList = () => {
     },
   });
 
+  const { data: users } = useQuery({
+    queryKey: ["users-short"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("users")
+        .select("id, full_name");
+      if (error) throw error;
+      return toCamel(data);
+    },
+  });
+
   const { data: prescriptions } = useQuery({
-    queryKey: ["sheet-rx", selectedConsultation?.patientId],
+    queryKey: ["dialog-rx", selectedConsultation?.patientId],
     queryFn: async () => {
       if (!selectedConsultation?.patientId) return [];
       const { data, error } = await supabase
@@ -64,7 +75,7 @@ const ConsultationList = () => {
   });
 
   const { data: labRequests } = useQuery({
-    queryKey: ["sheet-labs", selectedConsultation?.patientId],
+    queryKey: ["dialog-labs", selectedConsultation?.patientId],
     queryFn: async () => {
       if (!selectedConsultation?.patientId) return [];
       const { data, error } = await supabase
@@ -79,7 +90,7 @@ const ConsultationList = () => {
   });
 
   const { data: radiologyRequests } = useQuery({
-    queryKey: ["sheet-radiology", selectedConsultation?.patientId],
+    queryKey: ["dialog-radiology", selectedConsultation?.patientId],
     queryFn: async () => {
       if (!selectedConsultation?.patientId) return [];
       const { data, error } = await supabase
@@ -98,13 +109,19 @@ const ConsultationList = () => {
     return new Map(patients.map((p: any) => [p.id, p]));
   }, [patients]);
 
+  const doctorMap = useMemo(() => {
+    if (!Array.isArray(users)) return new Map();
+    return new Map(users.map((u: any) => [u.id, u]));
+  }, [users]);
+
   const enrichedConsultations = useMemo(() => {
     if (!Array.isArray(consultations)) return [];
     return consultations.map((c: any) => ({
       ...c,
       _patient: patientMap.get(c.patientId || c.patient_id) || null,
+      _doctor: doctorMap.get(c.doctorId) || null,
     }));
-  }, [consultations, patientMap]);
+  }, [consultations, patientMap, doctorMap]);
 
   const sorted = useMemo(() => {
     const order: Record<string, number> = { VitalsRecorded: 0, InProgress: 1, Completed: 2 };
@@ -140,7 +157,7 @@ const ConsultationList = () => {
 
   const handleOpenDetails = useCallback((c: any) => {
     setSelectedConsultation(c);
-    setSheetOpen(true);
+    setDialogOpen(true);
   }, []);
 
   const sheetRx = useMemo(() => {
@@ -236,16 +253,14 @@ const ConsultationList = () => {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1">
-                          {c.status === "Completed" && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 text-xs font-semibold text-slate-500 hover:text-slate-700"
-                              onClick={() => handleOpenDetails(c)}
-                            >
-                              <Eye className="w-3.5 h-3.5 mr-1" /> Details
-                            </Button>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-xs font-semibold text-slate-500 hover:text-slate-700"
+                            onClick={() => handleOpenDetails(c)}
+                          >
+                            <Eye className="w-3.5 h-3.5 mr-1" /> Details
+                          </Button>
                           {c.status === "VitalsRecorded" && (
                             <Button
                               variant="ghost"
@@ -280,24 +295,22 @@ const ConsultationList = () => {
         </div>
       )}
 
-      {/* Detail Sheet */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-          <SheetHeader className="px-4">
-            <SheetTitle>Consultation Details</SheetTitle>
-          </SheetHeader>
+      {/* Detail Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Consultation Details</DialogTitle>
+          </DialogHeader>
           {selectedConsultation && (
-            <div className="px-4 pb-8">
-              <ConsultationDetailCard
-                consultation={selectedConsultation}
-                prescriptions={sheetRx}
-                labRequests={sheetLabs}
-                radiologyRequests={sheetRad}
-              />
-            </div>
+            <ConsultationDetailCard
+              consultation={selectedConsultation}
+              prescriptions={sheetRx}
+              labRequests={sheetLabs}
+              radiologyRequests={sheetRad}
+            />
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
