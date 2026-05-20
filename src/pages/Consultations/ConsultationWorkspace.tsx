@@ -55,6 +55,9 @@ const ConsultationWorkspace = () => {
   const consultationIdRef = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [savedPrescriptions, setSavedPrescriptions] = useState<any[]>([]);
+  const [savedLabs, setSavedLabs] = useState<any[]>([]);
+  const [savedRadiology, setSavedRadiology] = useState<any[]>([]);
 
   const form = useForm({
     resolver: zodResolver(consultationSchema),
@@ -281,13 +284,13 @@ const ConsultationWorkspace = () => {
   const savePrescriptions = useMutation({
     mutationFn: async () => {
       const items = watchPrescriptions || [];
-      if (items.length === 0) return;
+      if (items.length === 0) return null;
       const pId = selectedPatient?.id;
       if (!pId) throw new Error("No patient selected");
       const cId = await ensureConsultation(pId);
       const { data: prescription, error: rxError } = await supabase.from("prescriptions").insert({
         patient_id: pId, doctor_id: user?.id, consultation_id: cId, status: "Pending",
-      }).select("id").single();
+      }).select("*, items:prescription_items(*, medication:medications(name, strength))").single();
       if (rxError) throw rxError;
       const itemRows = items.map((p: any) => ({
         prescription_id: prescription.id, medication_id: p.medicationId,
@@ -309,10 +312,13 @@ const ConsultationWorkspace = () => {
       if (invError) throw invError;
       const { error: statusError } = await supabase.from("prescriptions").update({ status: "Unpaid" }).eq("id", prescription.id);
       if (statusError) throw statusError;
+      const { data: fullRx } = await supabase.from("prescriptions").select("*, items:prescription_items(*, medication:medications(name, strength))").eq("id", prescription.id).single();
+      return toCamel(fullRx);
     },
-    onSuccess: () => {
+    onSuccess: (savedRx) => {
       setSuccess("Prescriptions saved");
       replacePrescriptions([]);
+      if (savedRx) setSavedPrescriptions((prev) => [...prev, savedRx]);
       queryClient.refetchQueries({ queryKey: ["consultations"] });
       if (selectedPatient?.id) {
         queryClient.invalidateQueries({ queryKey: ["patient-rx", selectedPatient.id] });
