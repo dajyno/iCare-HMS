@@ -33,11 +33,12 @@ export default function NewAppointmentModal({
   const [endTime, setEndTime] = useState("");
   const [reason, setReason] = useState(APPOINTMENT_REASONS[0]);
   const [error, setError] = useState("");
+  const [selectedDate, setSelectedDate] = useState(
+    prefillTime ? prefillTime.split("T")[0] : new Date().toISOString().split("T")[0]
+  );
   const searchTimeout = useRef<any>(null);
 
   const { data: patientResults, isLoading: searchingPatients } = usePatients(patientQuery);
-
-  const dateStr = prefillTime ? prefillTime.split("T")[0] : new Date().toISOString().split("T")[0];
 
   const handleClose = useCallback(() => {
     setPatientQuery("");
@@ -218,9 +219,20 @@ export default function NewAppointmentModal({
               </label>
               <input
                 type="date"
-                value={dateStr}
-                disabled
-                className="w-full h-10 text-sm rounded-xl border border-slate-200 bg-slate-50 px-3 outline-none text-slate-500"
+                value={selectedDate}
+                onChange={(e) => {
+                  const nd = e.target.value;
+                  setSelectedDate(nd);
+                  if (startTime) {
+                    const tp = startTime.split("T")[1];
+                    setStartTime(`${nd}T${tp}`);
+                  }
+                  if (endTime) {
+                    const tp = endTime.split("T")[1];
+                    setEndTime(`${nd}T${tp}`);
+                  }
+                }}
+                className="w-full h-10 text-sm rounded-xl border border-slate-200 bg-white px-3 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
               />
             </div>
             <div>
@@ -235,7 +247,7 @@ export default function NewAppointmentModal({
                   onChange={(e) => {
                     const t = e.target.value;
                     if (t) {
-                      const iso = `${dateStr}T${t}:00`;
+                      const iso = `${selectedDate}T${t}:00`;
                       handleStartTimeChange(iso);
                     }
                   }}
@@ -256,10 +268,10 @@ export default function NewAppointmentModal({
                 type="time"
                 value={endTime ? endTime.split("T")[1]?.slice(0, 5) || "" : ""}
                 onChange={(e) => {
-                  const t = e.target.value;
-                  if (t) {
-                    setEndTime(`${dateStr}T${t}:00`);
-                  }
+                    const t = e.target.value;
+                    if (t) {
+                      setEndTime(`${selectedDate}T${t}:00`);
+                    }
                 }}
                 className="w-full pl-9 pr-3 h-10 text-sm rounded-xl border border-slate-200 bg-white outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
               />

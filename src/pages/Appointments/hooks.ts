@@ -21,12 +21,13 @@ export function useAppointments(date: Date) {
       try {
         const { data, error } = await supabase
           .from("appointments")
-          .select("*, patient:patients(*), doctor:users(*)")
+          .select("*, patient:patients(*)")
           .gte("start_time", dayStart.toISOString())
           .lte("start_time", dayEnd.toISOString())
           .order("start_time", { ascending: true });
         if (error) throw error;
-        return toCamel(data) as Appointment[];
+        if (data && data.length > 0) return toCamel(data) as Appointment[];
+        throw new Error("No appointments found");
       } catch {
         const mock: Appointment[] = [
           {
