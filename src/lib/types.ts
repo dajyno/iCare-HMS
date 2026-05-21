@@ -47,17 +47,21 @@ export interface Patient {
   is_primary?: boolean;
 }
 
+export type AppointmentStatus = "Unconfirmed" | "Confirmed" | "Waiting" | "Ongoing" | "Completed" | "Conflict" | "Unavailable" | "Cancelled";
+
 export interface Appointment {
   id: string;
-  patient_id: string;
-  doctor_id: string;
-  date: string;
-  time: string;
+  patientId: string;
+  doctorId: string;
+  startTime: string;
+  endTime: string;
   reason?: string | null;
-  status: "Scheduled" | "CheckedIn" | "Waiting" | "InConsultation" | "Completed" | "Cancelled" | "NoShow";
+  status: AppointmentStatus;
+  invoiceAmount?: number | null;
+  invoiceId?: string | null;
   notes?: string | null;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
   patient?: Patient;
   doctor?: User;
 }

@@ -95,18 +95,20 @@ model Patient {
 }
 
 model Appointment {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   patientId    String
-  patient      Patient  @relation(fields: [patientId], references: [id])
+  patient      Patient   @relation(fields: [patientId], references: [id])
   doctorId     String
-  doctor       User     @relation("DoctorAppointments", fields: [doctorId], references: [id])
-  date         DateTime
-  time         String
+  doctor       User      @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  startTime    DateTime
+  endTime      DateTime
   reason       String?
-  status       String   @default("Scheduled") // Scheduled, CheckedIn, Waiting, InConsultation, Completed, Cancelled, NoShow
+  status       String    @default("Unconfirmed") // Unconfirmed, Confirmed, Waiting, Ongoing, Completed, Conflict, Unavailable, Cancelled
+  invoiceAmount Float?
+  invoiceId    String?
   notes        String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
   consultation Consultation?
 }
 

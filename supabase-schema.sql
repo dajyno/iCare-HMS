@@ -107,16 +107,18 @@ create table public.patients (
 
 -- 5. Appointments
 create table public.appointments (
-  id         uuid primary key default gen_random_uuid(),
-  patient_id uuid not null references public.patients(id) on delete cascade,
-  doctor_id  uuid not null,
-  date       date not null,
-  time       text not null,
-  reason     text,
-  status     text not null default 'Scheduled' check (status in ('Scheduled','CheckedIn','Waiting','InConsultation','Completed','Cancelled','NoShow')),
-  notes      text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  id             uuid primary key default gen_random_uuid(),
+  patient_id     uuid not null references public.patients(id) on delete cascade,
+  doctor_id      uuid not null,
+  start_time     timestamptz not null,
+  end_time       timestamptz not null,
+  reason         text,
+  status         text not null default 'Unconfirmed' check (status in ('Unconfirmed','Confirmed','Waiting','Ongoing','Completed','Conflict','Unavailable','Cancelled')),
+  invoice_amount double precision,
+  invoice_id     uuid,
+  notes          text,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
 );
 
 -- 6. Consultations
@@ -1047,4 +1049,30 @@ $$;
 -- MIGRATION: Add paid_at column to invoices (safe to re-run)
 -- ============================================================
 alter table public.invoices add column if not exists paid_at timestamptz;
+
+-- ============================================================
+-- MIGRATION: Appointments start_time/end_time columns (safe to re-run)
+-- ============================================================
+alter table public.appointments add column if not exists start_time timestamptz;
+alter table public.appointments add column if not exists end_time timestamptz;
+
+-- Backfill: derive from existing date + time (30-min default duration)
+update public.appointments
+set start_time = (date + time::time)::timestamptz,
+    end_time = (date + time::time)::timestamptz + interval '30 minutes'
+where start_time is null and date is not null and time is not null;
+
+alter table public.appointments add column if not exists invoice_amount double precision;
+alter table public.appointments add column if not exists invoice_id uuid;
+
+-- Update status check constraint
+alter table public.appointments drop constraint if exists appointments_status_check;
+alter table public.appointments add constraint appointments_status_check
+  check (status in ('Unconfirmed','Confirmed','Waiting','Ongoing','Completed','Conflict','Unavailable','Cancelled'));
+
+-- Backfill old statuses to new ones
+update public.appointments set status = 'Confirmed' where status = 'Scheduled';
+update public.appointments set status = 'Waiting' where status = 'CheckedIn';
+update public.appointments set status = 'Ongoing' where status = 'InConsultation';
+update public.appointments set status = 'Cancelled' where status = 'NoShow';
 
