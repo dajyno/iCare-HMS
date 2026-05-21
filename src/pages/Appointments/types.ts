@@ -43,7 +43,7 @@ export const APPOINTMENT_REASONS = [
 
 export const TIME_SLOT_MINUTES = 30;
 export const GRID_START_HOUR = 8;
-export const GRID_END_HOUR = 17;
+export const GRID_END_HOUR = 20;
 
 export function getSlotIndex(time: string): number {
   const d = new Date(time);

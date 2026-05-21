@@ -66,7 +66,12 @@ export default function NewAppointmentModal({
     if (value) {
       const d = new Date(value);
       d.setMinutes(d.getMinutes() + 30);
-      setEndTime(d.toISOString().slice(0, 16));
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const h = String(d.getHours()).padStart(2, "0");
+      const min = String(d.getMinutes()).padStart(2, "0");
+      setEndTime(`${y}-${m}-${day}T${h}:${min}`);
     }
   };
 
