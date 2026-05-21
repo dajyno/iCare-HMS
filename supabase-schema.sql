@@ -1065,14 +1065,14 @@ where start_time is null and date is not null and time is not null;
 alter table public.appointments add column if not exists invoice_amount double precision;
 alter table public.appointments add column if not exists invoice_id uuid;
 
--- Update status check constraint
-alter table public.appointments drop constraint if exists appointments_status_check;
-alter table public.appointments add constraint appointments_status_check
-  check (status in ('Unconfirmed','Confirmed','Waiting','Ongoing','Completed','Conflict','Unavailable','Cancelled'));
-
--- Backfill old statuses to new ones
+-- Backfill old statuses to new ones (must happen BEFORE new constraint)
 update public.appointments set status = 'Confirmed' where status = 'Scheduled';
 update public.appointments set status = 'Waiting' where status = 'CheckedIn';
 update public.appointments set status = 'Ongoing' where status = 'InConsultation';
 update public.appointments set status = 'Cancelled' where status = 'NoShow';
+
+-- Update status check constraint
+alter table public.appointments drop constraint if exists appointments_status_check;
+alter table public.appointments add constraint appointments_status_check
+  check (status in ('Unconfirmed','Confirmed','Waiting','Ongoing','Completed','Conflict','Unavailable','Cancelled'));
 
