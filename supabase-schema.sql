@@ -1071,8 +1071,21 @@ update public.appointments set status = 'Waiting' where status = 'CheckedIn';
 update public.appointments set status = 'Ongoing' where status = 'InConsultation';
 update public.appointments set status = 'Cancelled' where status = 'NoShow';
 
--- Update status check constraint
-alter table public.appointments drop constraint if exists appointments_status_check;
+-- Drop all existing check constraints on appointments.status
+do $$
+declare
+  rec record;
+begin
+  for rec in
+    select conname from pg_constraint
+    where conrelid = 'public.appointments'::regclass
+      and contype = 'c'
+      and pg_get_constraintdef(oid) like '%status%'
+  loop
+    execute format('alter table public.appointments drop constraint %I', rec.conname);
+  end loop;
+end $$;
+
 alter table public.appointments add constraint appointments_status_check
   check (status in ('Unconfirmed','Confirmed','Waiting','Ongoing','Completed','Conflict','Unavailable','Cancelled'));
 
