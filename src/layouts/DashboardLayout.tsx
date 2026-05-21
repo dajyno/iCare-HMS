@@ -167,7 +167,11 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       { label: "Reports", href: "/accounting/reports" },
     ]},
     { icon: UserPlus, label: "Staff", href: "/staff" },
-    { icon: BarChart3, label: "Reports", href: "/reports" },
+    { icon: BarChart3, label: "Reports", children: [
+      { label: "Analytics Hub", href: "/reports" },
+      { label: "Clinical", href: "/reports/clinical" },
+      { label: "Staff", href: "/reports/staff" },
+    ]},
     { icon: Settings, label: "System Settings", href: "/settings" },
   ];
 

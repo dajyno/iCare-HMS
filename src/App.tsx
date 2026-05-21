@@ -31,8 +31,9 @@ import StaffList from "./pages/Staff/StaffList";
 import StaffProfile from "./pages/Staff/StaffProfile";
 import { StaffProvider } from "./pages/Staff/StaffContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-const ReportsOverview = () => <div className="p-6">Reports Overview Placeholder</div>;
+import ReportsHub from "./pages/Reports/ReportsHub";
+import ClinicalReports from "./pages/Reports/ClinicalReports";
+import StaffReports from "./pages/Reports/StaffReports";
 const IndividualPatients = () => <PatientList defaultCategory="Individual" />;
 const CorporatePatients = () => <PatientList defaultCategory="Corporate" />;
 const HmoPatients = () => <PatientList defaultCategory="HMO" />;
@@ -287,7 +288,23 @@ export default function App() {
               path="/reports"
               element={
                 <ProtectedRoute>
-                  <ReportsOverview />
+                  <ReportsHub />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/clinical"
+              element={
+                <ProtectedRoute>
+                  <ClinicalReports />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/staff"
+              element={
+                <ProtectedRoute>
+                  <StaffReports />
                 </ProtectedRoute>
               }
             />
