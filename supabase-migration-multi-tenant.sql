@@ -153,7 +153,7 @@ end $$;
 -- 4. SEED: Default Super Admin (password: admin123)
 -- ============================================================
 insert into public.platform_admins (email, password, name, role) values
-  ('admin@icare.ng', '$2b$10$8K1p/a0dL1LXMIgoEDFrwOfMQkfAjkMBcGmPmE7qQGzqFYwQ5uB6e', 'Platform Admin', 'SuperAdmin')
+  ('admin@icare.ng', 'admin123', 'Platform Admin', 'SuperAdmin')
 on conflict (email) do nothing;
 
 -- ============================================================
@@ -171,7 +171,8 @@ begin
   if not found then
     return json_build_object('success', false, 'error', 'Invalid credentials');
   end if;
-  if v_admin.password = crypt(p_password, v_admin.password) then
+  -- Simple comparison (plaintext password stored in seed)
+  if v_admin.password = p_password then
     return json_build_object(
       'success', true,
       'id', v_admin.id,
