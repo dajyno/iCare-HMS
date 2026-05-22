@@ -26,6 +26,7 @@ const consultationSchema = z.object({
   diagnosis: z.string().optional(),
   clinicalNotes: z.string().optional(),
   treatmentPlan: z.string().optional(),
+  followUpDoctorId: z.string().optional(),
   followUpDate: z.string().optional(),
   followUpTime: z.string().optional(),
   prescriptions: z.array(z.object({
@@ -92,6 +93,19 @@ const ConsultationWorkspace = () => {
       const { data, error } = await supabase.from("medications").select("*").order("name", { ascending: true });
       if (error) throw error;
       return toCamel(data);
+    },
+  });
+
+  const { data: doctors } = useQuery({
+    queryKey: ["doctors"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("users")
+        .select("id, full_name")
+        .eq("role", "Doctor")
+        .eq("status", "active");
+      if (error) throw error;
+      return toCamel(data || []).map((d: any) => ({ id: d.id, name: d.fullName }));
     },
   });
 
@@ -536,11 +550,15 @@ const ConsultationWorkspace = () => {
       }
 
       if (formData.followUpDate && formData.followUpTime) {
+        const startTime = new Date(`${formData.followUpDate}T${formData.followUpTime}`);
+        const endTime = new Date(startTime.getTime() + 30 * 60 * 1000);
         await supabase.from("appointments").insert({
-          patient_id: pId, doctor_id: user?.id,
-          date: formData.followUpDate, time: formData.followUpTime,
-          reason: `Follow-up: ${formData.chiefComplaint}`,
-          status: "Scheduled",
+          patient_id: pId,
+          doctor_id: formData.followUpDoctorId || user?.id,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
+          reason: `Follow-up: ${formData.chiefComplaint || "Consultation"}`,
+          status: "Confirmed",
         });
       }
     },
@@ -553,6 +571,7 @@ const ConsultationWorkspace = () => {
       }
       queryClient.invalidateQueries({ queryKey: ["patient-labs"] });
       queryClient.invalidateQueries({ queryKey: ["radiology-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
       reset();
       setConsultationId(null);
       consultationIdRef.current = null;
@@ -710,14 +729,26 @@ const ConsultationWorkspace = () => {
                       {saveClinicalNotes.isPending ? "Saving..." : <><Save className="w-3 h-3 mr-1" /> Save Clinical Notes</>}
                     </Button>
                   </div>
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="followUpDate">Follow-up Date</Label>
-                      <Input id="followUpDate" type="date" {...register("followUpDate")} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="followUpTime">Follow-up Time</Label>
-                      <Input id="followUpTime" type="time" {...register("followUpTime")} />
+                  <div className="border-t pt-6">
+                    <h3 className="text-base font-semibold text-slate-800 mb-4">Follow-up Appointment</h3>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="followUpDoctor">Doctor</Label>
+                        <select id="followUpDoctor" {...register("followUpDoctorId")} className="w-full h-10 px-3 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                          <option value="">Select doctor...</option>
+                          {(doctors || []).map((doc: any) => (
+                            <option key={doc.id} value={doc.id}>{doc.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="followUpDate">Date</Label>
+                        <Input id="followUpDate" type="date" {...register("followUpDate")} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="followUpTime">Time</Label>
+                        <Input id="followUpTime" type="time" {...register("followUpTime")} />
+                      </div>
                     </div>
                   </div>
                 </CardContent>
