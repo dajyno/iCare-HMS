@@ -33,7 +33,7 @@ import type { StaffRecord } from "@/src/pages/Staff/types";
 type ActiveTab = "general" | "financial" | "security" | "notifications" | "regional" | "database";
 
 const ROLES_ORDER: RoleKey[] = [
-  "SuperAdmin", "HospitalAdmin", "Doctor", "Nurse", "Receptionist",
+  "HospitalAdmin", "Doctor", "Nurse", "Receptionist",
   "LabTechnician", "Pharmacist", "BillingOfficer", "InventoryOfficer",
 ];
 
@@ -496,11 +496,11 @@ export default function Settings() {
                 <CardTitle>Role-Based Access Control (RBAC) Matrix</CardTitle>
                 <CardDescription>Map roles to permitted application routes and permissions</CardDescription>
               </CardHeader>
-              <CardContent className="overflow-x-auto">
+              <CardContent className="overflow-x-auto px-0">
                 <table className="w-full text-sm border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200">
-                      <th className="sticky left-0 z-10 text-left py-2.5 pr-4 font-semibold text-slate-700 min-w-[130px] bg-white">Role</th>
+                      <th className="sticky left-0 z-10 text-left py-2.5 pl-4 pr-4 font-semibold text-slate-700 min-w-[130px] bg-white">Role</th>
                       {ROUTE_GROUPS.map((g) => (
                         <th key={g.prefix} className="text-center py-2.5 px-1.5 font-medium text-slate-500 text-xs uppercase tracking-wider">{g.label}</th>
                       ))}
@@ -514,7 +514,7 @@ export default function Settings() {
                       const perm = settings.rbacMatrix[role];
                       return (
                         <tr key={role} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                          <td className="sticky left-0 z-10 py-2.5 pr-4 font-medium text-slate-800 bg-white">{role}</td>
+                          <td className="sticky left-0 z-10 py-2.5 pl-4 pr-4 font-medium text-slate-800 bg-white">{role}</td>
                           {ROUTE_GROUPS.map((g) => {
                             const has = perm.allowedRoutes.some((r) => routeMatchesGroup(r, g.prefix));
                             return (
