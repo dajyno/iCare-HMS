@@ -39,20 +39,42 @@ export function useDoctors() {
   return useQuery<DoctorSlot[]>({
     queryKey: ["doctors-grid"],
     queryFn: async () => {
-      const { data, error } = await adminSupabase
-        .from("users")
-        .select("id, full_name")
-        .eq("role", "Doctor")
-        .eq("status", "active");
-      if (error) {
-        console.error("Failed to fetch doctors:", error);
-        return [];
+      const [usersResult, staffResult] = await Promise.allSettled([
+        adminSupabase
+          .from("users")
+          .select("id, full_name")
+          .eq("role", "Doctor")
+          .eq("status", "active"),
+        (supabase as any)
+          .from("staff")
+          .select("staff_id, name, auth_user_id")
+          .eq("is_clinician", true)
+          .neq("availability_status", "On Leave"),
+      ]);
+
+      const doctorMap = new Map<string, string>();
+
+      if (usersResult.status === "fulfilled" && usersResult.value.data) {
+        const doctors = toCamel(usersResult.value.data) as { id: string; fullName: string }[];
+        for (const d of doctors) {
+          doctorMap.set(d.id, d.fullName);
+        }
       }
-      if (!data || data.length === 0) return [];
-      const results = toCamel(data) as { id: string; fullName: string }[];
-      return results.map((d) => ({ id: d.id, name: d.fullName }));
+
+      if (staffResult.status === "fulfilled" && staffResult.value.data) {
+        const staff = toCamel(staffResult.value.data) as { staffId: string; name: string; authUserId: string | null }[];
+        for (const s of staff) {
+          const id = s.authUserId || s.staffId;
+          if (!doctorMap.has(id)) {
+            doctorMap.set(id, s.name);
+          }
+        }
+      }
+
+      return Array.from(doctorMap.entries()).map(([id, name]) => ({ id, name }));
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 30,
+    refetchOnWindowFocus: true,
   });
 }
 
