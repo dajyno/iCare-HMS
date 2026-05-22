@@ -200,6 +200,7 @@ const AppointmentList = () => {
             prefillDoctor={prefillSlot?.doctor}
             prefillTime={prefillSlot?.time}
             doctors={doctors}
+            appointments={appointments}
           />
         )}
       </AnimatePresence>
@@ -211,6 +212,7 @@ const AppointmentList = () => {
             onClose={handleCloseEdit}
             appointment={editingAppointment}
             doctors={doctors}
+            appointments={appointments}
           />
         )}
       </AnimatePresence>

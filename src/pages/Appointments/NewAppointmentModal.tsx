@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback } from "react";
 import { motion } from "motion/react";
-import { Search, X, User, Loader2, ChevronRight, Clock } from "lucide-react";
-import { usePatients, useCreateAppointment, type DoctorSlot } from "./hooks";
+import { Search, X, User, Loader2, ChevronRight, Clock, AlertTriangle } from "lucide-react";
+import { usePatients, useCreateAppointment, findConflicts, type DoctorSlot } from "./hooks";
 import { APPOINTMENT_REASONS } from "./types";
+import type { Appointment } from "@/src/lib/types";
 
 interface NewAppointmentModalProps {
   open: boolean;
@@ -10,6 +11,7 @@ interface NewAppointmentModalProps {
   prefillDoctor?: DoctorSlot;
   prefillTime?: string;
   doctors: DoctorSlot[];
+  appointments: Appointment[];
 }
 
 export default function NewAppointmentModal({
@@ -18,6 +20,7 @@ export default function NewAppointmentModal({
   prefillDoctor,
   prefillTime,
   doctors,
+  appointments,
 }: NewAppointmentModalProps) {
   const createAppt = useCreateAppointment();
   const [patientQuery, setPatientQuery] = useState("");
@@ -33,6 +36,7 @@ export default function NewAppointmentModal({
   const [endTime, setEndTime] = useState("");
   const [reason, setReason] = useState(APPOINTMENT_REASONS[0]);
   const [error, setError] = useState("");
+  const [conflicts, setConflicts] = useState<Appointment[]>([]);
   const [selectedDate, setSelectedDate] = useState(
     prefillTime ? prefillTime.split("T")[0] : new Date().toISOString().split("T")[0]
   );
@@ -45,6 +49,7 @@ export default function NewAppointmentModal({
     setShowResults(false);
     setSelectedPatient(null);
     setError("");
+    setConflicts([]);
     onClose();
   }, [onClose]);
 
@@ -63,6 +68,7 @@ export default function NewAppointmentModal({
 
   const handleStartTimeChange = (value: string) => {
     setStartTime(value);
+    setConflicts([]);
     if (value) {
       const d = new Date(value);
       d.setMinutes(d.getMinutes() + 30);
@@ -90,6 +96,31 @@ export default function NewAppointmentModal({
     }
     setError("");
 
+    const existing = findConflicts(appointments, selectedDoctorId, startTime, endTime);
+    if (existing.length > 0) {
+      setConflicts(existing);
+      return;
+    }
+
+    createAppt.mutate(
+      {
+        patientId: selectedPatient.id,
+        doctorId: selectedDoctorId,
+        startTime: new Date(startTime).toISOString(),
+        endTime: new Date(endTime).toISOString(),
+        reason,
+        status: "Unconfirmed",
+      },
+      {
+        onSuccess: () => handleClose(),
+        onError: (err: any) => setError(err.message || "Failed to create appointment"),
+      }
+    );
+  };
+
+  const handleForceSubmit = () => {
+    if (!selectedPatient || !selectedDoctorId || !startTime || !endTime) return;
+    setConflicts([]);
     createAppt.mutate(
       {
         patientId: selectedPatient.id,
@@ -204,7 +235,10 @@ export default function NewAppointmentModal({
             </label>
             <select
               value={selectedDoctorId}
-              onChange={(e) => setSelectedDoctorId(e.target.value)}
+              onChange={(e) => {
+                setSelectedDoctorId(e.target.value);
+                setConflicts([]);
+              }}
               className="w-full h-10 text-sm rounded-xl border border-slate-200 bg-white px-3 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
             >
               <option value="">Select consultant...</option>
@@ -228,6 +262,7 @@ export default function NewAppointmentModal({
                 onChange={(e) => {
                   const nd = e.target.value;
                   setSelectedDate(nd);
+                  setConflicts([]);
                   if (startTime) {
                     const tp = startTime.split("T")[1];
                     setStartTime(`${nd}T${tp}`);
@@ -276,6 +311,7 @@ export default function NewAppointmentModal({
                     const t = e.target.value;
                     if (t) {
                       setEndTime(`${selectedDate}T${t}:00`);
+                      setConflicts([]);
                     }
                 }}
                 className="w-full pl-9 pr-3 h-10 text-sm rounded-xl border border-slate-200 bg-white outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
@@ -303,6 +339,44 @@ export default function NewAppointmentModal({
 
           {error && (
             <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2 text-center">{error}</p>
+          )}
+
+          {conflicts.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
+              <p className="text-xs font-bold text-amber-800 flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                Time conflict with {conflicts.length} existing appointment{conflicts.length > 1 ? "s" : ""}
+              </p>
+              <ul className="text-[11px] text-amber-700 space-y-1">
+                {conflicts.map((c) => {
+                  const name = c.patient
+                    ? `${c.patient.firstName} ${c.patient.lastName}`
+                    : "Unknown";
+                  const t = `${new Date(c.startTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })} — ${new Date(c.endTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
+                  return (
+                    <li key={c.id} className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                      {name} ({t})
+                    </li>
+                  );
+                })}
+              </ul>
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  onClick={handleForceSubmit}
+                  disabled={createAppt.isPending}
+                  className="px-3 py-1.5 text-xs font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors"
+                >
+                  Book Anyway
+                </button>
+                <button
+                  onClick={() => setConflicts([])}
+                  className="px-3 py-1.5 text-xs text-amber-600 hover:text-amber-800 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           )}
         </div>
 

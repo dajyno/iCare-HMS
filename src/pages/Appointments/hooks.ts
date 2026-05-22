@@ -246,3 +246,17 @@ export function detectConflicts(appointments: Appointment[]): Set<string> {
   }
   return conflicts;
 }
+
+export function findConflicts(
+  existingAppointments: Appointment[],
+  doctorId: string,
+  startTime: string,
+  endTime: string,
+  excludeId?: string
+): Appointment[] {
+  return existingAppointments.filter((apt) => {
+    if (excludeId && apt.id === excludeId) return false;
+    if (apt.doctorId !== doctorId) return false;
+    return new Date(apt.startTime) < new Date(endTime) && new Date(apt.endTime) > new Date(startTime);
+  });
+}

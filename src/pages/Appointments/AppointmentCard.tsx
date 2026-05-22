@@ -41,9 +41,10 @@ export default function AppointmentCard({ appointment, isConflict, onClick, onDr
         onClick();
       }}
       className={`
-        absolute inset-x-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-medium
+        absolute inset-0.5 rounded-md px-1.5 text-[10px] font-medium
         border-l-4 truncate select-none shadow-sm
         transition-shadow hover:shadow-md cursor-grab active:cursor-grabbing
+        flex flex-col justify-center
         ${statusClass}
         ${isUnavailable ? "bg-striped bg-slate-100 cursor-not-allowed" : ""}
         ${isConflict ? "animate-pulse ring-2 ring-red-400" : ""}

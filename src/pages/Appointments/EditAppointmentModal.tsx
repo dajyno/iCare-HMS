@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { X, Loader2, Clock, AlertTriangle, DollarSign } from "lucide-react";
 import type { Appointment, AppointmentStatus } from "@/src/lib/types";
 import type { DoctorSlot } from "./hooks";
-import { useUpdateAppointment, useDeleteAppointment, useCreateInvoice } from "./hooks";
+import { useUpdateAppointment, useDeleteAppointment, useCreateInvoice, findConflicts } from "./hooks";
 import { STATUS_COLORS, STATUS_LABELS, STATUS_TRANSITIONS, APPOINTMENT_REASONS } from "./types";
 
 interface EditAppointmentModalProps {
@@ -11,6 +11,7 @@ interface EditAppointmentModalProps {
   onClose: () => void;
   appointment: Appointment | null;
   doctors: DoctorSlot[];
+  appointments: Appointment[];
 }
 
 export default function EditAppointmentModal({
@@ -18,6 +19,7 @@ export default function EditAppointmentModal({
   onClose,
   appointment,
   doctors,
+  appointments,
 }: EditAppointmentModalProps) {
   const updateAppt = useUpdateAppointment();
   const deleteAppt = useDeleteAppointment();
@@ -31,6 +33,7 @@ export default function EditAppointmentModal({
   const [invoiceAmount, setInvoiceAmount] = useState(appointment?.invoiceAmount ? String(appointment.invoiceAmount) : "");
   const [notes, setNotes] = useState(appointment?.notes || "");
   const [error, setError] = useState("");
+  const [conflicts, setConflicts] = useState<Appointment[]>([]);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
   const dateStr = startTime ? startTime.split("T")[0] : new Date().toISOString().split("T")[0];
@@ -38,6 +41,7 @@ export default function EditAppointmentModal({
   const handleClose = useCallback(() => {
     setError("");
     setShowConfirmDelete(false);
+    setConflicts([]);
     onClose();
   }, [onClose]);
 
@@ -55,6 +59,22 @@ export default function EditAppointmentModal({
     if (!appointment) return;
     setError("");
 
+    const existing = findConflicts(appointments, doctorId, startTime, endTime, appointment.id);
+    if (existing.length > 0) {
+      setConflicts(existing);
+      return;
+    }
+
+    doSave();
+  };
+
+  const handleForceSave = () => {
+    setConflicts([]);
+    doSave();
+  };
+
+  const doSave = () => {
+    if (!appointment) return;
     updateAppt.mutate(
       {
         id: appointment.id,
@@ -153,7 +173,10 @@ export default function EditAppointmentModal({
             </label>
             <select
               value={doctorId}
-              onChange={(e) => setDoctorId(e.target.value)}
+              onChange={(e) => {
+                setDoctorId(e.target.value);
+                setConflicts([]);
+              }}
               className="w-full h-10 text-sm rounded-xl border border-slate-200 bg-white px-3 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
             >
               {doctors.map((doc) => (
@@ -175,6 +198,7 @@ export default function EditAppointmentModal({
                 value={dateStr}
                 onChange={(e) => {
                   const d = e.target.value;
+                  setConflicts([]);
                   if (startTime) {
                     const timePart = startTime.split("T")[1];
                     setStartTime(`${d}T${timePart}`);
@@ -196,10 +220,13 @@ export default function EditAppointmentModal({
                 <input
                   type="time"
                   value={startTime ? startTime.split("T")[1]?.slice(0, 5) || "" : ""}
-                  onChange={(e) => {
-                    const t = e.target.value;
-                    if (t) setStartTime(`${dateStr}T${t}:00`);
-                  }}
+                    onChange={(e) => {
+                      const t = e.target.value;
+                      if (t) {
+                        setStartTime(`${dateStr}T${t}:00`);
+                        setConflicts([]);
+                      }
+                    }}
                   className="w-full pl-9 pr-3 h-10 text-sm rounded-xl border border-slate-200 bg-white outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
                 />
               </div>
@@ -216,10 +243,13 @@ export default function EditAppointmentModal({
               <input
                 type="time"
                 value={endTime ? endTime.split("T")[1]?.slice(0, 5) || "" : ""}
-                onChange={(e) => {
-                  const t = e.target.value;
-                  if (t) setEndTime(`${dateStr}T${t}:00`);
-                }}
+                    onChange={(e) => {
+                      const t = e.target.value;
+                      if (t) {
+                        setEndTime(`${dateStr}T${t}:00`);
+                        setConflicts([]);
+                      }
+                    }}
                 className="w-full pl-9 pr-3 h-10 text-sm rounded-xl border border-slate-200 bg-white outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
               />
             </div>
@@ -318,6 +348,44 @@ export default function EditAppointmentModal({
 
           {error && (
             <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2 text-center">{error}</p>
+          )}
+
+          {conflicts.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
+              <p className="text-xs font-bold text-amber-800 flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                Time conflict with {conflicts.length} existing appointment{conflicts.length > 1 ? "s" : ""}
+              </p>
+              <ul className="text-[11px] text-amber-700 space-y-1">
+                {conflicts.map((c) => {
+                  const name = c.patient
+                    ? `${c.patient.firstName} ${c.patient.lastName}`
+                    : "Unknown";
+                  const t = `${new Date(c.startTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })} — ${new Date(c.endTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
+                  return (
+                    <li key={c.id} className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                      {name} ({t})
+                    </li>
+                  );
+                })}
+              </ul>
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  onClick={handleForceSave}
+                  disabled={updateAppt.isPending}
+                  className="px-3 py-1.5 text-xs font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors"
+                >
+                  Save Anyway
+                </button>
+                <button
+                  onClick={() => setConflicts([])}
+                  className="px-3 py-1.5 text-xs text-amber-600 hover:text-amber-800 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           )}
         </div>
 
