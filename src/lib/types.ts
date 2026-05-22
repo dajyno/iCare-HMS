@@ -1,14 +1,15 @@
 export interface User {
   id: string;
-  full_name: string;
+  tenantId?: string | null;
+  fullName: string;
   email: string;
   phone?: string | null;
   role: "SuperAdmin" | "HospitalAdmin" | "Receptionist" | "Doctor" | "Nurse" | "LabTechnician" | "Pharmacist" | "BillingOfficer" | "InventoryOfficer";
-  department_id?: string | null;
+  departmentId?: string | null;
   status: "active" | "inactive" | "suspended";
-  last_login?: string | null;
-  created_at: string;
-  updated_at: string;
+  lastLogin?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Department {

@@ -1,12 +1,13 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { supabase, toCamel } from "../lib/supabase";
+import { adminSupabase } from "../lib/adminSupabase";
 import type { StaffRecord } from "../pages/Staff/types";
 import { getCustomAccounts } from "../lib/accountsStore";
 import type { User } from "../lib/types";
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, tenantId?: string) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
 }
@@ -26,28 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        fetchProfile(session.user.id, session.user);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        fetchProfile(session.user.id, session.user);
-      } else {
-        setUser(null);
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const fetchProfile = async (userId: string, authUser?: { email?: string; user_metadata?: { full_name?: string; role?: string } }) => {
+  const fetchProfile = useCallback(async (userId: string, authUser?: { email?: string; user_metadata?: { full_name?: string; role?: string } }) => {
     const { data, error } = await supabase
       .from("users")
       .select("*")
@@ -57,7 +37,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (data && !error) {
       setUser(toCamel(data) as unknown as User);
     } else if (authUser) {
-      // Profile row missing — try the staff table
       const { data: staffRow } = await (supabase.from("staff") as any)
         .select("name, position")
         .eq("auth_user_id", userId)
@@ -79,7 +58,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updated_at: new Date().toISOString(),
         });
       } else {
-        // Neither users nor staff table have a row — use auth metadata
         const role = (authUser.user_metadata?.role || "Doctor") as User["role"];
         setUser({
           id: userId,
@@ -93,15 +71,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
     setLoading(false);
-  };
+  }, []);
 
-  const login = async (email: string, password: string) => {
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        fetchProfile(session.user.id, session.user);
+      } else {
+        setLoading(false);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        fetchProfile(session.user.id, session.user);
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [fetchProfile]);
+
+  const login = async (email: string, password: string, tenantId?: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    const handlePostAuth = async (userId: string, authUser: any) => {
+      if (tenantId) {
+        const { data: profile } = await supabase
+          .from("users")
+          .select("tenant_id")
+          .eq("id", userId)
+          .maybeSingle();
+
+        if (profile && profile.tenant_id && profile.tenant_id !== tenantId) {
+          await supabase.auth.signOut();
+          throw new Error("Invalid credentials for this workspace");
+        }
+
+        if (profile && !profile.tenant_id) {
+          await adminSupabase
+            .from("users")
+            .update({ tenant_id: tenantId })
+            .eq("id", userId);
+        }
+      }
+
+      await fetchProfile(userId, authUser);
+    };
 
     if (error?.message?.includes("Invalid login credentials")) {
       let account = { ...DEFAULT_ACCOUNTS, ...getCustomAccounts() }[email.toLowerCase()];
 
-      // Fallback: look up in persisted staff records
       if (!account) {
         try {
           const staffRecords: StaffRecord[] = JSON.parse(
@@ -123,7 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             account = { name: match.name, role };
           }
         } catch {
-          // staff records missing or corrupted — ignore, fall through to error
+          // staff records missing or corrupted
         }
       }
 
@@ -146,9 +168,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         );
       }
 
-      // signUp returns a session when email confirmation is OFF
       if (signUpData?.session) {
-        await fetchProfile(signUpData.session.user.id, signUpData.session.user);
+        await handlePostAuth(signUpData.session.user.id, signUpData.session.user);
         return;
       }
 
@@ -157,7 +178,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { data } = await supabase.auth.getSession();
       if (data.session?.user) {
-        await fetchProfile(data.session.user.id, data.session.user);
+        await handlePostAuth(data.session.user.id, data.session.user);
       }
       return;
     } else if (error) {
@@ -166,7 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const { data } = await supabase.auth.getSession();
     if (data.session?.user) {
-      await fetchProfile(data.session.user.id, data.session.user);
+      await handlePostAuth(data.session.user.id, data.session.user);
     }
   };
 

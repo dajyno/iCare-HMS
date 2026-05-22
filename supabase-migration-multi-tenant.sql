@@ -155,3 +155,50 @@ end $$;
 insert into public.platform_admins (email, password, name, role) values
   ('admin@icare.ng', '$2b$10$8K1p/a0dL1LXMIgoEDFrwOfMQkfAjkMBcGmPmE7qQGzqFYwQ5uB6e', 'Platform Admin', 'SuperAdmin')
 on conflict (email) do nothing;
+
+-- ============================================================
+-- 5. ADMIN LOGIN RPC — authenticates platform admins
+-- ============================================================
+create or replace function public.admin_login(p_email text, p_password text)
+returns json
+language plpgsql
+security definer
+as $$
+declare
+  v_admin platform_admins;
+begin
+  select * into v_admin from platform_admins where email = p_email;
+  if not found then
+    return json_build_object('success', false, 'error', 'Invalid credentials');
+  end if;
+  -- Simple comparison (passwords should be bcrypt-hashed in production)
+  if v_admin.password = p_password then
+    return json_build_object(
+      'success', true,
+      'id', v_admin.id,
+      'email', v_admin.email,
+      'name', v_admin.name,
+      'role', v_admin.role
+    );
+  else
+    return json_build_object('success', false, 'error', 'Invalid credentials');
+  end if;
+end;
+$$;
+
+-- ============================================================
+-- 6. TENANTS PUBLIC READ — allows unauthenticated slug lookup
+-- ============================================================
+alter table public.tenants enable row level security;
+
+drop policy if exists "tenants_public_read" on public.tenants;
+create policy "tenants_public_read" on public.tenants
+  for select to anon, authenticated
+  using (true);
+
+-- ============================================================
+-- 7. SEED: Demo Tenant (for development)
+-- ============================================================
+insert into public.tenants (tenant_id, hospital_name, url_slug, status, tier, max_doctor_seats, max_bed_capacity) values
+  ('T-DEMO-01', 'iCare Demo Medical Center', 'demo', 'Active', 'Premium', 25, 100)
+on conflict (tenant_id) do nothing;

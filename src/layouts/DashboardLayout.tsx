@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useGlobalSettings } from "../context/GlobalSettingsContext";
 import { supabase } from "@/src/lib/supabase";
@@ -90,6 +90,8 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const { settings } = useGlobalSettings();
   const location = useLocation();
   const navigate = useNavigate();
+  const { hospital_slug } = useParams();
+  const p = (path: string) => hospital_slug ? `/${hospital_slug}${path}` : path;
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
@@ -140,42 +142,42 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   const navItems = useMemo(() => {
     const all: any[] = [
-      { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-      { icon: Calendar, label: "Appointments", href: "/appointments" },
+      { icon: LayoutDashboard, label: "Dashboard", href: p("/dashboard") },
+      { icon: Calendar, label: "Appointments", href: p("/appointments") },
       { icon: Users, label: "Patients", children: [
-        { label: "All Patients", href: "/patients" },
-        { label: "Individual", href: "/patients/individual" },
-        { label: "Family", href: "/patients/family" },
-        { label: "Corporate", href: "/patients/corporate" },
-        { label: "HMO", href: "/patients/hmo" },
+        { label: "All Patients", href: p("/patients") },
+        { label: "Individual", href: p("/patients/individual") },
+        { label: "Family", href: p("/patients/family") },
+        { label: "Corporate", href: p("/patients/corporate") },
+        { label: "HMO", href: p("/patients/hmo") },
       ]},
       { icon: ClipboardList, label: "Consultations", children: [
-        { label: "Vital Signs", href: "/consultations/vitals" },
-        { label: "Clinical Workspace", href: "/consultations" },
+        { label: "Vital Signs", href: p("/consultations/vitals") },
+        { label: "Clinical Workspace", href: p("/consultations") },
       ]},
-      { icon: FlaskConical, label: "Laboratory", href: "/laboratory" },
-      { icon: Scan, label: "Radiology", href: "/radiology" },
+      { icon: FlaskConical, label: "Laboratory", href: p("/laboratory") },
+      { icon: Scan, label: "Radiology", href: p("/radiology") },
       { icon: Pill, label: "Pharmacy", children: [
-        { label: "Prescription", href: "/pharmacy/prescriptions" },
-        { label: "Inventory", href: "/pharmacy/inventory" },
-        { label: "Analytics", href: "/pharmacy/analytics" },
+        { label: "Prescription", href: p("/pharmacy/prescriptions") },
+        { label: "Inventory", href: p("/pharmacy/inventory") },
+        { label: "Analytics", href: p("/pharmacy/analytics") },
       ]},
-      { icon: Bed, label: "Inpatient", href: "/inpatient" },
-      { icon: CreditCard, label: "Billing", href: "/billing" },
+      { icon: Bed, label: "Inpatient", href: p("/inpatient") },
+      { icon: CreditCard, label: "Billing", href: p("/billing") },
       { icon: Calculator, label: "Accounting", children: [
-        { label: "Hub", href: "/accounting" },
-        { label: "Registries", href: "/accounting/registries" },
-        { label: "General Ledger", href: "/accounting/ledger" },
-        { label: "Banks", href: "/accounting/banks" },
-        { label: "Reports", href: "/accounting/reports" },
+        { label: "Hub", href: p("/accounting") },
+        { label: "Registries", href: p("/accounting/registries") },
+        { label: "General Ledger", href: p("/accounting/ledger") },
+        { label: "Banks", href: p("/accounting/banks") },
+        { label: "Reports", href: p("/accounting/reports") },
       ]},
-      { icon: UserPlus, label: "Staff", href: "/staff" },
+      { icon: UserPlus, label: "Staff", href: p("/staff") },
       { icon: BarChart3, label: "Reports", children: [
-        { label: "Analytics Hub", href: "/reports" },
-        { label: "Clinical", href: "/reports/clinical" },
-        { label: "Staff", href: "/reports/staff" },
+        { label: "Analytics Hub", href: p("/reports") },
+        { label: "Clinical", href: p("/reports/clinical") },
+        { label: "Staff", href: p("/reports/staff") },
       ]},
-      { icon: Settings, label: "System Settings", href: "/settings" },
+      { icon: Settings, label: "System Settings", href: p("/settings") },
     ];
 
     if (!user?.role) return all;
@@ -189,8 +191,10 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     const overrides = settings.staffRouteOverrides?.[user.id] || [];
     const effectiveRoutes = [...baseRoutes, ...overrides];
 
-    const routeAllowed = (href: string) =>
-      effectiveRoutes.some((r: string) => href === r || href.startsWith(r + "/"));
+    const routeAllowed = (href: string) => {
+      const unprefixed = href.replace(/^\/[^\/]+/, "");
+      return effectiveRoutes.some((r: string) => unprefixed === r || unprefixed.startsWith(r + "/"));
+    };
 
     return all.filter((item: any) => {
       if (item.children) {
@@ -198,7 +202,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       }
       return routeAllowed(item.href);
     });
-  }, [user?.role, settings.rbacMatrix, settings.staffRouteOverrides]);
+  }, [user?.role, hospital_slug, settings.rbacMatrix, settings.staffRouteOverrides]);
 
   const [expandedGroup, setExpandedGroup] = useState<string | null>(() => {
     const activeGroup = navItems.find((item: any) =>
@@ -267,7 +271,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         </div>
 
                 <div className="p-4 border-t border-blue-100 bg-blue-50/20">
-          <Link to="/profile" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white hover:shadow-sm transition-all group">
+          <Link to={p("/profile")} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white hover:shadow-sm transition-all group">
             <Avatar className="h-9 w-9 border border-slate-200 group-hover:border-sky-200 overflow-hidden">
               {profilePic ? (
                 <img src={profilePic} alt="" className="w-full h-full object-cover" />
@@ -339,7 +343,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 </div>
         <div className="p-4 border-t border-blue-100 bg-blue-50/20">
                   <Link
-                    to="/profile"
+                    to={p("/profile")}
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white hover:shadow-sm transition-all group"
                   >
@@ -403,7 +407,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                         <button
                           key={r.id}
                           className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center justify-between"
-                          onClick={() => { navigate(`/patients`); setSearchQuery(""); setSearchResults([]); }}
+                          onClick={() => { navigate(p("/patients")); setSearchQuery(""); setSearchResults([]); }}
                         >
                           <span className="font-medium text-slate-900">{r.first_name} {r.last_name}</span>
                           <span className="text-xs text-slate-400 font-mono">{r.patient_id}</span>
