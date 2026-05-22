@@ -136,6 +136,7 @@ function saveWithHospitalConfig(settings: { hospitalName: string; hospitalCode: 
 export default function Settings() {
   const { settings, updateSettings } = useGlobalSettings();
   const [activeTab, setActiveTab] = useState<ActiveTab>("general");
+  const [navCollapsed, setNavCollapsed] = useState(false);
 
   const [localName, setLocalName] = useState(settings.hospitalName);
   const [localCode, setLocalCode] = useState(settings.hospitalCode);
@@ -362,23 +363,37 @@ export default function Settings() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 space-y-2">
+      <div className={`grid grid-cols-1 ${navCollapsed ? 'lg:grid-cols-[48px_1fr]' : 'lg:grid-cols-[160px_1fr]'} gap-6`}>
+        <div className={`space-y-1 ${navCollapsed ? 'items-center' : ''}`}>
+          <button
+            type="button"
+            onClick={() => setNavCollapsed(!navCollapsed)}
+            className="flex items-center justify-center w-full h-7 mb-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            title={navCollapsed ? "Expand navigation" : "Collapse navigation"}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              {navCollapsed
+                ? <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                : <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+              }
+            </svg>
+          </button>
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <Button
                 key={tab.key}
                 variant="ghost"
-                className={`w-full justify-start gap-3 ${
+                className={`w-full ${navCollapsed ? 'justify-center px-0' : 'justify-start gap-3'} ${
                   activeTab === tab.key
                     ? "bg-white shadow-sm border border-slate-200 font-semibold text-sky-600"
                     : "text-slate-600"
                 }`}
                 onClick={() => setActiveTab(tab.key)}
+                title={navCollapsed ? tab.label : undefined}
               >
-                <Icon className="w-4 h-4" />
-                {tab.label}
+                <Icon className="w-4 h-4 shrink-0" />
+                {!navCollapsed && tab.label}
               </Button>
             );
           })}
@@ -500,7 +515,7 @@ export default function Settings() {
                 <table className="w-full text-sm border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200">
-                      <th className="text-left py-2.5 pr-4 font-semibold text-slate-700 min-w-[130px]">Role</th>
+                      <th className="sticky left-0 z-10 text-left py-2.5 pr-4 font-semibold text-slate-700 min-w-[130px] bg-white">Role</th>
                       {ROUTE_GROUPS.map((g) => (
                         <th key={g.prefix} className="text-center py-2.5 px-1.5 font-medium text-slate-500 text-xs uppercase tracking-wider">{g.label}</th>
                       ))}
@@ -514,7 +529,7 @@ export default function Settings() {
                       const perm = settings.rbacMatrix[role];
                       return (
                         <tr key={role} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                          <td className="py-2.5 pr-4 font-medium text-slate-800">{role}</td>
+                          <td className="sticky left-0 z-10 py-2.5 pr-4 font-medium text-slate-800 bg-white">{role}</td>
                           {ROUTE_GROUPS.map((g) => {
                             const has = perm.allowedRoutes.some((r) => routeMatchesGroup(r, g.prefix));
                             return (
