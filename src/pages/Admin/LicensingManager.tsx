@@ -33,7 +33,8 @@ const LicensingManager: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {tiers.map((tier) => {
-          const modules: string[] = tier.allowedModules || [];
+          const raw = tier.allowedModules;
+          const modules: string[] = typeof raw === "string" ? JSON.parse(raw || "[]") : (raw ?? []);
           return (
             <Card key={tier.id} className="bg-slate-800 border-slate-700">
               <CardHeader className="pb-3">

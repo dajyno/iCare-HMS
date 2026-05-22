@@ -90,8 +90,10 @@ export function findModuleForPath(pathname: string): string | null {
 
 export function getEffectiveAllowedModules(tenant: Tenant | null): string[] {
   if (!tenant) return [];
-  if (tenant.allowedModulesOverride && tenant.allowedModulesOverride.length > 0) {
-    return tenant.allowedModulesOverride;
+  const raw = tenant.allowedModulesOverride;
+  const parsed: string[] = typeof raw === "string" ? JSON.parse(raw || "[]") : (raw ?? []);
+  if (parsed.length > 0) {
+    return parsed;
   }
   return TIER_MODULE_DEFAULTS[tenant.tier] ?? [];
 }

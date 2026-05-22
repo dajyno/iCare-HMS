@@ -111,8 +111,10 @@ const TenantsDirectory: React.FC = () => {
     setEditingTenant(tenant);
     setEditStaffSeats(tenant.maxStaffSeats);
     setEditBedCapacity(tenant.maxBedCapacity);
-    setEditModules(tenant.allowedModulesOverride ?? []);
-    setEditModuleOverride(!!tenant.allowedModulesOverride);
+    const overrideRaw = tenant.allowedModulesOverride;
+    const overrideParsed: string[] = typeof overrideRaw === "string" ? JSON.parse(overrideRaw || "[]") : (overrideRaw ?? []);
+    setEditModules(overrideParsed);
+    setEditModuleOverride(overrideParsed.length > 0);
     setLimitsError("");
   };
 
