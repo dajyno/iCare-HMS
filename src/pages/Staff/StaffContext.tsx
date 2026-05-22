@@ -1,16 +1,12 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { adminSupabase } from "@/src/lib/adminSupabase";
-import type { StaffRecord, StaffPermissions } from "./types";
+import type { StaffRecord } from "./types";
 
 interface StaffContextType {
   records: StaffRecord[];
   loading: boolean;
   addRecord: (record: StaffRecord) => Promise<void>;
   updateRecord: (staffId: string, updates: Partial<StaffRecord>) => Promise<void>;
-  updatePermissions: (
-    staffId: string,
-    permissions: Record<string, StaffPermissions>
-  ) => Promise<void>;
   deleteRecord: (staffId: string) => Promise<void>;
 }
 
@@ -31,7 +27,6 @@ function dbToStaffRecord(row: any): StaffRecord {
     canLogin: row.can_login,
     password: row.password || "",
     profilePicture: row.profile_picture || "",
-    permissions: row.permissions || {},
     authUserId: row.auth_user_id || undefined,
   };
 }
@@ -51,7 +46,6 @@ function staffToDb(record: Partial<StaffRecord>): Record<string, any> {
   if (record.canLogin !== undefined) db.can_login = record.canLogin;
   if (record.password !== undefined) db.password = record.password;
   if (record.profilePicture !== undefined) db.profile_picture = record.profilePicture;
-  if (record.permissions !== undefined) db.permissions = record.permissions;
   if (record.authUserId !== undefined) db.auth_user_id = record.authUserId;
   return db;
 }
@@ -97,25 +91,6 @@ export function StaffProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const updatePermissions = async (
-    staffId: string,
-    permissions: Record<string, StaffPermissions>
-  ) => {
-    const { error } = await staffTable()
-      .update({ permissions })
-      .eq("staff_id", staffId);
-
-    if (error) {
-      console.error("Failed to update permissions:", error);
-      return;
-    }
-    setRecords((prev) =>
-      prev.map((r) =>
-        r.staff_id === staffId ? { ...r, permissions } : r
-      )
-    );
-  };
-
   const deleteRecord = async (staffId: string) => {
     const { error } = await staffTable()
       .delete()
@@ -135,7 +110,6 @@ export function StaffProvider({ children }: { children: ReactNode }) {
         loading,
         addRecord,
         updateRecord,
-        updatePermissions,
         deleteRecord,
       }}
     >

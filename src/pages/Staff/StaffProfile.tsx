@@ -4,7 +4,6 @@ import { motion } from "motion/react";
 import {
   ArrowLeft,
   User,
-  Shield,
   Settings,
   Camera,
   Trash2,
@@ -36,7 +35,6 @@ import { adminSupabase } from "@/src/lib/adminSupabase";
 import { useAuth } from "@/src/context/AuthContext";
 import { saveCustomAccount, removeCustomAccount } from "@/src/lib/accountsStore";
 import { useStaff } from "./StaffContext";
-import PermissionsMatrix from "./PermissionsMatrix";
 import type { StaffPosition } from "./types";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -58,7 +56,7 @@ export default function StaffProfile() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { records, updateRecord, updatePermissions, deleteRecord } = useStaff();
+  const { records, updateRecord, deleteRecord } = useStaff();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -300,13 +298,7 @@ export default function StaffProfile() {
                 <User className="w-3.5 h-3.5" />
                 Staff Details
               </TabsTrigger>
-              <TabsTrigger
-                value="permissions"
-                className="gap-1.5 data-[state=active]:bg-white text-xs"
-              >
-                <Shield className="w-3.5 h-3.5" />
-                Roles & Permissions
-              </TabsTrigger>
+
               <TabsTrigger
                 value="settings"
                 className="gap-1.5 data-[state=active]:bg-white text-xs"
@@ -443,11 +435,6 @@ export default function StaffProfile() {
                   </Button>
                 </div>
               </div>
-            </TabsContent>
-
-            {/* === PERMISSIONS TAB === */}
-            <TabsContent value="permissions" className="mt-0 pt-4">
-              <PermissionsMatrix staff={staff} />
             </TabsContent>
 
             {/* === SETTINGS TAB === */}

@@ -185,10 +185,12 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     const perm = matrix[roleKey];
     if (!perm || perm.allowedRoutes.length === 0) return all;
 
-    const allowed = perm.allowedRoutes;
+    const baseRoutes = perm.allowedRoutes;
+    const overrides = settings.staffRouteOverrides?.[user.id] || [];
+    const effectiveRoutes = [...baseRoutes, ...overrides];
 
     const routeAllowed = (href: string) =>
-      allowed.some((r: string) => href === r || href.startsWith(r + "/"));
+      effectiveRoutes.some((r: string) => href === r || href.startsWith(r + "/"));
 
     return all.filter((item: any) => {
       if (item.children) {
@@ -196,7 +198,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       }
       return routeAllowed(item.href);
     });
-  }, [user?.role, settings.rbacMatrix]);
+  }, [user?.role, settings.rbacMatrix, settings.staffRouteOverrides]);
 
   const [expandedGroup, setExpandedGroup] = useState<string | null>(() => {
     const activeGroup = navItems.find((item: any) =>

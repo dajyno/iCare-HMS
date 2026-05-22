@@ -87,6 +87,7 @@ export function getDefaultSettings(): GlobalSettings {
     invoiceConditions: "All prices are in the stated currency. Late payments may incur additional charges.",
 
     rbacMatrix: defaultRbacMatrix(),
+    staffRouteOverrides: {},
 
     pendingTransactionAlerts: true,
     lowStockAlerts: true,

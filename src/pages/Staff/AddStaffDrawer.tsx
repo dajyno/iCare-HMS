@@ -65,11 +65,6 @@ export default function AddStaffModal({ open, onClose }: Props) {
       canLogin: false,
       password: "",
       profilePicture: "",
-      permissions: {
-        billing: { enabled: false, views: [] },
-        inpatient: { enabled: false, views: [] },
-        staff_management: { enabled: false, views: [] },
-      },
     };
 
     await addRecord(newRecord);

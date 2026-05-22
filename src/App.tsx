@@ -60,8 +60,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     const matrix = settings.rbacMatrix;
     const perm = matrix[roleKey as keyof typeof matrix];
     if (perm && perm.allowedRoutes.length > 0) {
+      const baseRoutes = perm.allowedRoutes;
+      const overrides = settings.staffRouteOverrides?.[user.id] || [];
+      const effectiveRoutes = [...baseRoutes, ...overrides];
       const path = location.pathname;
-      const allowed = perm.allowedRoutes.some((route: string) =>
+      const allowed = effectiveRoutes.some((route: string) =>
         path === route || path.startsWith(route + "/")
       );
       if (!allowed) {

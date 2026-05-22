@@ -27,6 +27,7 @@ export interface GlobalSettings {
   invoiceConditions: string;
 
   rbacMatrix: Record<RoleKey, RolePermissions>;
+  staffRouteOverrides: Record<string, string[]>; // staff_id → additional allowed routes
 
   pendingTransactionAlerts: boolean;
   lowStockAlerts: boolean;

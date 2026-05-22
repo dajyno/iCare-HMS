@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Settings as SettingsIcon,
   DollarSign,
@@ -13,6 +13,7 @@ import {
   Upload,
   RefreshCw,
   Loader2,
+  Users,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,8 +25,10 @@ import SearchableSelect from "@/components/ui/searchable-select";
 import { Switch } from "@/components/ui/switch";
 import { FileDropzone } from "@/components/ui/file-dropzone";
 import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
+import { useStaff } from "@/src/pages/Staff/StaffContext";
 import { supabase } from "@/src/lib/supabase";
 import type { RoleKey } from "@/src/types/globalSettings";
+import type { StaffRecord } from "@/src/pages/Staff/types";
 
 type ActiveTab = "general" | "financial" | "security" | "notifications" | "regional" | "database";
 
@@ -159,8 +162,68 @@ export default function Settings() {
   const [restoreConfirmed, setRestoreConfirmed] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
 
+  const { records: staffRecords } = useStaff();
+
   const [dbTestOpen, setDbTestOpen] = useState(false);
   const [dbTestResult, setDbTestResult] = useState<{ status: "idle" | "testing" | "success" | "error"; latency?: number; error?: string; checkedAt?: string }>({ status: "idle" });
+
+  const [overrideRole, setOverrideRole] = useState<RoleKey | null>(null);
+  const [overrideDraft, setOverrideDraft] = useState<Record<string, string[]>>({});
+
+  const positionToRole: Record<string, RoleKey> = {
+    "Medical Doctors": "Doctor",
+    "Nursing": "Nurse",
+    "Pharmacy": "Pharmacist",
+    "Laboratory": "LabTechnician",
+    "Administration": "HospitalAdmin",
+  };
+
+  const staffByRole = useMemo(() => {
+    if (!overrideRole) return [];
+    return staffRecords.filter((s: StaffRecord) => positionToRole[s.position] === overrideRole);
+  }, [overrideRole, staffRecords]);
+
+  const baseRoutesForRole = useMemo(() => {
+    if (!overrideRole) return [];
+    return settings.rbacMatrix[overrideRole]?.allowedRoutes || [];
+  }, [overrideRole, settings.rbacMatrix]);
+
+  const availableOverrideRoutes = useMemo(() => {
+    if (!overrideRole) return [];
+    return ROUTE_GROUPS.filter((g) => !baseRoutesForRole.some((r) => routeMatchesGroup(r, g.prefix)));
+  }, [overrideRole, baseRoutesForRole]);
+
+  const openOverrideModal = (role: RoleKey) => {
+    setOverrideRole(role);
+    const existing = settings.staffRouteOverrides || {};
+    const roleStaff = staffRecords.filter((s: StaffRecord) => positionToRole[s.position] === role);
+    const draft: Record<string, string[]> = {};
+    roleStaff.forEach((s: StaffRecord) => {
+      draft[s.staff_id] = existing[s.staff_id] ? [...existing[s.staff_id]] : [];
+    });
+    setOverrideDraft(draft);
+  };
+
+  const toggleOverrideRoute = (staffId: string, prefix: string) => {
+    setOverrideDraft((prev) => {
+      const current = prev[staffId] || [];
+      const has = current.some((r) => routeMatchesGroup(r, prefix));
+      const updated = has
+        ? current.filter((r) => !routeMatchesGroup(r, prefix))
+        : [...current, prefix];
+      return { ...prev, [staffId]: updated };
+    });
+  };
+
+  const saveOverrides = () => {
+    const merged: Record<string, string[]> = {};
+    Object.entries(overrideDraft).forEach(([id, routes]) => {
+      if (routes.length > 0) merged[id] = routes;
+    });
+    updateSettings({ staffRouteOverrides: merged });
+    setOverrideRole(null);
+    setSavedToast("Staff route overrides saved");
+  };
 
   const [savedToast, setSavedToast] = useState<string | null>(null);
 
@@ -443,6 +506,7 @@ export default function Settings() {
                       ))}
                       <th className="text-center py-2.5 px-3 font-medium text-slate-500 text-xs uppercase tracking-wider min-w-[60px]">Write</th>
                       <th className="text-center py-2.5 px-3 font-medium text-slate-500 text-xs uppercase tracking-wider min-w-[60px]">Approve</th>
+                      <th className="text-center py-2.5 px-3 font-medium text-slate-500 text-xs uppercase tracking-wider min-w-[70px]">Overrides</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -480,6 +544,17 @@ export default function Settings() {
                               checked={perm.approve}
                               onCheckedChange={() => handlePermissionToggle(role, "approve")}
                             />
+                          </td>
+                          <td className="text-center py-2.5 px-3">
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              className="text-slate-400 hover:text-blue-600"
+                              onClick={() => openOverrideModal(role)}
+                              title={`Staff overrides for ${role}`}
+                            >
+                              <Users className="w-3.5 h-3.5" />
+                            </Button>
                           </td>
                         </tr>
                       );
@@ -811,6 +886,56 @@ export default function Settings() {
                 <><Upload className="w-4 h-4 mr-1.5" /> Restore Database</>
               )}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!overrideRole} onOpenChange={(open) => { if (!open) setOverrideRole(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{overrideRole} — Staff Route Overrides</DialogTitle>
+            <DialogDescription>Grant additional route access to individual staff members beyond their role defaults.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto">
+            {staffByRole.length === 0 && (
+              <p className="text-sm text-slate-400 text-center py-6">No staff found for this role.</p>
+            )}
+            {staffByRole.map((staff: any) => {
+              const staffRoutes = overrideDraft[staff.staff_id] || [];
+              return (
+                <div key={staff.staff_id} className="rounded-lg border border-slate-200 p-3">
+                  <p className="text-sm font-medium text-slate-800 mb-2">{staff.name}</p>
+                  {availableOverrideRoutes.length === 0 ? (
+                    <p className="text-xs text-slate-400 italic">This role already has full access — no additional routes available.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {availableOverrideRoutes.map((g) => {
+                        const has = staffRoutes.some((r: string) => routeMatchesGroup(r, g.prefix));
+                        return (
+                          <button
+                            key={g.prefix}
+                            type="button"
+                            onClick={() => toggleOverrideRoute(staff.staff_id, g.prefix)}
+                            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors ${
+                              has
+                                ? "bg-blue-600 border-blue-600 text-white"
+                                : "border-slate-200 text-slate-600 hover:border-slate-300"
+                            }`}
+                          >
+                            {has && <Check className="w-3 h-3" />}
+                            {g.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOverrideRole(null)}>Cancel</Button>
+            <Button className="bg-sky-600 hover:bg-sky-700" onClick={saveOverrides}>Save Overrides</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
