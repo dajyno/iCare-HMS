@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route, Navigate, BrowserRouter } from "react-router-dom";
+import { Routes, Route, Navigate, BrowserRouter, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import DashboardLayout from "./layouts/DashboardLayout";
 import Login from "./pages/Auth/Login";
@@ -30,6 +30,7 @@ import StaffLayout from "./pages/Staff/StaffLayout";
 import StaffList from "./pages/Staff/StaffList";
 import StaffProfile from "./pages/Staff/StaffProfile";
 import { StaffProvider } from "./pages/Staff/StaffContext";
+import { GlobalSettingsProvider, useGlobalSettings } from "./context/GlobalSettingsContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ReportsHub from "./pages/Reports/ReportsHub";
 import ClinicalReports from "./pages/Reports/ClinicalReports";
@@ -40,6 +41,8 @@ const HmoPatients = () => <PatientList defaultCategory="HMO" />;
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
+  const { settings } = useGlobalSettings();
+  const location = useLocation();
 
   if (loading) return (
     <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
@@ -52,6 +55,21 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   if (!user) return <Navigate to="/login" replace />;
 
+  if (user.role) {
+    const roleKey = user.role as string;
+    const matrix = settings.rbacMatrix;
+    const perm = matrix[roleKey as keyof typeof matrix];
+    if (perm && perm.allowedRoutes.length > 0) {
+      const path = location.pathname;
+      const allowed = perm.allowedRoutes.some((route: string) =>
+        path === route || path.startsWith(route + "/")
+      );
+      if (!allowed) {
+        return <Navigate to="/dashboard" replace />;
+      }
+    }
+  }
+
   return <DashboardLayout>{children}</DashboardLayout>;
 };
 
@@ -63,6 +81,7 @@ export default function App() {
       <AuthProvider>
         <BrowserRouter>
           <StaffProvider>
+          <GlobalSettingsProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route
@@ -327,6 +346,7 @@ export default function App() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
+          </GlobalSettingsProvider>
           </StaffProvider>
         </BrowserRouter>
       </AuthProvider>

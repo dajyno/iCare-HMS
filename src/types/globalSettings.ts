@@ -1,0 +1,39 @@
+export type RoleKey =
+  | "SuperAdmin"
+  | "HospitalAdmin"
+  | "Receptionist"
+  | "Doctor"
+  | "Nurse"
+  | "LabTechnician"
+  | "Pharmacist"
+  | "BillingOfficer"
+  | "InventoryOfficer";
+
+export interface RolePermissions {
+  allowedRoutes: string[];
+  write: boolean;
+  approve: boolean;
+}
+
+export interface GlobalSettings {
+  hospitalName: string;
+  hospitalCode: string;
+  systemEmail: string;
+  databaseLastBackup: string | null;
+
+  baseCurrency: string;
+  vatPercentage: number;
+  invoicePaymentTerms: string;
+  invoiceConditions: string;
+
+  rbacMatrix: Record<RoleKey, RolePermissions>;
+
+  pendingTransactionAlerts: boolean;
+  lowStockAlerts: boolean;
+  automatedPatientReminders: boolean;
+
+  timezone: string;
+  language: string;
+  dateFormat: string;
+  timeFormat: string;
+}
