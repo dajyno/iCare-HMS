@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Building2, CreditCard, TrendingUp, Activity } from "lucide-react";
-import { supabase } from "../../lib/supabase";
+import { adminSupabase } from "../../lib/adminSupabase";
 
 interface Metrics {
   totalTenants: number;
@@ -31,9 +31,9 @@ const PlatformOverview: React.FC = () => {
 
   useEffect(() => {
     async function fetchMetrics() {
-      const { count: totalTenants } = await supabase.from("tenants").select("*", { count: "exact", head: true });
-      const { count: activeSubscriptions } = await supabase.from("tenants").select("*", { count: "exact", head: true }).neq("status", "Suspended");
-      const { data: tenants } = await supabase.from("tenants").select("tier");
+      const { count: totalTenants } = await adminSupabase.from("tenants").select("*", { count: "exact", head: true });
+      const { count: activeSubscriptions } = await adminSupabase.from("tenants").select("*", { count: "exact", head: true }).neq("status", "Suspended");
+      const { data: tenants } = await adminSupabase.from("tenants").select("tier");
       const tierPrices: Record<string, number> = { Standard: 199, Premium: 499, Enterprise: 999 };
       const mrr = (tenants || []).reduce((sum, t) => sum + (tierPrices[t.tier as string] || 0), 0);
 

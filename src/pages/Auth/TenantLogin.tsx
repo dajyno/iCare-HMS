@@ -13,7 +13,7 @@ import type { Tenant } from "../../types/tenant";
 const TenantLogin: React.FC = () => {
   const { hospital_slug } = useParams<{ hospital_slug: string }>();
   const { login } = useAuth();
-  const { setTenant } = useTenant();
+  const { tenant, setTenant } = useTenant();
   const navigate = useNavigate();
 
   const [hospitalName, setHospitalName] = useState("");

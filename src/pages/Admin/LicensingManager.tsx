@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { supabase, toCamel } from "../../lib/supabase";
+import { adminSupabase } from "../../lib/adminSupabase";
+import { toCamel } from "../../lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, BedDouble, DollarSign } from "lucide-react";
@@ -9,7 +10,7 @@ const LicensingManager: React.FC = () => {
   const [tiers, setTiers] = useState<SubscriptionTier[]>([]);
 
   useEffect(() => {
-    supabase.from("subscription_tiers").select("*").then(({ data }) => {
+    adminSupabase.from("subscription_tiers").select("*").then(({ data }) => {
       if (data) setTiers(data.map((d: any) => toCamel(d) as SubscriptionTier));
     });
   }, []);

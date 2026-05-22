@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { supabase, toCamel } from "../../lib/supabase";
+import { adminSupabase } from "../../lib/adminSupabase";
+import { toCamel } from "../../lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -44,7 +45,7 @@ const TenantsDirectory: React.FC = () => {
 
   const fetchTenants = async () => {
     setLoading(true);
-    const { data } = await supabase.from("tenants").select("*").order("created_at", { ascending: false });
+    const { data } = await adminSupabase.from("tenants").select("*").order("created_at", { ascending: false });
     if (data) setTenants(data.map((d: any) => toCamel(d) as Tenant));
     setLoading(false);
   };
@@ -66,7 +67,7 @@ const TenantsDirectory: React.FC = () => {
 
     const tenantId = `T-${slug.toUpperCase().slice(0, 8)}`;
 
-    const { error } = await supabase.from("tenants").insert({
+    const { error } = await adminSupabase.from("tenants").insert({
       tenant_id: tenantId,
       hospital_name: form.hospitalName,
       url_slug: slug,
@@ -90,7 +91,7 @@ const TenantsDirectory: React.FC = () => {
   };
 
   const handleStatusAction = async (tenantId: string, newStatus: string) => {
-    await supabase.from("tenants").update({ status: newStatus }).eq("tenant_id", tenantId);
+    await adminSupabase.from("tenants").update({ status: newStatus }).eq("tenant_id", tenantId);
     fetchTenants();
   };
 

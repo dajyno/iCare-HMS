@@ -28,7 +28,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async (userId: string, authUser?: { email?: string; user_metadata?: { full_name?: string; role?: string } }) => {
-    const { data, error } = await supabase
+    const { data, error } = await adminSupabase
       .from("users")
       .select("*")
       .eq("id", userId)
@@ -99,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const handlePostAuth = async (userId: string, authUser: any) => {
       if (tenantId) {
-        const { data: profile } = await supabase
+        const { data: profile } = await adminSupabase
           .from("users")
           .select("tenant_id")
           .eq("id", userId)
