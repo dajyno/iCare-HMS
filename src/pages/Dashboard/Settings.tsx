@@ -136,7 +136,6 @@ function saveWithHospitalConfig(settings: { hospitalName: string; hospitalCode: 
 export default function Settings() {
   const { settings, updateSettings } = useGlobalSettings();
   const [activeTab, setActiveTab] = useState<ActiveTab>("general");
-  const [navCollapsed, setNavCollapsed] = useState(false);
 
   const [localName, setLocalName] = useState(settings.hospitalName);
   const [localCode, setLocalCode] = useState(settings.hospitalCode);
@@ -363,37 +362,23 @@ export default function Settings() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-1 space-y-2">
-          <button
-            type="button"
-            onClick={() => setNavCollapsed(!navCollapsed)}
-            className="flex items-center justify-center w-full h-7 mb-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-            title={navCollapsed ? "Expand navigation" : "Collapse navigation"}
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              {navCollapsed
-                ? <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                : <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-              }
-            </svg>
-          </button>
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <Button
                 key={tab.key}
                 variant="ghost"
-                className={`w-full ${navCollapsed ? 'justify-center px-0' : 'justify-start gap-3'} ${
+                className={`w-full justify-start gap-3 ${
                   activeTab === tab.key
                     ? "bg-white shadow-sm border border-slate-200 font-semibold text-sky-600"
                     : "text-slate-600"
                 }`}
                 onClick={() => setActiveTab(tab.key)}
-                title={navCollapsed ? tab.label : undefined}
               >
-                <Icon className="w-4 h-4 shrink-0" />
-                {!navCollapsed && tab.label}
+                <Icon className="w-4 h-4" />
+                {tab.label}
               </Button>
             );
           })}

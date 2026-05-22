@@ -238,7 +238,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-blue-100 flex flex-col hidden md:flex">
         <div className="p-6 flex items-center border-b border-blue-100">
-          <img src="/logo.svg" alt="iCare" className="h-9 w-auto" />
+          <img src="/logo.png" alt="iCare" className="h-9 w-auto" />
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-hide">
@@ -311,7 +311,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
               </Button>
               <SheetContent side="left" className="w-72 p-0 flex flex-col">
                 <div className="p-6 flex items-center border-b border-blue-100">
-                  <img src="/logo.svg" alt="iCare" className="h-9 w-auto" />
+                  <img src="/logo.png" alt="iCare" className="h-9 w-auto" />
                 </div>
                 <div className="flex-1 overflow-y-auto px-4 py-4">
                   <nav className="space-y-1">
