@@ -41,7 +41,7 @@ export const APPOINTMENT_REASONS = [
   "Routine Checkup",
 ];
 
-export const TIME_SLOT_MINUTES = 30;
+export const TIME_SLOT_MINUTES = 15;
 export const GRID_START_HOUR = 8;
 export const GRID_END_HOUR = 20;
 

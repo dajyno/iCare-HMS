@@ -98,24 +98,25 @@ export default function AppointmentGrid({
       <div
         className="grid"
         style={{
-          gridTemplateColumns: `160px repeat(${totalSlots}, minmax(40px, 1fr))`,
-          minWidth: `${160 + totalSlots * 50}px`,
+          gridTemplateColumns: `160px repeat(${totalSlots}, minmax(35px, 1fr))`,
+          minWidth: `${160 + totalSlots * 35}px`,
         }}
       >
         {/* Header row */}
-        <div className="sticky top-0 left-0 z-20 bg-slate-50 border-b border-r border-slate-200 px-2 py-2 text-[10px] font-bold uppercase text-slate-500">
+        <div className="sticky top-0 left-0 z-30 bg-slate-50 border-b border-r border-slate-200 px-2 py-2 text-[10px] font-bold uppercase text-slate-500">
           Consultants
         </div>
         {timeLabels.map((label, i) => {
-          const isNewHour = label.endsWith(":00");
+          const isHour = label.endsWith(":00");
+          const showLabel = label.endsWith(":00") || label.endsWith(":30");
           return (
             <div
               key={i}
-              className={`sticky top-0 z-20 bg-slate-50 border-b border-slate-200 px-1 py-1 text-center text-[10px] font-medium text-slate-400 ${
-                isNewHour ? "border-r-2 border-slate-300" : "border-r border-slate-100"
+              className={`sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-1 py-1 text-center text-[10px] font-medium text-slate-400 ${
+                isHour ? "border-r-2 border-slate-300" : "border-r border-slate-100"
               }`}
             >
-              {label}
+              {showLabel ? label : ""}
             </div>
           );
         })}
@@ -219,7 +220,7 @@ function DoctorRow({
                   ${isOccupied ? "bg-slate-50/30" : "cursor-pointer hover:bg-blue-50/50"}
                   ${isDragOver ? "bg-blue-100/70 ring-2 ring-blue-400 ring-inset" : ""}
                 `}
-                style={{ minWidth: "40px" }}
+                style={{ minWidth: "30px" }}
                 onClick={() => {
                   if (!isOccupied) onSlotClick(doctor.id, timeStr);
                 }}
