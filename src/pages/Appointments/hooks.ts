@@ -45,7 +45,7 @@ export function useDoctors() {
           .select("id, full_name")
           .eq("role", "Doctor")
           .eq("status", "active"),
-        (supabase as any)
+        (adminSupabase as any)
           .from("staff")
           .select("staff_id, name, auth_user_id")
           .eq("is_clinician", true)
