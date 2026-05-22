@@ -9,6 +9,8 @@ datasource db {
 
 model User {
   id            String    @id @default(cuid())
+  tenantId      String?
+  tenant        Tenant?   @relation(fields: [tenantId], references: [tenantId])
   fullName      String
   email         String    @unique
   password      String
@@ -34,6 +36,8 @@ model User {
 
 model Department {
   id          String   @id @default(cuid())
+  tenantId    String?
+  tenant      Tenant?  @relation(fields: [tenantId], references: [tenantId])
   name        String   @unique
   description String?
   users       User[]
@@ -45,6 +49,8 @@ model Department {
 
 model StaffProfile {
   id             String     @id @default(cuid())
+  tenantId       String?
+  tenant         Tenant?    @relation(fields: [tenantId], references: [tenantId])
   userId         String     @unique
   user           User       @relation(fields: [userId], references: [id])
   staffId        String     @unique
@@ -58,6 +64,8 @@ model StaffProfile {
 
 model Patient {
   id                String   @id @default(cuid())
+  tenantId          String?
+  tenant            Tenant?  @relation(fields: [tenantId], references: [tenantId])
   patientId         String   @unique
   firstName         String
   lastName          String
@@ -96,6 +104,8 @@ model Patient {
 
 model Appointment {
   id           String    @id @default(cuid())
+  tenantId     String?
+  tenant       Tenant?   @relation(fields: [tenantId], references: [tenantId])
   patientId    String
   patient      Patient   @relation(fields: [patientId], references: [id])
   doctorId     String
@@ -114,6 +124,8 @@ model Appointment {
 
 model Consultation {
   id             String   @id @default(cuid())
+  tenantId       String?
+  tenant         Tenant?  @relation(fields: [tenantId], references: [tenantId])
   patientId      String
   patient        Patient  @relation(fields: [patientId], references: [id])
   doctorId       String
@@ -135,6 +147,8 @@ model Consultation {
 
 model VitalSigns {
   id               String       @id @default(cuid())
+  tenantId         String?
+  tenant           Tenant?      @relation(fields: [tenantId], references: [tenantId])
   consultationId   String       @unique
   consultation     Consultation @relation(fields: [consultationId], references: [id])
   temperature      Float?
@@ -149,6 +163,8 @@ model VitalSigns {
 
 model Prescription {
   id             String             @id @default(cuid())
+  tenantId       String?
+  tenant         Tenant?            @relation(fields: [tenantId], references: [tenantId])
   patientId      String
   patient        Patient            @relation(fields: [patientId], references: [id])
   doctorId       String
@@ -162,6 +178,8 @@ model Prescription {
 
 model PrescriptionItem {
   id             String       @id @default(cuid())
+  tenantId       String?
+  tenant         Tenant?      @relation(fields: [tenantId], references: [tenantId])
   prescriptionId String
   prescription   Prescription @relation(fields: [prescriptionId], references: [id])
   medicationId   String
@@ -174,6 +192,8 @@ model PrescriptionItem {
 
 model Medication {
   id               String             @id @default(cuid())
+  tenantId         String?
+  tenant           Tenant?            @relation(fields: [tenantId], references: [tenantId])
   name             String
   genericName      String?
   category         String?
@@ -191,6 +211,8 @@ model Medication {
 
 model LabTest {
   id             String       @id @default(cuid())
+  tenantId       String?
+  tenant         Tenant?      @relation(fields: [tenantId], references: [tenantId])
   name           String
   category       String?
   price          Float
@@ -203,6 +225,8 @@ model LabTest {
 
 model LabRequest {
   id             String       @id @default(cuid())
+  tenantId       String?
+  tenant         Tenant?      @relation(fields: [tenantId], references: [tenantId])
   patientId      String
   patient        Patient      @relation(fields: [patientId], references: [id])
   testId         String
@@ -217,6 +241,8 @@ model LabRequest {
 
 model LabResult {
   id             String     @id @default(cuid())
+  tenantId       String?
+  tenant         Tenant?    @relation(fields: [tenantId], references: [tenantId])
   requestId      String     @unique
   request        LabRequest @relation(fields: [requestId], references: [id])
   patientId      String
@@ -233,6 +259,8 @@ model LabResult {
 
 model Invoice {
   id            String        @id @default(cuid())
+  tenantId      String?
+  tenant        Tenant?       @relation(fields: [tenantId], references: [tenantId])
   invoiceNumber String        @unique
   patientId     String
   patient       Patient       @relation(fields: [patientId], references: [id])
@@ -250,6 +278,8 @@ model Invoice {
 
 model InvoiceItem {
   id          String  @id @default(cuid())
+  tenantId    String?
+  tenant      Tenant? @relation(fields: [tenantId], references: [tenantId])
   invoiceId   String
   invoice     Invoice @relation(fields: [invoiceId], references: [id])
   description String
@@ -260,6 +290,8 @@ model InvoiceItem {
 
 model Payment {
   id            String   @id @default(cuid())
+  tenantId      String?
+  tenant        Tenant?  @relation(fields: [tenantId], references: [tenantId])
   invoiceId     String
   invoice       Invoice  @relation(fields: [invoiceId], references: [id])
   amount        Float
@@ -270,6 +302,8 @@ model Payment {
 
 model InventoryItem {
   id           String     @id @default(cuid())
+  tenantId     String?
+  tenant       Tenant?    @relation(fields: [tenantId], references: [tenantId])
   name         String
   category     String?
   sku          String?    @unique
@@ -289,6 +323,8 @@ model InventoryItem {
 
 model Supplier {
   id             String          @id @default(cuid())
+  tenantId       String?
+  tenant         Tenant?         @relation(fields: [tenantId], references: [tenantId])
   name           String
   contactName    String?
   email          String?
@@ -300,6 +336,8 @@ model Supplier {
 
 model PurchaseOrder {
   id          String              @id @default(cuid())
+  tenantId    String?
+  tenant      Tenant?             @relation(fields: [tenantId], references: [tenantId])
   poNumber    String              @unique
   supplierId  String
   supplier    Supplier            @relation(fields: [supplierId], references: [id])
@@ -314,6 +352,8 @@ model PurchaseOrder {
 
 model PurchaseOrderItem {
   id              String        @id @default(cuid())
+  tenantId        String?
+  tenant          Tenant?       @relation(fields: [tenantId], references: [tenantId])
   purchaseOrderId String
   purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
   itemName        String
@@ -324,6 +364,8 @@ model PurchaseOrderItem {
 
 model Ward {
   id          String      @id @default(cuid())
+  tenantId    String?
+  tenant      Tenant?     @relation(fields: [tenantId], references: [tenantId])
   name        String
   type        String      // General, Semi-Private, Private, ICU, Emergency
   bedsCount   Int
@@ -334,6 +376,8 @@ model Ward {
 
 model Bed {
   id         String      @id @default(cuid())
+  tenantId   String?
+  tenant     Tenant?     @relation(fields: [tenantId], references: [tenantId])
   bedNumber  String
   wardId     String
   ward       Ward        @relation(fields: [wardId], references: [id])
@@ -343,6 +387,8 @@ model Bed {
 
 model Admission {
   id              String    @id @default(cuid())
+  tenantId        String?
+  tenant          Tenant?   @relation(fields: [tenantId], references: [tenantId])
   patientId       String
   patient         Patient   @relation(fields: [patientId], references: [id])
   admissionDate   DateTime  @default(now())
@@ -359,6 +405,8 @@ model Admission {
 
 model Discharge {
   id            String    @id @default(cuid())
+  tenantId      String?
+  tenant        Tenant?   @relation(fields: [tenantId], references: [tenantId])
   admissionId   String    @unique
   admission     Admission @relation(fields: [admissionId], references: [id])
   dischargeDate DateTime  @default(now())
@@ -368,6 +416,8 @@ model Discharge {
 
 model RadiologyCategory {
   id          String          @id @default(cuid())
+  tenantId    String?
+  tenant      Tenant?         @relation(fields: [tenantId], references: [tenantId])
   name        String          @unique
   description String?
   icon        String?
@@ -376,6 +426,8 @@ model RadiologyCategory {
 
 model RadiologyExam {
   id               String   @id @default(cuid())
+  tenantId         String?
+  tenant           Tenant?  @relation(fields: [tenantId], references: [tenantId])
   name             String
   categoryId       String
   category         RadiologyCategory @relation(fields: [categoryId], references: [id])
@@ -388,6 +440,8 @@ model RadiologyExam {
 
 model RadiologyRequest {
   id              String    @id @default(cuid())
+  tenantId        String?
+  tenant          Tenant?   @relation(fields: [tenantId], references: [tenantId])
   patientId       String
   patient         Patient   @relation(fields: [patientId], references: [id])
   examId          String
@@ -407,6 +461,8 @@ model RadiologyRequest {
 
 model RadiologyResult {
   id              String    @id @default(cuid())
+  tenantId        String?
+  tenant          Tenant?   @relation(fields: [tenantId], references: [tenantId])
   requestId       String    @unique
   request         RadiologyRequest @relation(fields: [requestId], references: [id])
   patientId       String
@@ -420,6 +476,8 @@ model RadiologyResult {
 
 model AuditLog {
   id        String   @id @default(cuid())
+  tenantId  String?
+  tenant    Tenant?  @relation(fields: [tenantId], references: [tenantId])
   userId    String?
   user      User?    @relation(fields: [userId], references: [id])
   action    String
@@ -431,6 +489,8 @@ model AuditLog {
 
 model Notification {
   id        String   @id @default(cuid())
+  tenantId  String?
+  tenant    Tenant?  @relation(fields: [tenantId], references: [tenantId])
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   title     String
@@ -438,4 +498,69 @@ model Notification {
   type      String   // Info, Warning, Alert
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model SubscriptionTier {
+  id             String   @id @default(cuid())
+  name           String   @unique // Standard, Premium, Enterprise
+  maxDoctorSeats Int
+  maxBedCapacity Int
+  monthlyPrice   Float
+  description    String?
+  tenants        Tenant[]
+}
+
+model PlatformAdmin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("SuperAdmin") // SuperAdmin, Support
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Tenant {
+  tenantId       String   @id // e.g., "T-CITY-04"
+  hospitalName   String
+  urlSlug        String   @unique // e.g., "cityhealth"
+  status         String   @default("Active") // Active, Trial, Suspended
+  tierId         String?
+  tier           SubscriptionTier? @relation(fields: [tierId], references: [id])
+  maxDoctorSeats Int      @default(10)
+  maxBedCapacity Int      @default(50)
+  expiryDate     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  users              User[]
+  departments        Department[]
+  staffProfiles      StaffProfile[]
+  patients           Patient[]
+  appointments       Appointment[]
+  consultations      Consultation[]
+  vitalSigns         VitalSigns[]
+  prescriptions      Prescription[]
+  prescriptionItems  PrescriptionItem[]
+  medications        Medication[]
+  labTests           LabTest[]
+  labRequests        LabRequest[]
+  labResults         LabResult[]
+  invoices           Invoice[]
+  invoiceItems       InvoiceItem[]
+  payments           Payment[]
+  inventoryItems     InventoryItem[]
+  suppliers          Supplier[]
+  purchaseOrders     PurchaseOrder[]
+  purchaseOrderItems PurchaseOrderItem[]
+  wards              Ward[]
+  beds               Bed[]
+  admissions         Admission[]
+  discharges         Discharge[]
+  radiologyCategories RadiologyCategory[]
+  radiologyExams     RadiologyExam[]
+  radiologyRequests  RadiologyRequest[]
+  radiologyResults   RadiologyResult[]
+  auditLogs          AuditLog[]
+  notifications      Notification[]
 }
