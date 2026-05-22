@@ -197,6 +197,26 @@ create policy "tenants_public_read" on public.tenants
   using (true);
 
 -- ============================================================
+-- 7. SUBSCRIPTION TIERS RLS — readable by authenticated users
+-- ============================================================
+alter table public.subscription_tiers enable row level security;
+
+drop policy if exists "tiers_read" on public.subscription_tiers;
+create policy "tiers_read" on public.subscription_tiers
+  for select to authenticated
+  using (true);
+
+-- ============================================================
+-- 8. PLATFORM ADMINS RLS — only accessible via security definer RPC
+-- ============================================================
+alter table public.platform_admins enable row level security;
+
+-- Block all direct access; admin_login RPC bypasses RLS via security definer
+drop policy if exists "platform_admins_no_access" on public.platform_admins;
+create policy "platform_admins_no_access" on public.platform_admins
+  for all using (false);
+
+-- ============================================================
 -- 7. SEED: Demo Tenant (for development)
 -- ============================================================
 insert into public.tenants (tenant_id, hospital_name, url_slug, status, tier, max_doctor_seats, max_bed_capacity) values
