@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useGlobalSettings } from "../context/GlobalSettingsContext";
 import { supabase } from "@/src/lib/supabase";
 import {
   LayoutDashboard,
@@ -86,6 +87,7 @@ const SidebarGroup = ({ icon: Icon, label, children, currentPath, isOpen, onTogg
 
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
+  const { settings } = useGlobalSettings();
   const location = useLocation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
@@ -136,44 +138,65 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const navItems = [
-    { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-    { icon: Calendar, label: "Appointments", href: "/appointments" },
-    { icon: Users, label: "Patients", children: [
-      { label: "All Patients", href: "/patients" },
-      { label: "Individual", href: "/patients/individual" },
-      { label: "Family", href: "/patients/family" },
-      { label: "Corporate", href: "/patients/corporate" },
-      { label: "HMO", href: "/patients/hmo" },
-    ]},
-    { icon: ClipboardList, label: "Consultations", children: [
-      { label: "Vital Signs", href: "/consultations/vitals" },
-      { label: "Clinical Workspace", href: "/consultations" },
-    ]},
-    { icon: FlaskConical, label: "Laboratory", href: "/laboratory" },
-    { icon: Scan, label: "Radiology", href: "/radiology" },
-    { icon: Pill, label: "Pharmacy", children: [
-      { label: "Prescription", href: "/pharmacy/prescriptions" },
-      { label: "Inventory", href: "/pharmacy/inventory" },
-      { label: "Analytics", href: "/pharmacy/analytics" },
-    ]},
-    { icon: Bed, label: "Inpatient", href: "/inpatient" },
-    { icon: CreditCard, label: "Billing", href: "/billing" },
-    { icon: Calculator, label: "Accounting", children: [
-      { label: "Hub", href: "/accounting" },
-      { label: "Registries", href: "/accounting/registries" },
-      { label: "General Ledger", href: "/accounting/ledger" },
-      { label: "Banks", href: "/accounting/banks" },
-      { label: "Reports", href: "/accounting/reports" },
-    ]},
-    { icon: UserPlus, label: "Staff", href: "/staff" },
-    { icon: BarChart3, label: "Reports", children: [
-      { label: "Analytics Hub", href: "/reports" },
-      { label: "Clinical", href: "/reports/clinical" },
-      { label: "Staff", href: "/reports/staff" },
-    ]},
-    { icon: Settings, label: "System Settings", href: "/settings" },
-  ];
+  const navItems = useMemo(() => {
+    const all: any[] = [
+      { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
+      { icon: Calendar, label: "Appointments", href: "/appointments" },
+      { icon: Users, label: "Patients", children: [
+        { label: "All Patients", href: "/patients" },
+        { label: "Individual", href: "/patients/individual" },
+        { label: "Family", href: "/patients/family" },
+        { label: "Corporate", href: "/patients/corporate" },
+        { label: "HMO", href: "/patients/hmo" },
+      ]},
+      { icon: ClipboardList, label: "Consultations", children: [
+        { label: "Vital Signs", href: "/consultations/vitals" },
+        { label: "Clinical Workspace", href: "/consultations" },
+      ]},
+      { icon: FlaskConical, label: "Laboratory", href: "/laboratory" },
+      { icon: Scan, label: "Radiology", href: "/radiology" },
+      { icon: Pill, label: "Pharmacy", children: [
+        { label: "Prescription", href: "/pharmacy/prescriptions" },
+        { label: "Inventory", href: "/pharmacy/inventory" },
+        { label: "Analytics", href: "/pharmacy/analytics" },
+      ]},
+      { icon: Bed, label: "Inpatient", href: "/inpatient" },
+      { icon: CreditCard, label: "Billing", href: "/billing" },
+      { icon: Calculator, label: "Accounting", children: [
+        { label: "Hub", href: "/accounting" },
+        { label: "Registries", href: "/accounting/registries" },
+        { label: "General Ledger", href: "/accounting/ledger" },
+        { label: "Banks", href: "/accounting/banks" },
+        { label: "Reports", href: "/accounting/reports" },
+      ]},
+      { icon: UserPlus, label: "Staff", href: "/staff" },
+      { icon: BarChart3, label: "Reports", children: [
+        { label: "Analytics Hub", href: "/reports" },
+        { label: "Clinical", href: "/reports/clinical" },
+        { label: "Staff", href: "/reports/staff" },
+      ]},
+      { icon: Settings, label: "System Settings", href: "/settings" },
+    ];
+
+    if (!user?.role) return all;
+
+    const matrix = settings.rbacMatrix;
+    const roleKey = user.role as keyof typeof matrix;
+    const perm = matrix[roleKey];
+    if (!perm || perm.allowedRoutes.length === 0) return all;
+
+    const allowed = perm.allowedRoutes;
+
+    const routeAllowed = (href: string) =>
+      allowed.some((r: string) => href === r || href.startsWith(r + "/"));
+
+    return all.filter((item: any) => {
+      if (item.children) {
+        return item.children.some((c: any) => routeAllowed(c.href));
+      }
+      return routeAllowed(item.href);
+    });
+  }, [user?.role, settings.rbacMatrix]);
 
   const [expandedGroup, setExpandedGroup] = useState<string | null>(() => {
     const activeGroup = navItems.find((item: any) =>
