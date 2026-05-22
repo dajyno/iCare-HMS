@@ -171,8 +171,7 @@ begin
   if not found then
     return json_build_object('success', false, 'error', 'Invalid credentials');
   end if;
-  -- Simple comparison (passwords should be bcrypt-hashed in production)
-  if v_admin.password = p_password then
+  if v_admin.password = crypt(p_password, v_admin.password) then
     return json_build_object(
       'success', true,
       'id', v_admin.id,
