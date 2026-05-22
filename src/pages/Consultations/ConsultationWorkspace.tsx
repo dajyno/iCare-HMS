@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
+import { adminSupabase } from "@/src/lib/adminSupabase";
 import { useAuth } from "../../context/AuthContext";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -99,13 +100,39 @@ const ConsultationWorkspace = () => {
   const { data: doctors } = useQuery({
     queryKey: ["doctors"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("users")
-        .select("id, full_name")
-        .eq("role", "Doctor")
-        .eq("status", "active");
-      if (error) throw error;
-      return toCamel(data || []).map((d: any) => ({ id: d.id, name: d.fullName }));
+      const [usersResult, staffResult] = await Promise.allSettled([
+        adminSupabase
+          .from("users")
+          .select("id, full_name")
+          .eq("role", "Doctor")
+          .eq("status", "active"),
+        (adminSupabase as any)
+          .from("staff")
+          .select("staff_id, name, auth_user_id")
+          .eq("is_clinician", true)
+          .neq("availability_status", "On Leave"),
+      ]);
+
+      const doctorMap = new Map<string, string>();
+
+      if (usersResult.status === "fulfilled" && usersResult.value.data) {
+        const doctors = toCamel(usersResult.value.data) as { id: string; fullName: string }[];
+        for (const d of doctors) {
+          doctorMap.set(d.id, d.fullName);
+        }
+      }
+
+      if (staffResult.status === "fulfilled" && staffResult.value.data) {
+        const staff = toCamel(staffResult.value.data) as { staffId: string; name: string; authUserId: string | null }[];
+        for (const s of staff) {
+          const id = s.authUserId || s.staffId;
+          if (!doctorMap.has(id)) {
+            doctorMap.set(id, s.name);
+          }
+        }
+      }
+
+      return Array.from(doctorMap.entries()).map(([id, name]) => ({ id, name }));
     },
   });
 
