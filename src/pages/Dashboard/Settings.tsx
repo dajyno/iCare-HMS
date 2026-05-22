@@ -547,13 +547,14 @@ export default function Settings() {
                           </td>
                           <td className="text-center py-2.5 px-3">
                             <Button
-                              variant="ghost"
-                              size="xs"
-                              className="text-slate-400 hover:text-blue-600"
+                              variant="outline"
+                              size="sm"
+                              className="text-blue-600 border-blue-200 hover:bg-blue-50 gap-1"
                               onClick={() => openOverrideModal(role)}
                               title={`Staff overrides for ${role}`}
                             >
                               <Users className="w-3.5 h-3.5" />
+                              <span className="text-[10px]">Edit</span>
                             </Button>
                           </td>
                         </tr>
