@@ -4,16 +4,18 @@ import { supabase, toCamel } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { useGlobalSettings } from "../context/GlobalSettingsContext";
 import { useTenant } from "../context/TenantContext";
+import { findModuleForPath } from "../lib/moduleAccess";
 import type { Tenant } from "../types/tenant";
 import DashboardLayout from "../layouts/DashboardLayout";
 import HospitalNotFound from "./HospitalNotFound";
 import AccountSuspended from "./AccountSuspended";
+import ModuleLockedPage from "./ModuleLockedPage";
 
 const TenantRouteGuard: React.FC = () => {
   const { hospital_slug } = useParams<{ hospital_slug: string }>();
   const { user, loading: authLoading, logout } = useAuth();
   const { settings } = useGlobalSettings();
-  const { tenant, setTenant } = useTenant();
+  const { tenant, setTenant, refreshTenant } = useTenant();
   const navigate = useNavigate();
   const location = useLocation();
   const [resolved, setResolved] = useState<"loading" | "not_found" | "suspended" | "ok">("loading");
@@ -56,6 +58,12 @@ const TenantRouteGuard: React.FC = () => {
 
     return () => { cancelled = true; };
   }, [hospital_slug]);
+
+  useEffect(() => {
+    if (resolved === "ok" && tenant) {
+      refreshTenant();
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     if (resolved !== "ok" || authLoading) return;
@@ -117,6 +125,15 @@ const TenantRouteGuard: React.FC = () => {
         return null;
       }
     }
+  }
+
+  const lockedModule = findModuleForPath(location.pathname);
+  if (lockedModule && !effectiveAllowedModules.includes(lockedModule)) {
+    return (
+      <DashboardLayout>
+        <ModuleLockedPage moduleName={lockedModule} />
+      </DashboardLayout>
+    );
   }
 
   return <DashboardLayout><Outlet /></DashboardLayout>;

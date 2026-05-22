@@ -34,6 +34,8 @@ import { cn } from "@/lib/utils";
 import { adminSupabase } from "@/src/lib/adminSupabase";
 import { useAuth } from "@/src/context/AuthContext";
 import { saveCustomAccount, removeCustomAccount } from "@/src/lib/accountsStore";
+import { useCheckSeatLimit } from "@/src/hooks/useSeatLimit";
+import UpgradeSubscriptionModal from "@/src/components/UpgradeSubscriptionModal";
 import { useStaff } from "./StaffContext";
 import type { StaffPosition } from "./types";
 
@@ -59,8 +61,10 @@ export default function StaffProfile() {
   const { records, updateRecord, deleteRecord } = useStaff();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [saved, setSaved] = useState(false);
   const [settingsFeedback, setSettingsFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const checkSeatLimit = useCheckSeatLimit();
 
   const staff = records.find((r) => r.staff_id === id);
 
@@ -165,6 +169,13 @@ export default function StaffProfile() {
     setSettingsFeedback(null);
 
     if (canLogin && password.length >= 6 && staff.email) {
+      if (!staff.canLogin) {
+        const seatCheck = await checkSeatLimit();
+        if (!seatCheck.allowed) {
+          setShowUpgradeModal(true);
+          return;
+        }
+      }
       saveCustomAccount(staff.email, { name: staff.name, role: staffRole });
 
       try {
@@ -583,6 +594,12 @@ export default function StaffProfile() {
           </Tabs>
         </div>
       </div>
+
+      <UpgradeSubscriptionModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        resourceType="seats"
+      />
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>

@@ -16,33 +16,35 @@ drop table if exists public.tenants cascade;
 
 -- 1a. Tenants — Master Tenant Registry
 create table if not exists public.tenants (
-  tenant_id        text primary key,  -- e.g., "T-CITY-04"
-  hospital_name    text not null,
-  url_slug         text not null unique,  -- e.g., "cityhealth"
-  status           text not null default 'Active' check (status in ('Active','Trial','Suspended')),
-  tier             text not null default 'Standard' check (tier in ('Standard','Premium','Enterprise')),
-  max_doctor_seats integer not null default 10,
-  max_bed_capacity integer not null default 50,
-  expiry_date      timestamptz,
-  created_at       timestamptz not null default now(),
-  updated_at       timestamptz not null default now()
+  tenant_id              text primary key,  -- e.g., "T-CITY-04"
+  hospital_name          text not null,
+  url_slug               text not null unique,  -- e.g., "cityhealth"
+  status                 text not null default 'Active' check (status in ('Active','Trial','Suspended')),
+  tier                   text not null default 'Standard' check (tier in ('Standard','Premium','Enterprise')),
+  max_staff_seats        integer not null default 10,
+  max_bed_capacity       integer not null default 0,
+  allowed_modules_override text,  -- nullable JSON array — overrides tier's allowed_modules
+  expiry_date            timestamptz,
+  created_at             timestamptz not null default now(),
+  updated_at             timestamptz not null default now()
 );
 
 -- 1b. Subscription Tiers — Template limits
 create table if not exists public.subscription_tiers (
   id               uuid primary key default gen_random_uuid(),
   name             text not null unique check (name in ('Standard','Premium','Enterprise')),
-  max_doctor_seats integer not null,
+  max_staff_seats  integer not null,
   max_bed_capacity integer not null,
   monthly_price    numeric(10,2) not null,
   description      text,
+  allowed_modules  text not null default '[]',  -- JSON array of module identifiers
   created_at       timestamptz not null default now()
 );
 
-insert into public.subscription_tiers (name, max_doctor_seats, max_bed_capacity, monthly_price, description) values
-  ('Standard',  10,  50, 199.00, 'Entry-level for small clinics'),
-  ('Premium',   25, 100, 499.00, 'Mid-tier for growing hospitals'),
-  ('Enterprise', 999, 500, 999.00, 'Full-scale for large hospitals')
+insert into public.subscription_tiers (name, max_staff_seats, max_bed_capacity, monthly_price, description, allowed_modules) values
+  ('Standard',  10,  0,   199.00, 'Entry-level for small clinics (outpatient only)', '["emr","reception","billing"]'),
+  ('Premium',   50,  40,  499.00, 'Mid-tier for growing hospitals with inpatient', '["emr","reception","billing","pharmacy","laboratory","hmo_insurance"]'),
+  ('Enterprise', 99999, 99999, 999.00, 'Full-scale for large multi-branch networks', '["emr","reception","billing","pharmacy","laboratory","hmo_insurance","multi_branch","human_resources","accounting"]')
 on conflict (name) do nothing;
 
 -- 1c. Platform Admins — Separate from tenant users
@@ -219,6 +221,6 @@ create policy "platform_admins_no_access" on public.platform_admins
 -- ============================================================
 -- 7. SEED: Demo Tenant (for development)
 -- ============================================================
-insert into public.tenants (tenant_id, hospital_name, url_slug, status, tier, max_doctor_seats, max_bed_capacity) values
-  ('T-DEMO-01', 'iCare Demo Medical Center', 'demo', 'Active', 'Premium', 25, 100)
+insert into public.tenants (tenant_id, hospital_name, url_slug, status, tier, max_staff_seats, max_bed_capacity) values
+  ('T-DEMO-01', 'iCare Demo Medical Center', 'demo', 'Active', 'Premium', 50, 40)
 on conflict (tenant_id) do nothing;

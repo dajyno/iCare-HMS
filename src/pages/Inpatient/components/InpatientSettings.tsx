@@ -31,6 +31,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useTenant } from "@/src/context/TenantContext";
+import UpgradeSubscriptionModal from "@/src/components/UpgradeSubscriptionModal";
 import type { WardConfig, BedUnit } from "../inpatientTypes";
 
 const BED_STATUS_STYLES: Record<BedUnit["status"], string> = {
@@ -60,6 +62,8 @@ const InpatientSettings = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingWard, setEditingWard] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [showBedUpgradeModal, setShowBedUpgradeModal] = useState(false);
+  const [bedUpgradeMessage, setBedUpgradeMessage] = useState("");
   const [editName, setEditName] = useState("");
   const [editDept, setEditDept] = useState("");
   const [editingBedPrice, setEditingBedPrice] = useState<string | null>(null);
@@ -72,6 +76,9 @@ const InpatientSettings = ({
     bedCount: 10,
   });
 
+  const { tenant } = useTenant();
+  const maxBedCapacity = tenant?.maxBedCapacity ?? 0;
+
   const selectedWard = wardConfiguration.find(
     (w) => w.wardId === drillDownWard
   );
@@ -83,6 +90,15 @@ const InpatientSettings = ({
 
   const handleAddWard = () => {
     if (!newWard.wardId || !newWard.name || !newWard.department) return;
+    const currentBeds = wardConfiguration.reduce((sum, w) => sum + w.beds.length, 0);
+    const totalBedsAfter = currentBeds + newWard.bedCount;
+    if (totalBedsAfter > maxBedCapacity) {
+      setBedUpgradeMessage(
+        `Cannot add ${newWard.bedCount} beds. Your plan allows ${maxBedCapacity} beds (currently ${currentBeds}).`
+      );
+      setShowBedUpgradeModal(true);
+      return;
+    }
     onAddWard(newWard);
     setNewWard({ wardId: "", name: "", department: "", bedCount: 10 });
     setShowAddForm(false);
@@ -97,6 +113,18 @@ const InpatientSettings = ({
 
   const saveEdit = () => {
     if (!editingWard || !editName.trim() || !editDept.trim()) return;
+    const ward = wardConfiguration.find((w) => w.wardId === editingWard);
+    if (ward && editTotalBeds && editTotalBeds > ward.beds.length) {
+      const currentBeds = wardConfiguration.reduce((sum, w) => sum + w.beds.length, 0);
+      const addedBeds = editTotalBeds - ward.beds.length;
+      if (currentBeds + addedBeds > maxBedCapacity) {
+        setBedUpgradeMessage(
+          `Cannot add ${addedBeds} beds. Your plan allows ${maxBedCapacity} beds (currently ${currentBeds}).`
+        );
+        setShowBedUpgradeModal(true);
+        return;
+      }
+    }
     onUpdateWardConfig(editingWard, {
       name: editName.trim(),
       department: editDept.trim(),
@@ -587,6 +615,12 @@ const InpatientSettings = ({
             Close
           </Button>
         </DialogFooter>
+
+        <UpgradeSubscriptionModal
+          open={showBedUpgradeModal}
+          onOpenChange={setShowBedUpgradeModal}
+          resourceType="beds"
+        />
 
         {/* Delete Confirmation Dialog */}
         <Dialog

@@ -22,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Tenant } from "../../types/tenant";
+import { ALL_MODULES } from "../../lib/moduleAccess";
 
 const statusBadge = (status: string) => {
   const colors: Record<string, string> = {
@@ -42,6 +43,15 @@ const TenantsDirectory: React.FC = () => {
   const [form, setForm] = useState({ hospitalName: "", urlSlug: "", adminEmail: "", tier: "Standard" });
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+
+  // Edit limits state
+  const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
+  const [editStaffSeats, setEditStaffSeats] = useState(0);
+  const [editBedCapacity, setEditBedCapacity] = useState(0);
+  const [editModules, setEditModules] = useState<string[]>([]);
+  const [editModuleOverride, setEditModuleOverride] = useState(false);
+  const [savingLimits, setSavingLimits] = useState(false);
+  const [limitsError, setLimitsError] = useState("");
 
   const fetchTenants = async () => {
     setLoading(true);
@@ -67,14 +77,21 @@ const TenantsDirectory: React.FC = () => {
 
     const tenantId = `T-${slug.toUpperCase().slice(0, 8)}`;
 
+    const tierLimits: Record<string, { seats: number; beds: number }> = {
+      Standard: { seats: 10, beds: 0 },
+      Premium: { seats: 50, beds: 40 },
+      Enterprise: { seats: 99999, beds: 99999 },
+    };
+    const limits = tierLimits[form.tier] || tierLimits.Standard;
+
     const { error } = await adminSupabase.from("tenants").insert({
       tenant_id: tenantId,
       hospital_name: form.hospitalName,
       url_slug: slug,
       status: "Trial",
       tier: form.tier,
-      max_doctor_seats: form.tier === "Enterprise" ? 999 : form.tier === "Premium" ? 25 : 10,
-      max_bed_capacity: form.tier === "Enterprise" ? 500 : form.tier === "Premium" ? 100 : 50,
+      max_staff_seats: limits.seats,
+      max_bed_capacity: limits.beds,
     });
 
     if (error) {
@@ -87,6 +104,46 @@ const TenantsDirectory: React.FC = () => {
     setSubmitting(false);
     setModalOpen(false);
     setForm({ hospitalName: "", urlSlug: "", adminEmail: "", tier: "Standard" });
+    fetchTenants();
+  };
+
+  const openEditLimits = (tenant: Tenant) => {
+    setEditingTenant(tenant);
+    setEditStaffSeats(tenant.maxStaffSeats);
+    setEditBedCapacity(tenant.maxBedCapacity);
+    setEditModules(tenant.allowedModulesOverride ?? []);
+    setEditModuleOverride(!!tenant.allowedModulesOverride);
+    setLimitsError("");
+  };
+
+  const handleSaveLimits = async () => {
+    if (!editingTenant) return;
+    setSavingLimits(true);
+    setLimitsError("");
+
+    const updates: Record<string, any> = {
+      max_staff_seats: editStaffSeats,
+      max_bed_capacity: editBedCapacity,
+    };
+    if (editModuleOverride) {
+      updates.allowed_modules_override = JSON.stringify(editModules);
+    } else {
+      updates.allowed_modules_override = null;
+    }
+
+    const { error } = await adminSupabase
+      .from("tenants")
+      .update(updates)
+      .eq("tenant_id", editingTenant.tenantId);
+
+    if (error) {
+      setLimitsError(error.message);
+      setSavingLimits(false);
+      return;
+    }
+
+    setSavingLimits(false);
+    setEditingTenant(null);
     fetchTenants();
   };
 
@@ -160,6 +217,9 @@ const TenantsDirectory: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent className="bg-slate-800 border-slate-700 text-slate-200">
+                          <DropdownMenuItem onClick={() => openEditLimits(t)} className="text-sky-400 focus:text-sky-300 focus:bg-sky-900/30">
+                            Edit Limits
+                          </DropdownMenuItem>
                           {t.status !== "Suspended" ? (
                             <DropdownMenuItem onClick={() => handleStatusAction(t.tenantId, "Suspended")} className="text-red-400 focus:text-red-300 focus:bg-red-900/30">
                               Suspend
@@ -182,6 +242,90 @@ const TenantsDirectory: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Edit Limits Modal */}
+      <Dialog open={!!editingTenant} onOpenChange={(o) => !o && setEditingTenant(null)}>
+        <DialogContent className="bg-slate-800 border-slate-700 text-slate-100 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">Edit Limits — {editingTenant?.hospitalName}</DialogTitle>
+            <DialogDescription className="text-slate-400 text-xs">
+              Override subscription limits for this tenant.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {limitsError && (
+              <div className="bg-red-900/30 border border-red-800/50 text-red-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+                <AlertCircle className="w-3.5 h-3.5" />
+                {limitsError}
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Max Staff Seats</Label>
+              <Input
+                type="number"
+                min={0}
+                value={editStaffSeats}
+                onChange={(e) => setEditStaffSeats(parseInt(e.target.value) || 0)}
+                className="bg-slate-900/50 border-slate-600 text-slate-100"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Max Bed Capacity</Label>
+              <Input
+                type="number"
+                min={0}
+                value={editBedCapacity}
+                onChange={(e) => setEditBedCapacity(parseInt(e.target.value) || 0)}
+                className="bg-slate-900/50 border-slate-600 text-slate-100"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Module Override</Label>
+                <button
+                  onClick={() => setEditModuleOverride(!editModuleOverride)}
+                  className={`relative w-10 h-5 rounded-full transition-colors ${editModuleOverride ? "bg-sky-600" : "bg-slate-600"}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${editModuleOverride ? "translate-x-5" : ""}`} />
+                </button>
+              </div>
+              {editModuleOverride && (
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  {ALL_MODULES.map((mod) => (
+                    <label key={mod} className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editModules.includes(mod)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setEditModules([...editModules, mod]);
+                          } else {
+                            setEditModules(editModules.filter((m) => m !== mod));
+                          }
+                        }}
+                        className="rounded bg-slate-700 border-slate-500"
+                      />
+                      {mod.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                    </label>
+                  ))}
+                </div>
+              )}
+              {!editModuleOverride && (
+                <p className="text-[10px] text-slate-500">Using tier defaults. Toggle override to customize.</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="ghost" onClick={() => setEditingTenant(null)} className="text-slate-400">
+              Cancel
+            </Button>
+            <Button onClick={handleSaveLimits} disabled={savingLimits} className="bg-sky-600 hover:bg-sky-700">
+              {savingLimits ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+              Save Limits
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Provision Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
@@ -239,8 +383,8 @@ const TenantsDirectory: React.FC = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
-                    <SelectItem value="Standard">Standard — $199/mo (10 doctors, 50 beds)</SelectItem>
-                    <SelectItem value="Premium">Premium — $499/mo (25 doctors, 100 beds)</SelectItem>
+                    <SelectItem value="Standard">Standard — $199/mo (10 seats, 0 beds)</SelectItem>
+                    <SelectItem value="Premium">Premium — $499/mo (50 seats, 40 beds)</SelectItem>
                     <SelectItem value="Enterprise">Enterprise — $999/mo (unlimited)</SelectItem>
                   </SelectContent>
                 </Select>

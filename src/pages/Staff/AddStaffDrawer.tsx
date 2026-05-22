@@ -18,6 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useStaff } from "./StaffContext";
+import { useCheckSeatLimit } from "@/src/hooks/useSeatLimit";
+import UpgradeSubscriptionModal from "@/src/components/UpgradeSubscriptionModal";
 import type { StaffRecord, StaffPosition } from "./types";
 
 const POSITION_OPTIONS: StaffPosition[] = [
@@ -36,6 +38,8 @@ interface Props {
 
 export default function AddStaffModal({ open, onClose }: Props) {
   const { addRecord } = useStaff();
+  const checkSeatLimit = useCheckSeatLimit();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -49,6 +53,12 @@ export default function AddStaffModal({ open, onClose }: Props) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!firstName || !lastName || !position || !staffId) return;
+
+    const seatCheck = await checkSeatLimit();
+    if (!seatCheck.allowed) {
+      setShowUpgradeModal(true);
+      return;
+    }
 
     const newRecord: StaffRecord = {
       staff_id: staffId,
@@ -221,6 +231,12 @@ export default function AddStaffModal({ open, onClose }: Props) {
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <UpgradeSubscriptionModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        resourceType="seats"
+      />
     </Dialog>
   );
 }

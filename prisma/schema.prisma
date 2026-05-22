@@ -503,10 +503,11 @@ model Notification {
 model SubscriptionTier {
   id             String   @id @default(cuid())
   name           String   @unique // Standard, Premium, Enterprise
-  maxDoctorSeats Int
+  maxStaffSeats  Int
   maxBedCapacity Int
   monthlyPrice   Float
   description    String?
+  allowedModules String   @default("[]") // JSON array of module identifiers
   tenants        Tenant[]
 }
 
@@ -521,15 +522,16 @@ model PlatformAdmin {
 }
 
 model Tenant {
-  tenantId       String   @id // e.g., "T-CITY-04"
-  hospitalName   String
-  urlSlug        String   @unique // e.g., "cityhealth"
-  status         String   @default("Active") // Active, Trial, Suspended
-  tierId         String?
-  tier           SubscriptionTier? @relation(fields: [tierId], references: [id])
-  maxDoctorSeats Int      @default(10)
-  maxBedCapacity Int      @default(50)
-  expiryDate     DateTime?
+  tenantId              String   @id // e.g., "T-CITY-04"
+  hospitalName          String
+  urlSlug               String   @unique // e.g., "cityhealth"
+  status                String   @default("Active") // Active, Trial, Suspended
+  tierId                String?
+  tier                  SubscriptionTier? @relation(fields: [tierId], references: [id])
+  maxStaffSeats         Int      @default(10)
+  maxBedCapacity        Int      @default(0)
+  allowedModulesOverride String?  // nullable JSON array — overrides tier's allowedModules
+  expiryDate            DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
