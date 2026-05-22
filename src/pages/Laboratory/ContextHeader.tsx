@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ const computeAge = (dob: string) => {
 };
 
 const ContextHeader = ({ patient }: ContextHeaderProps) => {
+  const { hospital_slug } = useParams();
   if (!patient) {
     return (
       <div className="flex items-center gap-4 px-6 py-3 bg-white border-b border-slate-200">
@@ -55,7 +56,7 @@ const ContextHeader = ({ patient }: ContextHeaderProps) => {
         </div>
       </div>
       <Button variant="ghost" size="sm" className="text-slate-500 hover:text-[#005EB8] text-xs" asChild>
-        <Link to={`/patients/${patient.id}`}>
+        <Link to={`/${hospital_slug}/patients/${patient.id}`}>
           View Profile
         </Link>
       </Button>

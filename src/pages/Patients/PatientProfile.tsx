@@ -28,7 +28,7 @@ const categoryBadge: Record<string, string> = {
 };
 
 const PatientProfile = () => {
-  const { id } = useParams();
+  const { id, hospital_slug } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
@@ -772,7 +772,7 @@ const PatientProfile = () => {
                     </div>
                   </div>
                   <Button variant="ghost" size="sm" className="h-8 text-blue-600 font-bold"
-                    onClick={() => navigate(`/patients/${primaryPatient.id}`)}>
+                    onClick={() => navigate(`/${hospital_slug}/patients/${primaryPatient.id}`)}>
                     View Profile
                   </Button>
                 </div>
@@ -797,7 +797,7 @@ const PatientProfile = () => {
                       </div>
                     </div>
                     <Button variant="ghost" size="sm" className="h-8 text-blue-600 font-bold"
-                      onClick={() => navigate(`/patients/${fm.id}`)}>
+                      onClick={() => navigate(`/${hospital_slug}/patients/${fm.id}`)}>
                       View Profile
                     </Button>
                   </div>

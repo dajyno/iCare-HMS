@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import {
@@ -19,6 +19,7 @@ const statusConfig: Record<string, { icon: any; label: string; color: string; bg
 
 const ConsultationList = () => {
   const navigate = useNavigate();
+  const { hospital_slug } = useParams();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -152,7 +153,7 @@ const ConsultationList = () => {
       await supabase.from("consultations").update({ status: "InProgress" }).eq("id", c.id);
       queryClient.invalidateQueries({ queryKey: ["consultations"] });
     }
-    navigate(`/consultations/workspace/${pid}`);
+    navigate(`/${hospital_slug}/consultations/workspace/${pid}`);
   }, [navigate, queryClient]);
 
   const handleOpenDetails = useCallback((c: any) => {
@@ -278,7 +279,7 @@ const ConsultationList = () => {
                               variant="ghost"
                               size="sm"
                               className="h-8 text-xs font-semibold text-blue-600"
-                              onClick={() => navigate(`/consultations/workspace/${c.patientId || c.patient_id}`)}
+                              onClick={() => navigate(`/${hospital_slug}/consultations/workspace/${c.patientId || c.patient_id}`)}
                             >
                               Continue
                             </Button>

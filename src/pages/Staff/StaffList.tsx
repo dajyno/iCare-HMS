@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import {
   useReactTable,
@@ -38,6 +38,7 @@ const columnHelper = createColumnHelper<StaffRecord>();
 
 export default function StaffList() {
   const navigate = useNavigate();
+  const { hospital_slug } = useParams();
   const { records } = useStaff();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("All Staff");
@@ -264,7 +265,7 @@ export default function StaffList() {
                           layout
                           layoutId={`staff-row-${record.staff_id}`}
                           onClick={() =>
-                            navigate(`/staff/${record.staff_id}`)
+                            navigate(`/${hospital_slug}/staff/${record.staff_id}`)
                           }
                           className={cn(
                             "group cursor-pointer transition-colors hover:bg-sky-50/50 border-b border-slate-50 last:border-0",

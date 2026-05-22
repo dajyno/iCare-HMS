@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import {
@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 const FamilyPatients = () => {
   const navigate = useNavigate();
+  const { hospital_slug } = useParams();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [showNewModal, setShowNewModal] = useState(false);
@@ -232,7 +233,7 @@ const FamilyPatients = () => {
                       </Badge>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <Button variant="ghost" size="sm" className="h-8 text-blue-600 font-bold" onClick={(e) => { e.stopPropagation(); navigate(`/patients/${f.id}`); }}>
+                      <Button variant="ghost" size="sm" className="h-8 text-blue-600 font-bold" onClick={(e) => { e.stopPropagation(); navigate(`/${hospital_slug}/patients/${f.id}`); }}>
                         View Profile
                       </Button>
                     </td>

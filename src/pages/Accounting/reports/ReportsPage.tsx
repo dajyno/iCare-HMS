@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
 import { BarChart3, TrendingUp, TrendingDown, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { useIncome, useExpenses, useIncomeCategories, useExpenseCategories } fro
 
 const ReportsPage = () => {
   const navigate = useNavigate();
+  const { hospital_slug } = useParams();
   const { data: income } = useIncome();
   const { data: expenses } = useExpenses();
 
@@ -35,7 +36,7 @@ const ReportsPage = () => {
   }, [verifiedExpenses]);
 
   const handleDrillDown = (category: string) => {
-    navigate(`/accounting/ledger?filter=${encodeURIComponent(category)}`);
+    navigate(`/${hospital_slug}/accounting/ledger?filter=${encodeURIComponent(category)}`);
   };
 
   return (

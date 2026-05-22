@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import Pagination from "@/components/ui/pagination";
@@ -29,6 +29,7 @@ const categoryBadge: Record<string, string> = {
 
 const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
   const navigate = useNavigate();
+  const { hospital_slug } = useParams();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [showNewModal, setShowNewModal] = useState(false);
@@ -417,7 +418,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="sm" className="h-8 text-blue-600 font-bold text-xs"
-                          onClick={(e) => { e.stopPropagation(); navigate(`/patients/${patient.id}`); }}>
+                          onClick={(e) => { e.stopPropagation(); navigate(`/${hospital_slug}/patients/${patient.id}`); }}>
                           <FileText className="w-3.5 h-3.5 mr-1" /> View Profile
                         </Button>
                         <DropdownMenu>
