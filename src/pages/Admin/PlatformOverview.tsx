@@ -113,7 +113,7 @@ const PlatformOverview: React.FC = () => {
     fetchMetrics();
   }, []);
 
-  const { m } = metrics;
+  const m = metrics;
 
   return (
     <div className="space-y-8">
