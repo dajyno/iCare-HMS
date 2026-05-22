@@ -45,14 +45,14 @@ export const TIME_SLOT_MINUTES = 15;
 export const GRID_START_HOUR = 8;
 export const GRID_END_HOUR = 20;
 
-export function getSlotIndex(time: string): number {
+export function getSlotIndex(time: string, baseHour = GRID_START_HOUR): number {
   const d = new Date(time);
   const minutes = d.getHours() * 60 + d.getMinutes();
-  return Math.floor((minutes - GRID_START_HOUR * 60) / TIME_SLOT_MINUTES);
+  return Math.floor((minutes - baseHour * 60) / TIME_SLOT_MINUTES);
 }
 
-export function getTimeFromIndex(index: number): string {
-  const totalMinutes = GRID_START_HOUR * 60 + index * TIME_SLOT_MINUTES;
+export function getTimeFromIndex(index: number, baseHour = GRID_START_HOUR): string {
+  const totalMinutes = baseHour * 60 + index * TIME_SLOT_MINUTES;
   const h = Math.floor(totalMinutes / 60);
   const m = totalMinutes % 60;
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;

@@ -33,15 +33,30 @@ export default function AppointmentGrid({
   const [dragOverDoctorId, setDragOverDoctorId] = useState<string | null>(null);
   const [dragOverSlotIdx, setDragOverSlotIdx] = useState<number | null>(null);
 
+  const isToday = useMemo(() => {
+    const n = new Date();
+    return (
+      date.getFullYear() === n.getFullYear() &&
+      date.getMonth() === n.getMonth() &&
+      date.getDate() === n.getDate()
+    );
+  }, [date]);
+
+  const dynamicStartHour = isToday
+    ? Math.max(GRID_START_HOUR, new Date().getHours() - 1)
+    : GRID_START_HOUR;
+  const visibleStartSlot =
+    (dynamicStartHour - GRID_START_HOUR) * (60 / TIME_SLOT_MINUTES);
   const totalSlots = (GRID_END_HOUR - GRID_START_HOUR) * (60 / TIME_SLOT_MINUTES);
+  const visibleSlotCount = totalSlots - visibleStartSlot;
 
   const timeLabels = useMemo(() => {
     const labels: string[] = [];
-    for (let i = 0; i < totalSlots; i++) {
-      labels.push(getTimeFromIndex(i));
+    for (let i = 0; i < visibleSlotCount; i++) {
+      labels.push(getTimeFromIndex(visibleStartSlot + i));
     }
     return labels;
-  }, [totalSlots]);
+  }, [visibleSlotCount, visibleStartSlot]);
 
   const appointmentMap = useMemo(() => {
     const map = new Map<string, Appointment[]>();
@@ -79,7 +94,7 @@ export default function AppointmentGrid({
         if (!raw) return;
         const appointment: Appointment = JSON.parse(raw);
         const dateStr = date.toISOString().split("T")[0];
-        const newStartTime = `${dateStr}T${getTimeFromIndex(slotIdx)}:00`;
+        const newStartTime = `${dateStr}T${getTimeFromIndex(visibleStartSlot + slotIdx)}:00`;
         const duration = getSlotSpan(appointment.startTime, appointment.endTime) * TIME_SLOT_MINUTES;
         const endDate = new Date(new Date(newStartTime).getTime() + duration * 60000);
         const newEndTime = endDate.toISOString();
@@ -87,7 +102,7 @@ export default function AppointmentGrid({
       } catch {
       }
     },
-    [date, onDragEnd]
+    [date, onDragEnd, visibleStartSlot]
   );
 
   const handleCardDragStart = useCallback((_e: React.DragEvent, _appointment: Appointment) => {
@@ -98,8 +113,8 @@ export default function AppointmentGrid({
       <div
         className="grid"
         style={{
-          gridTemplateColumns: `160px repeat(${totalSlots}, minmax(70px, 1fr))`,
-          minWidth: `${160 + totalSlots * 70}px`,
+          gridTemplateColumns: `160px repeat(${visibleSlotCount}, minmax(70px, 1fr))`,
+          minWidth: `${160 + visibleSlotCount * 70}px`,
         }}
       >
         {/* Header row */}
@@ -129,7 +144,9 @@ export default function AppointmentGrid({
               key={doctor.id}
               doctor={doctor}
               date={date}
-              totalSlots={totalSlots}
+              totalSlots={visibleSlotCount}
+              visibleStartSlot={visibleStartSlot}
+              dynamicStartHour={dynamicStartHour}
               appointments={doctorAppointments}
               conflictIds={conflictIds}
               onSlotClick={onSlotClick}
@@ -152,6 +169,8 @@ interface DoctorRowProps {
   doctor: DoctorSlot;
   date: Date;
   totalSlots: number;
+  visibleStartSlot: number;
+  dynamicStartHour: number;
   appointments: Appointment[];
   conflictIds: Set<string>;
   onSlotClick: (doctorId: string, time: string) => void;
@@ -168,6 +187,8 @@ function DoctorRow({
   doctor,
   date,
   totalSlots,
+  visibleStartSlot,
+  dynamicStartHour,
   appointments,
   conflictIds,
   onSlotClick,
@@ -181,17 +202,33 @@ function DoctorRow({
 }: DoctorRowProps) {
   const dateStr = date.toISOString().split("T")[0];
 
+  const visibleAppointments = useMemo(() => {
+    const visStartMin = dynamicStartHour * 60;
+    const visEndMin = GRID_END_HOUR * 60;
+    return appointments.filter((apt) => {
+      const d = new Date(apt.startTime);
+      const startMin = d.getHours() * 60 + d.getMinutes();
+      const endDate = new Date(apt.endTime);
+      const endMin = endDate.getHours() * 60 + endDate.getMinutes();
+      return startMin < visEndMin && endMin > visStartMin;
+    });
+  }, [appointments, dynamicStartHour]);
+
   const occupiedSlots = useMemo(() => {
     const set = new Set<number>();
-    for (const apt of appointments) {
-      const startIdx = getSlotIndex(apt.startTime);
-      const span = getSlotSpan(apt.startTime, apt.endTime);
+    for (const apt of visibleAppointments) {
+      let startIdx = getSlotIndex(apt.startTime, dynamicStartHour);
+      let span = getSlotSpan(apt.startTime, apt.endTime);
+      if (startIdx < 0) {
+        span = Math.max(0, span + startIdx);
+        startIdx = 0;
+      }
       for (let i = 0; i < span; i++) {
-        set.add(startIdx + i);
+        if (startIdx + i < totalSlots) set.add(startIdx + i);
       }
     }
     return set;
-  }, [appointments]);
+  }, [visibleAppointments, dynamicStartHour, totalSlots]);
 
   return (
     <>
@@ -207,7 +244,7 @@ function DoctorRow({
             const isOccupied = occupiedSlots.has(slotIdx);
             const isDragOver =
               dragOverDoctorId === doctor.id && dragOverSlotIdx === slotIdx;
-            const timeStr = `${dateStr}T${getTimeFromIndex(slotIdx)}:00`;
+            const timeStr = `${dateStr}T${getTimeFromIndex(visibleStartSlot + slotIdx)}:00`;
             return (
               <div
                 key={slotIdx}
@@ -230,9 +267,12 @@ function DoctorRow({
         </div>
 
         {/* Appointment cards */}
-        {appointments.map((apt) => {
-          const startIdx = getSlotIndex(apt.startTime);
-          const span = getSlotSpan(apt.startTime, apt.endTime);
+        {visibleAppointments.map((apt) => {
+          let startIdx = getSlotIndex(apt.startTime, dynamicStartHour);
+          const origSpan = getSlotSpan(apt.startTime, apt.endTime);
+          const clampedStart = startIdx < 0;
+          const span = clampedStart ? Math.max(0, origSpan + startIdx) : origSpan;
+          if (clampedStart) startIdx = 0;
           return (
             <div
               key={apt.id}
