@@ -94,16 +94,16 @@ export default function AppointmentGrid({
   }, []);
 
   return (
-    <div className="overflow-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="overflow-auto rounded-xl border border-blue-100 bg-white shadow-md ring-1 ring-blue-50">
       <div
         className="grid"
         style={{
-          gridTemplateColumns: `160px repeat(${totalSlots}, minmax(35px, 1fr))`,
-          minWidth: `${160 + totalSlots * 35}px`,
+          gridTemplateColumns: `160px repeat(${totalSlots}, minmax(70px, 1fr))`,
+          minWidth: `${160 + totalSlots * 70}px`,
         }}
       >
         {/* Header row */}
-        <div className="sticky top-0 left-0 z-30 bg-slate-50 border-b border-r border-slate-200 px-2 py-2 text-[10px] font-bold uppercase text-slate-500">
+        <div className="sticky top-0 left-0 z-30 bg-gradient-to-r from-blue-600 to-blue-700 border-b border-blue-800 px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider text-white flex items-center">
           Consultants
         </div>
         {timeLabels.map((label, i) => {
@@ -112,8 +112,8 @@ export default function AppointmentGrid({
           return (
             <div
               key={i}
-              className={`sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-1 py-1 text-center text-[10px] font-medium text-slate-400 ${
-                isHour ? "border-r-2 border-slate-300" : "border-r border-slate-100"
+              className={`sticky top-0 z-10 bg-gradient-to-b from-sky-50 to-white border-b border-sky-100 px-1 py-1.5 text-center text-[11px] font-semibold ${
+                isHour ? "text-blue-700 border-r-2 border-blue-200" : "text-slate-400 border-r border-slate-100"
               }`}
             >
               {showLabel ? label : ""}
@@ -196,13 +196,13 @@ function DoctorRow({
   return (
     <>
       {/* Doctor label */}
-      <div className="sticky left-0 z-10 border-b border-r border-slate-200 bg-slate-50/50 px-2 py-2 flex items-center">
-        <span className="text-xs font-semibold text-slate-700 truncate">{doctor.name}</span>
+      <div className="sticky left-0 z-10 border-b border-slate-200 border-l-4 border-l-blue-500 bg-white px-3 py-2 flex items-center">
+        <span className="text-xs font-semibold text-slate-800 truncate">{doctor.name}</span>
       </div>
 
       {/* Time slots */}
       <div className="relative border-b border-slate-200" style={{ gridColumn: `span ${totalSlots}` }}>
-        <div className="flex" style={{ minHeight: "64px" }}>
+        <div className="flex" style={{ minHeight: "72px" }}>
           {Array.from({ length: totalSlots }).map((_, slotIdx) => {
             const isOccupied = occupiedSlots.has(slotIdx);
             const isDragOver =
@@ -215,12 +215,12 @@ function DoctorRow({
                 onDragLeave={onDragLeave}
                 onDrop={(e) => onDrop(e, doctor.id, slotIdx)}
                 className={`
-                  flex-1 border-r border-slate-100 min-h-[64px] relative
+                  flex-1 border-r border-slate-100 min-h-[72px] relative
                   transition-colors
-                  ${isOccupied ? "bg-slate-50/30" : "cursor-pointer hover:bg-blue-50/50"}
+                  ${isOccupied ? "bg-blue-50/20" : "cursor-pointer hover:bg-blue-50/40"}
                   ${isDragOver ? "bg-blue-100/70 ring-2 ring-blue-400 ring-inset" : ""}
                 `}
-                style={{ minWidth: "30px" }}
+                style={{ minWidth: "60px" }}
                 onClick={() => {
                   if (!isOccupied) onSlotClick(doctor.id, timeStr);
                 }}
