@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { cn } from "@/lib/utils";
+import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
 import { 
   Users, 
   Calendar, 
@@ -16,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 const Overview = () => {
+  const { settings } = useGlobalSettings();
   const { data: stats, isLoading, error: queryError, isError } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: async () => {
@@ -89,7 +91,7 @@ const Overview = () => {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-800">HOSPITAL NAME</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-800">{settings.hospitalName || "iCare Medical Center"}</h1>
           <p className="text-slate-500 text-sm mt-1">Welcome back. Here's what's happening across departments today.</p>
         </div>
       </div>
