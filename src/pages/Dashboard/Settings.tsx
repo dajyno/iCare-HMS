@@ -362,7 +362,7 @@ export default function Settings() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[180px_1fr] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">
         <div className="space-y-2">
           {tabs.map((tab) => {
             const Icon = tab.icon;
