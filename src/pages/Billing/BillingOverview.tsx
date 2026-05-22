@@ -522,7 +522,7 @@ const BillingOverview = () => {
             initial={{ y: 80, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 bg-white rounded-2xl shadow-2xl border border-slate-200 px-6 py-4 flex items-center gap-6"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 bg-white rounded-2xl shadow-xl ring-1 ring-blue-200/40 border border-blue-100/50 px-6 py-4 flex items-center gap-6"
           >
             <button
               onClick={clearSelection}

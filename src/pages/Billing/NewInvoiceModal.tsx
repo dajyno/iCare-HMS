@@ -428,7 +428,7 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
       <motion.div
         layout
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className="relative bg-white rounded-2xl shadow-2xl w-full p-6 max-h-[95vh] max-w-4xl flex flex-col"
+        className="relative bg-white rounded-2xl shadow-xl ring-1 ring-blue-200/40 border border-blue-100/50 w-full p-6 max-h-[95vh] max-w-4xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex-1 overflow-y-auto -mx-6 px-6">

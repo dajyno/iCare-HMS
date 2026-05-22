@@ -35,8 +35,8 @@ const SidebarItem = ({ icon: Icon, label, href, active, onClick }: any) => (
     className={cn(
       "flex items-center gap-3 px-3 py-2 rounded-md transition-all text-sm font-medium",
       active
-        ? "bg-sky-50 text-sky-700 shadow-none"
-        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+        ? "bg-blue-50 text-blue-700 border-r-2 border-blue-500 shadow-sm"
+        : "text-slate-600 hover:bg-blue-50/40 hover:text-blue-600"
     )}
   >
     {Icon && <Icon className="w-5 h-5" strokeWidth={2} />}
@@ -61,7 +61,7 @@ const SidebarGroup = ({ icon: Icon, label, children, currentPath, isOpen, onTogg
         onClick={onToggle}
         className={cn(
           "flex items-center gap-3 px-3 py-2 rounded-md transition-all text-sm font-medium w-full text-left",
-          "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+          "text-slate-600 hover:bg-blue-50/40 hover:text-blue-600"
         )}
       >
         {Icon && <Icon className="w-5 h-5 shrink-0" strokeWidth={2} />}
@@ -69,7 +69,7 @@ const SidebarGroup = ({ icon: Icon, label, children, currentPath, isOpen, onTogg
         <ChevronDown className={cn("w-4 h-4 transition-transform shrink-0", isOpen && "rotate-180")} />
       </button>
       {isOpen && (
-        <div className="ml-3 mt-0.5 space-y-0.5 border-l border-slate-200 pl-3">
+        <div className="ml-3 mt-0.5 space-y-0.5 border-l border-blue-200 pl-3">
           {children.map((child: any) => (
             <SidebarItem
               key={child.href}
@@ -211,12 +211,12 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex">
-        <div className="p-6 flex items-center gap-3 border-b border-slate-100">
-          <div className="w-8 h-8 bg-sky-600 rounded-lg flex items-center justify-center text-white font-bold">
+      <aside className="w-64 bg-white border-r border-blue-100 flex flex-col hidden md:flex">
+        <div className="p-6 flex items-center gap-3 bg-gradient-to-r from-blue-600 to-blue-700">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold">
             i
           </div>
-          <span className="text-xl font-bold tracking-tight text-slate-800">iCare</span>
+          <span className="text-xl font-bold tracking-tight text-white">iCare</span>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-hide">
@@ -244,7 +244,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           </nav>
         </div>
 
-        <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+                <div className="p-4 border-t border-blue-100 bg-blue-50/20">
           <Link to="/profile" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white hover:shadow-sm transition-all group">
             <Avatar className="h-9 w-9 border border-slate-200 group-hover:border-sky-200 overflow-hidden">
               {profilePic ? (
@@ -276,7 +276,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Top Header */}
-        <header className="h-auto min-h-16 bg-white border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 px-4 sm:px-8 py-2 sm:py-0 shrink-0">
+        <header className="h-auto min-h-16 bg-white border-b border-blue-100 flex flex-wrap items-center justify-between gap-2 px-4 sm:px-8 py-2 sm:py-0 shrink-0">
           <div className="flex items-center gap-2 text-slate-500 text-sm">
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <Button
@@ -288,9 +288,9 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 <Menu className="w-5 h-5" />
               </Button>
               <SheetContent side="left" className="w-72 p-0 flex flex-col">
-                <div className="p-6 flex items-center gap-3 border-b border-slate-100">
-                  <div className="w-8 h-8 bg-sky-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">i</div>
-                  <span className="text-xl font-bold tracking-tight text-slate-800">iCare</span>
+                <div className="p-6 flex items-center gap-3 bg-gradient-to-r from-blue-600 to-blue-700">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm">i</div>
+                  <span className="text-xl font-bold tracking-tight text-white">iCare</span>
                 </div>
                 <div className="flex-1 overflow-y-auto px-4 py-4">
                   <nav className="space-y-1">
@@ -316,13 +316,13 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                     )}
                   </nav>
                 </div>
-                <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+        <div className="p-4 border-t border-blue-100 bg-blue-50/20">
                   <Link
                     to="/profile"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white hover:shadow-sm transition-all group"
                   >
-                    <Avatar className="h-9 w-9 border border-slate-200 group-hover:border-sky-200 overflow-hidden">
+            <Avatar className="h-9 w-9 border border-slate-200 group-hover:border-blue-300 overflow-hidden">
                       {profilePic ? (
                         <img src={profilePic} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -359,7 +359,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Escape") { setSearchQuery(""); setSearchResults([]); (e.target as HTMLInputElement).blur(); } }}
                 placeholder="Search patients, reports..."
-                className="w-40 sm:w-64 pl-9 pr-10 py-1.5 text-sm bg-slate-100 border-none rounded-full focus:ring-2 focus:ring-sky-500 transition-all outline-none"
+                className="w-40 sm:w-64 pl-9 pr-10 py-1.5 text-sm bg-slate-100 border-none rounded-full focus:ring-2 focus:ring-blue-400 transition-all outline-none"
               />
               {searchQuery.trim() && (
                 <button
@@ -394,7 +394,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
               )}
             </div>
             
-            <button className="relative p-1 text-slate-400 hover:text-sky-600 transition-colors">
+            <button className="relative p-1 text-slate-400 hover:text-blue-600 transition-colors">
               <Bell className="w-6 h-6" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
             </button>
@@ -412,7 +412,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         </div>
 
         {/* Footer */}
-        <footer className="h-8 bg-slate-100 border-t border-slate-200 px-8 flex items-center justify-between text-[10px] text-slate-500 shrink-0">
+        <footer className="h-8 bg-blue-50/40 border-t border-blue-100 px-8 flex items-center justify-between text-[10px] text-slate-500 shrink-0">
           <div className="flex gap-4">
             <span>System Status: <span className="text-green-600 font-semibold">Operational</span></span>
             <span>Server Load: 12%</span>

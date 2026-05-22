@@ -177,7 +177,7 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-2xl shadow-xl ring-1 ring-blue-200/40 border border-blue-100/50 w-full max-w-lg max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-6 space-y-5">
