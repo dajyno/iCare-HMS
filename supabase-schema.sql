@@ -1021,11 +1021,6 @@ on conflict do nothing;
 alter table public.lab_requests add column if not exists payment_status text not null default 'Unpaid';
 alter table public.lab_requests add column if not exists invoice_id uuid;
 
--- Clear orphan invoice_ids before adding FK constraint
-update public.lab_requests set invoice_id = null
-where invoice_id is not null
-  and not exists (select 1 from public.invoices where id = invoice_id);
-
 do $$
 begin
   if not exists (
@@ -1045,11 +1040,6 @@ $$;
 
 alter table public.radiology_requests add column if not exists payment_status text not null default 'Unpaid';
 alter table public.radiology_requests add column if not exists invoice_id uuid;
-
--- Clear orphan invoice_ids before adding FK constraint
-update public.radiology_requests set invoice_id = null
-where invoice_id is not null
-  and not exists (select 1 from public.invoices where id = invoice_id);
 
 do $$
 begin
@@ -1080,16 +1070,10 @@ alter table public.appointments add column if not exists start_time timestamptz;
 alter table public.appointments add column if not exists end_time timestamptz;
 
 -- Backfill: derive from existing date + time (30-min default duration)
-do $$
-begin
-  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'appointments' and column_name = 'date') then
-    update public.appointments
-    set start_time = (date + time::time)::timestamptz,
-        end_time = (date + time::time)::timestamptz + interval '30 minutes'
-    where start_time is null and date is not null and time is not null;
-  end if;
-end;
-$$;
+update public.appointments
+set start_time = (date + time::time)::timestamptz,
+    end_time = (date + time::time)::timestamptz + interval '30 minutes'
+where start_time is null and date is not null and time is not null;
 
 alter table public.appointments add column if not exists invoice_amount double precision;
 alter table public.appointments add column if not exists invoice_id uuid;
