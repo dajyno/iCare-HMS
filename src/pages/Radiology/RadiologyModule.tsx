@@ -29,7 +29,7 @@ const RadiologyModule = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("radiology_requests")
-        .select("*, patient:patients(*), exam:radiology_exams(*, category:radiology_categories(*)), result:radiology_results(*)")
+        .select("*, patient:patients(*), exam:radiology_exams(*, category:radiology_categories(id,name,description,icon)), result:radiology_results(*)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return toCamel(data);
@@ -70,10 +70,11 @@ const RadiologyModule = () => {
   }
 
   if (error) {
+    console.error("Radiology query error:", error);
     return (
       <div className="space-y-6 animate-in fade-in duration-500">
         <div className="flex items-center justify-center py-24">
-          <p className="text-sm text-red-500">Failed to load radiology requests. Please try again.</p>
+          <p className="text-sm text-red-500">Failed to load radiology requests. {error instanceof Error ? error.message : "Please try again."}</p>
         </div>
       </div>
     );
