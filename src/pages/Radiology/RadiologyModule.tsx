@@ -47,7 +47,8 @@ const RadiologyModule = () => {
         supabase.from("radiology_exams").select("*, category:radiology_categories(*)").in("id", examIds),
         supabase.from("radiology_results").select("*").in("request_id", reqIds),
       ]);
-      console.log("patients found:", patientsRes.data?.length, "exams found:", examsRes.data?.length, "results found:", resultsRes.data?.length);
+      console.log("patients error:", patientsRes.error, "patients found:", patientsRes.data?.length);
+      console.log("exams error:", examsRes.error, "exams found:", examsRes.data?.length, "results found:", resultsRes.data?.length);
 
       const patients = Object.fromEntries((toCamel(patientsRes.data ?? []) as any[]).map((p: any) => [p.id, p]));
       const exams = Object.fromEntries((toCamel(examsRes.data ?? []) as any[]).map((e: any) => [e.id, e]));
