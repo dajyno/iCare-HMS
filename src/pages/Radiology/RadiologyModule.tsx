@@ -46,8 +46,15 @@ const RadiologyModule = () => {
         supabase.from("radiology_results").select("*").in("request_id", reqIds),
       ]);
 
+      const allPatientsCamel = toCamel(allPatients.data ?? []) as any[];
+      console.log("allPatientsCamel[0]:", allPatientsCamel[0]);
+      console.log("row[0] patientId:", rows[0]?.patientId);
+
       const patients = Object.fromEntries(
-        (toCamel(allPatients.data ?? []) as any[]).map((p: any) => [p.patientId, p])
+        allPatientsCamel.map((p: any) => [p.patientId, p])
+      );
+      const patientsById = Object.fromEntries(
+        allPatientsCamel.map((p: any) => [p.id, p])
       );
       const exams = Object.fromEntries(
         (toCamel(examsRes.data ?? []) as any[]).map((e: any) => [e.id, e])
@@ -56,12 +63,19 @@ const RadiologyModule = () => {
         (toCamel(resultsRes.data ?? []) as any[]).map((r: any) => [r.requestId, r])
       );
 
-      return rows.map((r: any) => ({
-        ...r,
-        patient: patients[r.patientId] ?? Object.values(patients).find((p: any) => p.id === r.patientId) ?? null,
-        exam: exams[r.examId] ?? null,
-        result: results[r.id] ?? null,
-      }));
+      const merged = rows.map((r: any) => {
+        const patient = patients[r.patientId] ?? patientsById[r.patientId] ?? null;
+        console.log("patient lookup:", { patientId: r.patientId, found: !!patient, patientEntry: patient });
+        return {
+          ...r,
+          patient,
+          exam: exams[r.examId] ?? null,
+          result: results[r.id] ?? null,
+        };
+      });
+      console.log("merged[0]:", merged[0]);
+      console.log("merged[0].patient:", merged[0]?.patient);
+      return merged;
     },
   });
 
