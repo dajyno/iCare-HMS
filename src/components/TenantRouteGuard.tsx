@@ -15,7 +15,7 @@ const TenantRouteGuard: React.FC = () => {
   const { hospital_slug } = useParams<{ hospital_slug: string }>();
   const { user, loading: authLoading, logout } = useAuth();
   const { settings } = useGlobalSettings();
-  const { tenant, setTenant, refreshTenant } = useTenant();
+  const { tenant, setTenant, effectiveAllowedModules, refreshTenant } = useTenant();
   const navigate = useNavigate();
   const location = useLocation();
   const [resolved, setResolved] = useState<"loading" | "not_found" | "suspended" | "ok">("loading");
