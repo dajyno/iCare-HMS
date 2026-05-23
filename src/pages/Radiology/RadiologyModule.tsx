@@ -40,41 +40,41 @@ const RadiologyModule = () => {
       const examIds = [...new Set(rows.map((r: any) => r.examId))];
       const reqIds = rows.map((r: any) => r.id);
 
+      const firstPatientId = patientIds[0];
+      const { data: debugPatient } = await supabase
+        .from("patients")
+        .select("id, patient_id, first_name, last_name")
+        .eq("id", firstPatientId)
+        .maybeSingle();
+      console.log("Direct patient lookup by id:", firstPatientId, debugPatient);
+
       const [allPatients, examsRes, resultsRes] = await Promise.all([
         supabase.from("patients").select("*"),
-        supabase.from("radiology_exams").select("*, category:radiology_categories(*)").in("id", examIds),
+        supabase.from("radiology_exams").select("*").in("id", examIds),
         supabase.from("radiology_results").select("*").in("request_id", reqIds),
       ]);
 
       const allPatientsCamel = toCamel(allPatients.data ?? []) as any[];
-      const patients = Object.fromEntries(
-        allPatientsCamel.map((p: any) => [p.patientId, p])
-      );
-      const patientsById = Object.fromEntries(
-        allPatientsCamel.map((p: any) => [p.id, p])
-      );
 
-      const exams = Object.fromEntries(
+      const patientsMap: Record<string, any> = {};
+      for (const p of allPatientsCamel) {
+        patientsMap[p.id] = p;
+        patientsMap[p.patientId] = p;
+      }
+
+      const examsMap = Object.fromEntries(
         (toCamel(examsRes.data ?? []) as any[]).map((e: any) => [e.id, e])
       );
-      const results = Object.fromEntries(
+      const resultsMap = Object.fromEntries(
         (toCamel(resultsRes.data ?? []) as any[]).map((r: any) => [r.requestId, r])
       );
 
-      const merged = rows.map((r: any) => {
-        const patient = r.patientId
-          ? allPatientsCamel.find(
-              (p: any) => p.id === r.patientId || p.patientId === r.patientId
-            ) ?? null
-          : null;
-        return {
-          ...r,
-          patient,
-          exam: exams[r.examId] ?? null,
-          result: results[r.id] ?? null,
-        };
-      });
-      return merged;
+      return rows.map((r: any) => ({
+        ...r,
+        patient: patientsMap[r.patientId] ?? null,
+        exam: examsMap[r.examId] ?? null,
+        result: resultsMap[r.id] ?? null,
+      }));
     },
   });
 
