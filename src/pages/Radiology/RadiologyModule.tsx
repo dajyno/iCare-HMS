@@ -50,12 +50,14 @@ const RadiologyModule = () => {
       const exams = Object.fromEntries((toCamel(examsRes.data ?? []) as any[]).map((e: any) => [e.id, e]));
       const results = Object.fromEntries((toCamel(resultsRes.data ?? []) as any[]).map((r: any) => [r.requestId, r]));
 
-      return rows.map((r: any) => ({
+      const merged = rows.map((r: any) => ({
         ...r,
         patient: patients[r.patientId] ?? null,
         exam: exams[r.examId] ?? null,
         result: results[r.id] ?? null,
       }));
+      console.log("merged[0]:", merged[0]);
+      return merged;
     },
   });
 
