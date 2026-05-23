@@ -34,17 +34,20 @@ const RadiologyModule = () => {
       if (reqErr) throw reqErr;
 
       const rows = toCamel(rawReqs) as any[];
+      console.log("radiology rows:", rows.length, rows[0]);
       if (rows.length === 0) return [];
 
       const patientIds = [...new Set(rows.map((r: any) => r.patientId))];
       const examIds = [...new Set(rows.map((r: any) => r.examId))];
       const reqIds = rows.map((r: any) => r.id);
+      console.log("patientIds:", patientIds);
 
       const [patientsRes, examsRes, resultsRes] = await Promise.all([
         supabase.from("patients").select("*").in("id", patientIds),
         supabase.from("radiology_exams").select("*, category:radiology_categories(*)").in("id", examIds),
         supabase.from("radiology_results").select("*").in("request_id", reqIds),
       ]);
+      console.log("patients found:", patientsRes.data?.length, "exams found:", examsRes.data?.length, "results found:", resultsRes.data?.length);
 
       const patients = Object.fromEntries((toCamel(patientsRes.data ?? []) as any[]).map((p: any) => [p.id, p]));
       const exams = Object.fromEntries((toCamel(examsRes.data ?? []) as any[]).map((e: any) => [e.id, e]));
