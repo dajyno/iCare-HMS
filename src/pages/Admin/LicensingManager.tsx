@@ -3,7 +3,12 @@ import { adminSupabase } from "../../lib/adminSupabase";
 import { toCamel } from "../../lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, BedDouble, DollarSign, ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Users, BedDouble, DollarSign, ShieldCheck, Pencil, Loader2, AlertCircle, X } from "lucide-react";
 import type { SubscriptionTier } from "../../types/tenant";
 
 const MODULE_LABELS: Record<string, string> = {
@@ -21,11 +26,56 @@ const MODULE_LABELS: Record<string, string> = {
 const LicensingManager: React.FC = () => {
   const [tiers, setTiers] = useState<SubscriptionTier[]>([]);
 
-  useEffect(() => {
+  // Edit state
+  const [editingTier, setEditingTier] = useState<SubscriptionTier | null>(null);
+  const [editForm, setEditForm] = useState({ monthlyPrice: 0, maxStaffSeats: 0, maxBedCapacity: 0, description: "" });
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  const fetchTiers = () => {
     adminSupabase.from("subscription_tiers").select("*").then(({ data }) => {
       if (data) setTiers(data.map((d: any) => toCamel(d) as SubscriptionTier));
     });
-  }, []);
+  };
+
+  useEffect(() => { fetchTiers(); }, []);
+
+  const openEdit = (tier: SubscriptionTier) => {
+    setEditingTier(tier);
+    setEditForm({
+      monthlyPrice: tier.monthlyPrice,
+      maxStaffSeats: tier.maxStaffSeats,
+      maxBedCapacity: tier.maxBedCapacity,
+      description: tier.description || "",
+    });
+    setSaveError("");
+  };
+
+  const handleSave = async () => {
+    if (!editingTier) return;
+    setSaving(true);
+    setSaveError("");
+
+    const { error } = await adminSupabase
+      .from("subscription_tiers")
+      .update({
+        monthly_price: editForm.monthlyPrice,
+        max_staff_seats: editForm.maxStaffSeats,
+        max_bed_capacity: editForm.maxBedCapacity,
+        description: editForm.description || null,
+      })
+      .eq("id", editingTier.id);
+
+    if (error) {
+      setSaveError(error.message);
+      setSaving(false);
+      return;
+    }
+
+    setSaving(false);
+    setEditingTier(null);
+    fetchTiers();
+  };
 
   return (
     <div>
@@ -36,12 +86,19 @@ const LicensingManager: React.FC = () => {
           const raw = tier.allowedModules;
           const modules: string[] = typeof raw === "string" ? JSON.parse(raw || "[]") : (raw ?? []);
           return (
-            <Card key={tier.id} className="bg-slate-800 border-slate-700">
+            <Card key={tier.id} className="bg-slate-800 border-slate-700 relative group">
+              <button
+                onClick={() => openEdit(tier)}
+                className="absolute top-3 right-3 w-7 h-7 rounded-lg bg-slate-700/50 hover:bg-sky-600/30 text-slate-400 hover:text-sky-300 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                title="Edit plan"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg font-bold text-white">{tier.name}</CardTitle>
                   <Badge variant="outline" className="text-sky-400 border-sky-500/30 bg-sky-500/10">
-                    ${tier.monthlyPrice}/mo
+                    \u20A6{tier.monthlyPrice.toLocaleString()}/mo
                   </Badge>
                 </div>
                 {tier.description && (
@@ -73,7 +130,7 @@ const LicensingManager: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-slate-400 text-xs">Monthly Price</p>
-                    <p className="text-white font-semibold">${tier.monthlyPrice.toFixed(2)}</p>
+                    <p className="text-white font-semibold">\u20A6{tier.monthlyPrice.toLocaleString()}</p>
                   </div>
                 </div>
                 <div className="pt-2 border-t border-slate-700">
@@ -101,6 +158,74 @@ const LicensingManager: React.FC = () => {
           );
         })}
       </div>
+
+      {/* Edit Tier Modal */}
+      <Dialog open={!!editingTier} onOpenChange={(o) => !o && setEditingTier(null)}>
+        <DialogContent className="bg-slate-800 border-slate-700 text-slate-100 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">Edit Plan — {editingTier?.name}</DialogTitle>
+            <DialogDescription className="text-slate-400 text-xs">
+              Update pricing, limits, and description for this subscription tier.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {saveError && (
+              <div className="bg-red-900/30 border border-red-800/50 text-red-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+                <AlertCircle className="w-3.5 h-3.5" />
+                {saveError}
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Monthly Price (\u20A6)</Label>
+              <Input
+                type="number"
+                min={0}
+                value={editForm.monthlyPrice}
+                onChange={(e) => setEditForm({ ...editForm, monthlyPrice: parseInt(e.target.value) || 0 })}
+                className="bg-slate-900/50 border-slate-600 text-slate-100"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Max Staff Seats</Label>
+              <Input
+                type="number"
+                min={0}
+                value={editForm.maxStaffSeats}
+                onChange={(e) => setEditForm({ ...editForm, maxStaffSeats: parseInt(e.target.value) || 0 })}
+                className="bg-slate-900/50 border-slate-600 text-slate-100"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Max Bed Capacity</Label>
+              <Input
+                type="number"
+                min={0}
+                value={editForm.maxBedCapacity}
+                onChange={(e) => setEditForm({ ...editForm, maxBedCapacity: parseInt(e.target.value) || 0 })}
+                className="bg-slate-900/50 border-slate-600 text-slate-100"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Description</Label>
+              <Textarea
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                className="bg-slate-900/50 border-slate-600 text-slate-100 min-h-[60px]"
+                placeholder="Brief description of this plan..."
+              />
+            </div>
+          </div>
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="ghost" onClick={() => setEditingTier(null)} className="text-slate-400">
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={saving} className="bg-sky-600 hover:bg-sky-700">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

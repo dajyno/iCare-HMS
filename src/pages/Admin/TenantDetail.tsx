@@ -1,0 +1,257 @@
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft, Building2, Users, UserRound, Stethoscope, BedDouble, TrendingUp, DollarSign, Mail, Key, Loader2, AlertCircle, ExternalLink } from "lucide-react";
+import { adminSupabase } from "../../lib/adminSupabase";
+import { toCamel } from "../../lib/supabase";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import type { Tenant } from "../../types/tenant";
+
+const CURRENCY = "\u20A6";
+const tierPrices: Record<string, number> = { Standard: 199_000, Premium: 499_000, Enterprise: 999_000 };
+
+const statusBadge = (status: string) => {
+  const colors: Record<string, string> = {
+    Active: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+    Trial: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+    Suspended: "bg-red-500/20 text-red-400 border-red-500/30",
+  };
+  return colors[status] || "bg-slate-500/20 text-slate-400";
+};
+
+const MetricCard: React.FC<{ icon: React.ElementType; label: string; value: string; color: string }> = ({ icon: Icon, label, value, color }) => (
+  <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
+    <div className="flex items-center justify-between mb-3">
+      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{label}</span>
+      <div className={`w-9 h-9 rounded-lg ${color} flex items-center justify-center`}>
+        <Icon className="w-4 h-4 text-white" />
+      </div>
+    </div>
+    <p className="text-2xl font-bold text-white">{value}</p>
+  </div>
+);
+
+const TenantDetail: React.FC = () => {
+  const { tenantId } = useParams<{ tenantId: string }>();
+  const navigate = useNavigate();
+
+  const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+
+  const [usersCount, setUsersCount] = useState(0);
+  const [doctorsCount, setDoctorsCount] = useState(0);
+  const [patientsCount, setPatientsCount] = useState(0);
+  const [bedsCount, setBedsCount] = useState(0);
+
+  const [adminEmail, setAdminEmail] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [emailSaved, setEmailSaved] = useState(false);
+  const [emailError, setEmailError] = useState("");
+
+  const [resettingPassword, setResettingPassword] = useState(false);
+
+  useEffect(() => {
+    if (!tenantId) { setNotFound(true); setLoading(false); return; }
+
+    async function fetchData() {
+      const { data: tData, error: tError } = await adminSupabase
+        .from("tenants")
+        .select("*")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      if (tError || !tData) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+
+      const t = toCamel(tData) as Tenant;
+      setTenant(t);
+      setAdminEmail((t as any).adminEmail || "");
+
+      const [
+        { count: uCount },
+        { count: dCount },
+        { count: pCount },
+        { data: wards },
+      ] = await Promise.all([
+        adminSupabase.from("users").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId),
+        adminSupabase.from("users").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("role", "Doctor"),
+        adminSupabase.from("patients").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId),
+        adminSupabase.from("wards").select("beds_count").eq("tenant_id", tenantId),
+      ]);
+
+      setUsersCount(uCount || 0);
+      setDoctorsCount(dCount || 0);
+      setPatientsCount(pCount || 0);
+      setBedsCount((wards || []).reduce((sum: number, w: any) => sum + (w.beds_count || 0), 0));
+      setLoading(false);
+    }
+
+    fetchData();
+  }, [tenantId]);
+
+  const handleSaveAdminEmail = async () => {
+    if (!tenantId) return;
+    setSavingEmail(true);
+    setEmailError("");
+    setEmailSaved(false);
+
+    const { error } = await adminSupabase
+      .from("tenants")
+      .update({ admin_email: adminEmail || null })
+      .eq("tenant_id", tenantId);
+
+    if (error) {
+      setEmailError(error.message);
+      setSavingEmail(false);
+      return;
+    }
+
+    setSavingEmail(false);
+    setEmailSaved(true);
+    setTimeout(() => setEmailSaved(false), 3000);
+  };
+
+  const handleResetPassword = async () => {
+    setResettingPassword(true);
+    try {
+      const { data: users } = await adminSupabase
+        .from("users")
+        .select("id, email")
+        .eq("tenant_id", tenantId)
+        .limit(1);
+
+      if (users && users.length > 0) {
+        const user = users[0];
+        const defaultPassword = "password123";
+        await adminSupabase.auth.admin.updateUserById(user.id, { password: defaultPassword });
+        alert(`Password reset to "${defaultPassword}" for ${user.email || "the tenant admin"}`);
+      } else {
+        alert("No user found for this tenant. Ensure a user exists with this tenant_id.");
+      }
+    } catch (err: any) {
+      alert("Password reset failed: " + (err.message || "Unknown error"));
+    }
+    setResettingPassword(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
+  if (notFound || !tenant) {
+    return (
+      <div className="text-center py-20">
+        <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-4" />
+        <h2 className="text-lg font-bold text-white mb-1">Hospital Not Found</h2>
+        <p className="text-sm text-slate-400">No tenant found with ID "{tenantId}"</p>
+        <Button onClick={() => navigate("/admin/tenants")} className="mt-4 bg-sky-600 hover:bg-sky-700">
+          Back to Hospital Accounts
+        </Button>
+      </div>
+    );
+  }
+
+  const mrr = tierPrices[tenant.tier] || 0;
+
+  return (
+    <div className="space-y-6">
+      {/* Back + Header */}
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/admin/tenants")} className="text-slate-400 hover:text-white">
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <div className="flex-1">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold text-white">{tenant.hospitalName}</h1>
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${statusBadge(tenant.status)}`}>
+              {tenant.status}
+            </span>
+            <Badge variant="outline" className="text-sky-400 border-sky-500/30 bg-sky-500/10">
+              {tenant.tier}
+            </Badge>
+          </div>
+          <p className="text-xs text-slate-400 mt-1">
+            <span className="font-mono">{tenant.urlSlug}</span>
+            <span className="mx-2">·</span>
+            ID: {tenant.tenantId}
+            <span className="mx-2">·</span>
+            Created: {new Date(tenant.createdAt).toLocaleDateString()}
+          </p>
+        </div>
+      </div>
+
+      {/* Quick links */}
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-xs text-sky-400 hover:text-sky-300"
+          onClick={() => window.open(`/${tenant.urlSlug}/dashboard`, "_blank")}
+        >
+          <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+          Open Hospital Dashboard
+        </Button>
+      </div>
+
+      {/* Admin Management */}
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
+        <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+          <Mail className="w-4 h-4 text-sky-400" />
+          Admin Management
+        </h2>
+        <div className="flex items-end gap-3">
+          <div className="flex-1 space-y-1.5">
+            <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Admin Email</Label>
+            <Input
+              type="email"
+              value={adminEmail}
+              onChange={(e) => { setAdminEmail(e.target.value); setEmailSaved(false); }}
+              placeholder="admin@hospital.com"
+              className="bg-slate-900/50 border-slate-600 text-slate-100"
+            />
+            {emailError && <p className="text-[10px] text-red-400">{emailError}</p>}
+          </div>
+          <Button onClick={handleSaveAdminEmail} disabled={savingEmail} className="bg-sky-600 hover:bg-sky-700 text-sm h-10">
+            {savingEmail ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+            {emailSaved ? "Saved" : "Save"}
+          </Button>
+          <Button onClick={handleResetPassword} disabled={resettingPassword} variant="outline" className="border-slate-600 text-slate-300 hover:text-white text-sm h-10">
+            {resettingPassword ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Key className="w-3.5 h-3.5 mr-1.5" />}
+            Reset Password
+          </Button>
+        </div>
+        <p className="text-[10px] text-slate-500 mt-2">
+          Reset password will set the tenant admin's password to "password123".
+        </p>
+      </div>
+
+      {/* Hospital Metrics */}
+      <div>
+        <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-sky-400" />
+          Hospital Metrics
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <MetricCard icon={Users} label="System Users" value={String(usersCount)} color="bg-indigo-600" />
+          <MetricCard icon={Stethoscope} label="Doctors" value={String(doctorsCount)} color="bg-sky-600" />
+          <MetricCard icon={UserRound} label="Patients" value={String(patientsCount)} color="bg-amber-600" />
+          <MetricCard icon={BedDouble} label="Beds (Capacity)" value={String(bedsCount)} color="bg-rose-600" />
+          <MetricCard icon={TrendingUp} label="Monthly Contribution" value={`${CURRENCY}${mrr.toLocaleString()}`} color="bg-violet-600" />
+          <MetricCard icon={DollarSign} label="Annual Contribution" value={`${CURRENCY}${(mrr * 12).toLocaleString()}`} color="bg-green-600" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default TenantDetail;

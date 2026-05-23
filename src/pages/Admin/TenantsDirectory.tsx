@@ -14,7 +14,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Search, AlertCircle, Loader2, MoreHorizontal } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Search, AlertCircle, Loader2, MoreHorizontal, ExternalLink } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +35,7 @@ const statusBadge = (status: string) => {
 };
 
 const TenantsDirectory: React.FC = () => {
+  const navigate = useNavigate();
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -90,6 +92,7 @@ const TenantsDirectory: React.FC = () => {
       url_slug: slug,
       status: "Trial",
       tier: form.tier,
+      admin_email: form.adminEmail || null,
       max_staff_seats: limits.seats,
       max_bed_capacity: limits.beds,
     });
@@ -202,7 +205,11 @@ const TenantsDirectory: React.FC = () => {
                 </tr>
               ) : (
                 filtered.map((t) => (
-                  <tr key={t.tenantId} className="border-b border-slate-700/50 hover:bg-slate-700/30">
+                  <tr
+                    key={t.tenantId}
+                    className="border-b border-slate-700/50 hover:bg-slate-700/30 cursor-pointer"
+                    onClick={() => navigate(`/admin/tenants/${t.tenantId}`)}
+                  >
                     <td className="px-4 py-3 font-medium text-slate-200">{t.hospitalName}</td>
                     <td className="px-4 py-3 text-slate-400 font-mono text-xs">{t.urlSlug}</td>
                     <td className="px-4 py-3 text-slate-400 text-xs">{new Date(t.createdAt).toLocaleDateString()}</td>
@@ -219,6 +226,10 @@ const TenantsDirectory: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent className="bg-slate-800 border-slate-700 text-slate-200">
+                          <DropdownMenuItem onClick={() => navigate(`/admin/tenants/${t.tenantId}`)} className="text-sky-400 focus:text-sky-300 focus:bg-sky-900/30">
+                            <ExternalLink className="w-3.5 h-3.5 mr-2" />
+                            View Details
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openEditLimits(t)} className="text-sky-400 focus:text-sky-300 focus:bg-sky-900/30">
                             Edit Limits
                           </DropdownMenuItem>
@@ -385,9 +396,9 @@ const TenantsDirectory: React.FC = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
-                    <SelectItem value="Standard">Standard — $199/mo (10 seats, 0 beds)</SelectItem>
-                    <SelectItem value="Premium">Premium — $499/mo (50 seats, 40 beds)</SelectItem>
-                    <SelectItem value="Enterprise">Enterprise — $999/mo (unlimited)</SelectItem>
+                    <SelectItem value="Standard">Standard — \u20A6199,000/mo (10 seats, 0 beds)</SelectItem>
+                    <SelectItem value="Premium">Premium — \u20A6499,000/mo (50 seats, 40 beds)</SelectItem>
+                    <SelectItem value="Enterprise">Enterprise — \u20A6999,000/mo (unlimited)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

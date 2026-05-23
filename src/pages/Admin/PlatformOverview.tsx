@@ -5,7 +5,8 @@ import {
 } from "lucide-react";
 import { adminSupabase } from "../../lib/adminSupabase";
 
-const tierPrices: Record<string, number> = { Standard: 199, Premium: 499, Enterprise: 999 };
+const CURRENCY = "\u20A6";
+const tierPrices: Record<string, number> = { Standard: 199_000, Premium: 499_000, Enterprise: 999_000 };
 const tierIcons: Record<string, React.ElementType> = { Standard: Building2, Premium: TrendingUp, Enterprise: DollarSign };
 const tierColors: Record<string, string> = { Standard: "bg-blue-500/20 text-blue-400", Premium: "bg-violet-500/20 text-violet-400", Enterprise: "bg-amber-500/20 text-amber-400" };
 
@@ -42,13 +43,13 @@ const TierCard: React.FC<{ name: string; price: number; count: number; mrr: numb
         <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center`}>
           <Icon className="w-5 h-5" />
         </div>
-        <span className="text-lg font-bold text-white">${price}<span className="text-xs font-normal text-slate-400">/mo</span></span>
+        <span className="text-lg font-bold text-white">{CURRENCY}{price.toLocaleString()}<span className="text-xs font-normal text-slate-400">/mo</span></span>
       </div>
       <h3 className="text-base font-bold text-white mb-1">{name}</h3>
       <div className="flex items-center gap-4 text-sm text-slate-400">
         <span>{count} tenant{count !== 1 ? "s" : ""}</span>
         <span className="w-1 h-1 rounded-full bg-slate-600" />
-        <span className="text-emerald-400 font-semibold">${tierMrr.toLocaleString()}/mo</span>
+        <span className="text-emerald-400 font-semibold">{CURRENCY}{tierMrr.toLocaleString()}/mo</span>
       </div>
     </div>
   );
@@ -127,8 +128,8 @@ const PlatformOverview: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard icon={Building2} label="Total Tenants" value={String(m.totalTenants)} color="bg-blue-600" />
         <MetricCard icon={CreditCard} label="Active Subscriptions" value={String(m.activeSubscriptions)} color="bg-emerald-600" />
-        <MetricCard icon={TrendingUp} label="Monthly Revenue (MRR)" value={`$${m.mrr.toLocaleString()}`} color="bg-violet-600" />
-        <MetricCard icon={DollarSign} label="Total Revenue (ARR)" value={`$${m.totalRevenue.toLocaleString()}`} color="bg-green-600" />
+        <MetricCard icon={TrendingUp} label="Monthly Revenue (MRR)" value={`${CURRENCY}${m.mrr.toLocaleString()}`} color="bg-violet-600" />
+        <MetricCard icon={DollarSign} label="Total Revenue (ARR)" value={`${CURRENCY}${m.totalRevenue.toLocaleString()}`} color="bg-green-600" />
         <MetricCard icon={Stethoscope} label="Doctors" value={String(m.doctors)} color="bg-sky-600" />
         <MetricCard icon={Users} label="System Users" value={String(m.systemUsers)} color="bg-indigo-600" />
         <MetricCard icon={UserRound} label="Patients" value={String(m.patients)} color="bg-amber-600" />

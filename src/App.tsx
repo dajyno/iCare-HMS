@@ -16,6 +16,7 @@ import TenantLogin from "./pages/Auth/TenantLogin";
 import AdminLogin from "./pages/Admin/AdminLogin";
 import PlatformOverview from "./pages/Admin/PlatformOverview";
 import TenantsDirectory from "./pages/Admin/TenantsDirectory";
+import TenantDetail from "./pages/Admin/TenantDetail";
 import LicensingManager from "./pages/Admin/LicensingManager";
 import HealthMonitor from "./pages/Admin/HealthMonitor";
 import Overview from "./pages/Dashboard/Overview";
@@ -89,6 +90,7 @@ export default function App() {
                 <Route path="/admin" element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
                   <Route index element={<PlatformOverview />} />
                   <Route path="tenants" element={<TenantsDirectory />} />
+                  <Route path="tenants/:tenantId" element={<TenantDetail />} />
                   <Route path="licensing" element={<LicensingManager />} />
                   <Route path="health" element={<HealthMonitor />} />
                 </Route>
