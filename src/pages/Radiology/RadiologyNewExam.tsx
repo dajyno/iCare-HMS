@@ -25,12 +25,6 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
   const [patientQuery, setPatientQuery] = useState("");
   const [folderNo, setFolderNo] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (displayCategories.length > 0 && expandedCategories.size === 0) {
-      setExpandedCategories(new Set(displayCategories.map((c) => c.id)));
-    }
-  }, [displayCategories, expandedCategories]);
   const [customInputs, setCustomInputs] = useState<Record<string, string>>({});
   const [customSaved, setCustomSaved] = useState<Record<string, string[]>>({});
   const [customInputVisible, setCustomInputVisible] = useState<Record<string, boolean>>({});
@@ -71,6 +65,12 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
     }
     return [];
   }, [dbCategories]);
+
+  useEffect(() => {
+    if (displayCategories.length > 0 && expandedCategories.size === 0) {
+      setExpandedCategories(new Set(displayCategories.map((c) => c.id)));
+    }
+  }, [displayCategories, expandedCategories]);
 
   useEffect(() => {
     if (initialPatientId && Array.isArray(patients)) {

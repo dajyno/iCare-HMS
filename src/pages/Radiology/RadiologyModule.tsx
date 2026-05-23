@@ -40,21 +40,17 @@ const RadiologyModule = () => {
       const examIds = [...new Set(rows.map((r: any) => r.examId))];
       const reqIds = rows.map((r: any) => r.id);
 
-      const firstPatientId = patientIds[0];
-      const { data: debugPatient } = await supabase
-        .from("patients")
-        .select("id, patient_id, first_name, last_name")
-        .eq("id", firstPatientId)
-        .maybeSingle();
-      console.log("Direct patient lookup by id:", firstPatientId, debugPatient);
-
-      const [allPatients, examsRes, resultsRes] = await Promise.all([
+      const [patientRes, examsRes, resultsRes] = await Promise.all([
         supabase.from("patients").select("*"),
         supabase.from("radiology_exams").select("*").in("id", examIds),
         supabase.from("radiology_results").select("*").in("request_id", reqIds),
       ]);
 
-      const allPatientsCamel = toCamel(allPatients.data ?? []) as any[];
+      if (patientRes.error) throw patientRes.error;
+      if (examsRes.error) throw examsRes.error;
+      if (resultsRes.error) throw resultsRes.error;
+
+      const allPatientsCamel = toCamel(patientRes.data ?? []) as any[];
 
       const patientsMap: Record<string, any> = {};
       for (const p of allPatientsCamel) {
