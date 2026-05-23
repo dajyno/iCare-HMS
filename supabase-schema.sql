@@ -602,7 +602,7 @@ create policy "Authenticated users can insert medications"
   to authenticated
   with check (true);
 
-drop policy if exists "Authenticated users can update medications" on public.medications;
+drop policy if exists "Authenticated users can update medications";
 create policy "Authenticated users can update medications"
   on public.medications for update
   to authenticated
