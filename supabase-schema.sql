@@ -203,33 +203,6 @@ create table public.lab_tests (
   status          text not null default 'active'
 );
 
--- 12. Lab Requests
-create table public.lab_requests (
-  id              uuid primary key default gen_random_uuid(),
-  patient_id      uuid not null references public.patients(id) on delete cascade,
-  test_id         uuid not null references public.lab_tests(id),
-  consultation_id uuid references public.consultations(id),
-  batch_id        text,
-  status          text not null default 'Requested' check (status in ('Requested','SampleCollected','InProgress','AwaitingValidation','Completed','Cancelled')),
-  payment_status  text not null default 'Unpaid' check (payment_status in ('Unpaid','Paid')),
-  invoice_id      uuid references public.invoices(id) on delete set null,
-  created_at      timestamptz not null default now()
-);
-
--- 13. Lab Results
-create table public.lab_results (
-  id               uuid primary key default gen_random_uuid(),
-  request_id       uuid not null unique references public.lab_requests(id) on delete cascade,
-  patient_id       uuid not null references public.patients(id) on delete cascade,
-  result_value     text not null,
-  unit             text,
-  reference_range  text,
-  interpretation   text,
-  technician_id    uuid references public.users(id),
-  validated_by_id  uuid references public.users(id),
-  date             timestamptz not null default now()
-);
-
 -- 14. Invoices
 create table public.invoices (
   id             uuid primary key default gen_random_uuid(),
@@ -266,6 +239,33 @@ create table public.payments (
   payment_method text not null,
   transaction_id text,
   date           timestamptz not null default now()
+);
+
+-- 12. Lab Requests
+create table public.lab_requests (
+  id              uuid primary key default gen_random_uuid(),
+  patient_id      uuid not null references public.patients(id) on delete cascade,
+  test_id         uuid not null references public.lab_tests(id),
+  consultation_id uuid references public.consultations(id),
+  batch_id        text,
+  status          text not null default 'Requested' check (status in ('Requested','SampleCollected','InProgress','AwaitingValidation','Completed','Cancelled')),
+  payment_status  text not null default 'Unpaid' check (payment_status in ('Unpaid','Paid')),
+  invoice_id      uuid references public.invoices(id) on delete set null,
+  created_at      timestamptz not null default now()
+);
+
+-- 13. Lab Results
+create table public.lab_results (
+  id               uuid primary key default gen_random_uuid(),
+  request_id       uuid not null unique references public.lab_requests(id) on delete cascade,
+  patient_id       uuid not null references public.patients(id) on delete cascade,
+  result_value     text not null,
+  unit             text,
+  reference_range  text,
+  interpretation   text,
+  technician_id    uuid references public.users(id),
+  validated_by_id  uuid references public.users(id),
+  date             timestamptz not null default now()
 );
 
 -- 17. Wards
@@ -955,28 +955,40 @@ alter table public.radiology_exams enable row level security;
 alter table public.radiology_requests enable row level security;
 alter table public.radiology_results enable row level security;
 
+drop policy if exists "Authenticated users can read radiology_categories" on public.radiology_categories;
 create policy "Authenticated users can read radiology_categories"
   on public.radiology_categories for select to authenticated using (true);
+drop policy if exists "Authenticated users can insert radiology_categories" on public.radiology_categories;
 create policy "Authenticated users can insert radiology_categories"
   on public.radiology_categories for insert to authenticated with check (true);
+drop policy if exists "Authenticated users can update radiology_categories" on public.radiology_categories;
 create policy "Authenticated users can update radiology_categories"
   on public.radiology_categories for update to authenticated using (true);
+drop policy if exists "Authenticated users can read radiology_exams" on public.radiology_exams;
 create policy "Authenticated users can read radiology_exams"
   on public.radiology_exams for select to authenticated using (true);
+drop policy if exists "Authenticated users can insert radiology_exams" on public.radiology_exams;
 create policy "Authenticated users can insert radiology_exams"
   on public.radiology_exams for insert to authenticated with check (true);
+drop policy if exists "Authenticated users can update radiology_exams" on public.radiology_exams;
 create policy "Authenticated users can update radiology_exams"
   on public.radiology_exams for update to authenticated using (true);
+drop policy if exists "Authenticated users can insert radiology_requests" on public.radiology_requests;
 create policy "Authenticated users can insert radiology_requests"
   on public.radiology_requests for insert to authenticated with check (true);
+drop policy if exists "Authenticated users can read radiology_requests" on public.radiology_requests;
 create policy "Authenticated users can read radiology_requests"
   on public.radiology_requests for select to authenticated using (true);
+drop policy if exists "Authenticated users can update radiology_requests" on public.radiology_requests;
 create policy "Authenticated users can update radiology_requests"
   on public.radiology_requests for update to authenticated using (true);
+drop policy if exists "Authenticated users can insert radiology_results" on public.radiology_results;
 create policy "Authenticated users can insert radiology_results"
   on public.radiology_results for insert to authenticated with check (true);
+drop policy if exists "Authenticated users can read radiology_results" on public.radiology_results;
 create policy "Authenticated users can read radiology_results"
   on public.radiology_results for select to authenticated using (true);
+drop policy if exists "Authenticated users can update radiology_results" on public.radiology_results;
 create policy "Authenticated users can update radiology_results"
   on public.radiology_results for update to authenticated using (true);
 
