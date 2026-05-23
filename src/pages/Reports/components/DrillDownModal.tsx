@@ -58,6 +58,7 @@ export default function DrillDownModal({ open, onClose, title, records, columns,
                     {columns.map((col) => (
                       <th
                         key={col.key}
+                        title={col.tooltip}
                         className="text-left px-3 py-2.5 text-[11px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap"
                       >
                         {col.label}

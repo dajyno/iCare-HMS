@@ -48,14 +48,14 @@ function mockDrillDownData(metricKey: MetricKey): DrillDownRecord[] {
       ];
     case "new-registrations":
       return [
-        { id: "1", time: "08:15 AM", name: "Amara Okafor", category: "Individual", doctor: "Dr. Eze", status: "Checked In" },
-        { id: "2", time: "08:45 AM", name: "Chidi Nwosu", category: "Family", doctor: "Dr. Adeyemi", status: "Waiting" },
-        { id: "3", time: "09:00 AM", name: "Folake Adeleke", category: "Corporate", doctor: "Dr. Okonkwo", status: "In Consultation" },
-        { id: "4", time: "09:30 AM", name: "Emeka Eze", category: "HMO", doctor: "Dr. Bello", status: "Checked In" },
-        { id: "5", time: "10:00 AM", name: "Ngozi Obi", category: "Individual", doctor: "Dr. Eze", status: "Completed" },
-        { id: "6", time: "10:30 AM", name: "Tunde Balogun", category: "Corporate", doctor: "Dr. Adeyemi", status: "Waiting" },
-        { id: "7", time: "11:00 AM", name: "Chioma Edeh", category: "Individual", doctor: "Dr. Okonkwo", status: "In Consultation" },
-        { id: "8", time: "11:30 AM", name: "Kayode Akinwande", category: "Family", doctor: "Dr. Bello", status: "Cancelled" },
+        { id: "1", date: "2026-05-23", time: "08:15 AM", name: "Amara Okafor", category: "Individual", lastVisit: "2026-05-20" },
+        { id: "2", date: "2026-05-23", time: "08:45 AM", name: "Chidi Nwosu", category: "Family", lastVisit: "2026-05-22" },
+        { id: "3", date: "2026-05-23", time: "09:00 AM", name: "Folake Adeleke", category: "Corporate", lastVisit: "—" },
+        { id: "4", date: "2026-05-23", time: "09:30 AM", name: "Emeka Eze", category: "HMO", lastVisit: "2026-05-18" },
+        { id: "5", date: "2026-05-22", time: "10:00 AM", name: "Ngozi Obi", category: "Individual", lastVisit: "2026-05-15" },
+        { id: "6", date: "2026-05-22", time: "10:30 AM", name: "Tunde Balogun", category: "Corporate", lastVisit: "—" },
+        { id: "7", date: "2026-05-22", time: "11:00 AM", name: "Chioma Edeh", category: "Individual", lastVisit: "2026-05-21" },
+        { id: "8", date: "2026-05-22", time: "11:30 AM", name: "Kayode Akinwande", category: "Family", lastVisit: "2026-05-19" },
       ];
     case "alos":
       return [
@@ -68,14 +68,14 @@ function mockDrillDownData(metricKey: MetricKey): DrillDownRecord[] {
       ];
     case "active-personnel":
       return [
-        { id: "1", name: "Dr. Emeka Okafor", role: "Physician", department: "Internal Medicine", clockIn: "07:45 AM", status: "On Duty" },
-        { id: "2", name: "Dr. Amina Bello", role: "Physician", department: "Pediatrics", clockIn: "07:50 AM", status: "On Duty" },
-        { id: "3", name: "Nurse Grace Okonkwo", role: "RN", department: "Surgical Ward", clockIn: "07:30 AM", status: "On Duty" },
-        { id: "4", name: "Nurse Fatima Usman", role: "RN", department: "ICU", clockIn: "07:00 AM", status: "On Duty" },
-        { id: "5", name: "Dr. Chidi Eze", role: "Surgeon", department: "Surgery", clockIn: "08:00 AM", status: "In Surgery" },
-        { id: "6", name: "Lab Tech. Samuel Ade", role: "Lab Technician", department: "Laboratory", clockIn: "08:15 AM", status: "On Duty" },
-        { id: "7", name: "Nurse Blessing John", role: "RN", department: "Maternity", clockIn: "07:15 AM", status: "Break" },
-        { id: "8", name: "Dr. Yetunde Adeyemi", role: "Physician", department: "OB/GYN", clockIn: "08:30 AM", status: "On Duty" },
+        { id: "1", name: "Dr. Emeka Okafor", role: "Physician", department: "Internal Medicine", status: "On Duty" },
+        { id: "2", name: "Dr. Amina Bello", role: "Physician", department: "Pediatrics", status: "On Duty" },
+        { id: "3", name: "Nurse Grace Okonkwo", role: "RN", department: "Surgical Ward", status: "On Duty" },
+        { id: "4", name: "Nurse Fatima Usman", role: "RN", department: "ICU", status: "On Duty" },
+        { id: "5", name: "Dr. Chidi Eze", role: "Surgeon", department: "Surgery", status: "In Surgery" },
+        { id: "6", name: "Lab Tech. Samuel Ade", role: "Lab Technician", department: "Laboratory", status: "On Duty" },
+        { id: "7", name: "Nurse Blessing John", role: "RN", department: "Maternity", status: "Break" },
+        { id: "8", name: "Dr. Yetunde Adeyemi", role: "Physician", department: "OB/GYN", status: "On Duty" },
       ];
     case "consultations":
       return [
@@ -107,11 +107,11 @@ const metricColumnMap: Record<MetricKey, DrillDownColumn[]> = {
     { key: "type", label: "Type" },
   ],
   "new-registrations": [
-    { key: "time", label: "Time", format: "date" },
+    { key: "date", label: "Date of Registration" },
+    { key: "time", label: "Time" },
     { key: "name", label: "Patient Name" },
     { key: "category", label: "Category" },
-    { key: "doctor", label: "Assigned Doctor" },
-    { key: "status", label: "Status", format: "status" },
+    { key: "lastVisit", label: "Date of Last Visit" },
   ],
   "alos": [
     { key: "department", label: "Department" },
@@ -123,7 +123,6 @@ const metricColumnMap: Record<MetricKey, DrillDownColumn[]> = {
     { key: "name", label: "Name" },
     { key: "role", label: "Role" },
     { key: "department", label: "Department" },
-    { key: "clockIn", label: "Clock In", format: "date" },
     { key: "status", label: "Status", format: "status" },
   ],
   "consultations": [
@@ -137,8 +136,8 @@ const metricColumnMap: Record<MetricKey, DrillDownColumn[]> = {
     { key: "nurse", label: "Nurse" },
     { key: "vitalsDue", label: "Vitals Due", format: "number" },
     { key: "vitalsDone", label: "Vitals Done", format: "number" },
-    { key: "marDue", label: "MAR Due", format: "number" },
-    { key: "marDone", label: "MAR Done", format: "number" },
+    { key: "marDue", label: "MAR Due", format: "number", tooltip: "Medication doses scheduled to be administered" },
+    { key: "marDone", label: "MAR Done", format: "number", tooltip: "Medication doses actually administered" },
     { key: "overall", label: "Completion %", format: "percentage" },
   ],
 };
@@ -238,13 +237,27 @@ export function useDrillDownData(metricKey: MetricKey, filters?: GlobalFilters) 
               .order("registration_date", { ascending: false })
               .limit(20);
             if (data && data.length > 0) {
+              const patientIds = (data as any[]).map((p: any) => p.id);
+              const { data: visits } = await supabase
+                .from("consultations")
+                .select("patient_id, created_at")
+                .in("patient_id", patientIds)
+                .order("created_at", { ascending: false });
+              const lastVisitMap: Record<string, string> = {};
+              if (visits) {
+                for (const v of visits as any[]) {
+                  if (!lastVisitMap[v.patient_id]) {
+                    lastVisitMap[v.patient_id] = new Date(v.created_at).toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
+                  }
+                }
+              }
               return (data as any[]).map((p: any) => ({
                 id: p.id,
+                date: new Date(p.registration_date).toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" }),
                 time: new Date(p.registration_date).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
                 name: `${p.first_name} ${p.last_name}`,
                 category: p.category ?? "Individual",
-                doctor: "Unassigned",
-                status: "Checked In",
+                lastVisit: lastVisitMap[p.id] ?? "—",
               }));
             }
             break;
@@ -261,7 +274,6 @@ export function useDrillDownData(metricKey: MetricKey, filters?: GlobalFilters) 
                 name: s.name,
                 role: s.position,
                 department: s.department ?? "General",
-                clockIn: "N/A",
                 status: s.availability_status,
               }));
             }
