@@ -27,41 +27,15 @@ const RadiologyModule = () => {
   const { data: requests, isLoading, error } = useQuery({
     queryKey: ["radiology-requests"],
     queryFn: async () => {
-      const { data: rawReqs, error: reqErr } = await supabase
+      const { data, error } = await supabase
         .from("radiology_requests")
-        .select("*")
+        .select("*, patient!patient_id(*), exam!exam_id(*, category!category_id(*))")
         .order("created_at", { ascending: false });
-      if (reqErr) throw reqErr;
-
-      const rows = toCamel(rawReqs) as any[];
-      console.log("radiology rows:", rows.length, rows[0]);
-      if (rows.length === 0) return [];
-
-      const patientIds = [...new Set(rows.map((r: any) => r.patientId))];
-      const examIds = [...new Set(rows.map((r: any) => r.examId))];
-      const reqIds = rows.map((r: any) => r.id);
-      console.log("patientIds:", patientIds);
-
-      const [patientsRes, examsRes, resultsRes] = await Promise.all([
-        supabase.from("patients").select("*").in("id", patientIds),
-        supabase.from("radiology_exams").select("*, category:radiology_categories(*)").in("id", examIds),
-        supabase.from("radiology_results").select("*").in("request_id", reqIds),
-      ]);
-      console.log("patients error:", patientsRes.error, "patients found:", patientsRes.data?.length);
-      console.log("exams error:", examsRes.error, "exams found:", examsRes.data?.length, "results found:", resultsRes.data?.length);
-
-      const patients = Object.fromEntries((toCamel(patientsRes.data ?? []) as any[]).map((p: any) => [p.id, p]));
-      const exams = Object.fromEntries((toCamel(examsRes.data ?? []) as any[]).map((e: any) => [e.id, e]));
-      const results = Object.fromEntries((toCamel(resultsRes.data ?? []) as any[]).map((r: any) => [r.requestId, r]));
-
-      const merged = rows.map((r: any) => ({
-        ...r,
-        patient: patients[r.patientId] ?? null,
-        exam: exams[r.examId] ?? null,
-        result: results[r.id] ?? null,
-      }));
-      console.log("merged[0]:", merged[0]);
-      return merged;
+      if (error) {
+        console.error("Radiology join query error:", error);
+        throw error;
+      }
+      return toCamel(data);
     },
   });
 
