@@ -39,7 +39,6 @@ export interface DrillDownColumn {
   key: string;
   label: string;
   format?: "text" | "number" | "percentage" | "currency" | "date" | "status";
-  tooltip?: string;
 }
 
 export interface DrillDownRecord {

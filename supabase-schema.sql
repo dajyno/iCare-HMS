@@ -102,7 +102,6 @@ create table public.patients (
   department_id     uuid references public.departments(id),
   family_id         uuid references public.patients(id),
   is_primary        boolean not null default false,
-  profile_picture   text default '',
   registration_date timestamptz not null default now()
 );
 

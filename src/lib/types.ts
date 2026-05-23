@@ -43,7 +43,6 @@ export interface Patient {
   company_phone?: string | null;
   company_address?: string | null;
   department_id?: string | null;
-  profilePicture?: string;
   registration_date: string;
   family_id?: string | null;
   is_primary?: boolean;
