@@ -29,7 +29,7 @@ const RadiologyModule = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("radiology_requests")
-        .select("*")
+        .select("*, patient:patients(*), exam:radiology_exams(*)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return toCamel(data);
