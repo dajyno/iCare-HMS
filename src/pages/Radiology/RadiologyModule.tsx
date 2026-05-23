@@ -27,15 +27,41 @@ const RadiologyModule = () => {
   const { data: requests, isLoading, error } = useQuery({
     queryKey: ["radiology-requests"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: rawReqs, error: reqErr } = await supabase
         .from("radiology_requests")
-        .select("*, patient!patient_id(*), exam!exam_id(*, category!category_id(*))")
+        .select("*")
         .order("created_at", { ascending: false });
-      if (error) {
-        console.error("Radiology join query error:", error);
-        throw error;
-      }
-      return toCamel(data);
+      if (reqErr) throw reqErr;
+
+      const rows = toCamel(rawReqs) as any[];
+      if (rows.length === 0) return [];
+
+      const patientIds = [...new Set(rows.map((r: any) => r.patientId))];
+      const examIds = [...new Set(rows.map((r: any) => r.examId))];
+      const reqIds = rows.map((r: any) => r.id);
+
+      const [allPatients, examsRes, resultsRes] = await Promise.all([
+        supabase.from("patients").select("*"),
+        supabase.from("radiology_exams").select("*, category:radiology_categories(*)").in("id", examIds),
+        supabase.from("radiology_results").select("*").in("request_id", reqIds),
+      ]);
+
+      const patients = Object.fromEntries(
+        (toCamel(allPatients.data ?? []) as any[]).map((p: any) => [p.patientId, p])
+      );
+      const exams = Object.fromEntries(
+        (toCamel(examsRes.data ?? []) as any[]).map((e: any) => [e.id, e])
+      );
+      const results = Object.fromEntries(
+        (toCamel(resultsRes.data ?? []) as any[]).map((r: any) => [r.requestId, r])
+      );
+
+      return rows.map((r: any) => ({
+        ...r,
+        patient: patients[r.patientId] ?? Object.values(patients).find((p: any) => p.id === r.patientId) ?? null,
+        exam: exams[r.examId] ?? null,
+        result: results[r.id] ?? null,
+      }));
     },
   });
 
