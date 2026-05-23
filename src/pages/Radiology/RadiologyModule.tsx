@@ -65,12 +65,18 @@ const RadiologyModule = () => {
         (toCamel(resultsRes.data ?? []) as any[]).map((r: any) => [r.requestId, r])
       );
 
-      return rows.map((r: any) => ({
-        ...r,
-        patient: patientsMap[r.patientId] ?? null,
-        exam: examsMap[r.examId] ?? null,
-        result: resultsMap[r.id] ?? null,
-      }));
+      return rows.map((r: any) => {
+        const patient = patientsMap[r.patientId] ?? null;
+        if (!patient && r.patientId) {
+          console.warn("Radiology: patient not found for patientId:", r.patientId, "batchId:", r.batchId);
+        }
+        return {
+          ...r,
+          patient,
+          exam: examsMap[r.examId] ?? null,
+          result: resultsMap[r.id] ?? null,
+        };
+      });
     },
   });
 

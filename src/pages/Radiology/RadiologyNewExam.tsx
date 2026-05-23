@@ -60,7 +60,7 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
         id: c.id,
         name: c.name,
         icon: "Scan",
-        exams: (c.radiologyExams || []).map((e: any) => e.name),
+        exams: [...new Set((c.radiologyExams || []).map((e: any) => e.name))],
       }));
     }
     return [];
@@ -113,7 +113,7 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
         if (name.trim()) names.push(name.trim());
       }
     }
-    return names;
+    return [...new Set(names)];
   }, [selectedExams, customSaved]);
 
   const toggleCategory = (id: string) => {
@@ -128,6 +128,8 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
   const handleSaveCustom = (catId: string) => {
     const val = customInputs[catId]?.trim();
     if (!val) return;
+    const cat = displayCategories.find((c: any) => c.id === catId);
+    if (cat && cat.exams.includes(val)) return;
     setCustomSaved((prev) => {
       const next = { ...prev };
       const list = [...(next[catId] ?? [])];

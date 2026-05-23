@@ -604,7 +604,7 @@ const PatientProfile = () => {
     <div className="p-12 text-center text-slate-400">
       <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-40" />
       <p>Patient not found</p>
-      <Button variant="outline" className="mt-4" onClick={() => navigate("/patients")}>Back to Patients</Button>
+      <Button variant="outline" className="mt-4" onClick={() => navigate(`/${hospital_slug}/patients`)}>Back to Patients</Button>
     </div>
   );
 
@@ -810,7 +810,7 @@ const PatientProfile = () => {
         {/* ========== VITAL SIGNS ========== */}
         <TabsContent value="vitals" className="mt-6 space-y-4">
           <div className="flex justify-start">
-            <Button onClick={() => navigate("/consultations/vitals?patientId=" + id)} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => navigate(`/${hospital_slug}/consultations/vitals?patientId=${id}`)} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" /> Record Vital Signs
             </Button>
           </div>
@@ -866,7 +866,7 @@ const PatientProfile = () => {
         {/* ========== LAB RESULTS ========== */}
         <TabsContent value="labs" className="mt-6 space-y-4">
           <div className="flex justify-start">
-            <Button onClick={() => navigate("/laboratory?patientId=" + id + "&view=newExam")} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => navigate(`/${hospital_slug}/laboratory?patientId=${id}&view=newExam`)} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" /> New Lab Request
             </Button>
           </div>
@@ -902,7 +902,7 @@ const PatientProfile = () => {
         {/* ========== RADIOLOGY ========== */}
         <TabsContent value="radiology" className="mt-6 space-y-4">
           <div className="flex justify-start">
-            <Button onClick={() => navigate("/radiology?patientId=" + id + "&view=newExam")} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => navigate(`/${hospital_slug}/radiology?patientId=${id}&view=newExam`)} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" /> New Radiology Request
             </Button>
           </div>
@@ -936,7 +936,7 @@ const PatientProfile = () => {
         {/* ========== PRESCRIPTIONS ========== */}
         <TabsContent value="prescriptions" className="mt-6 space-y-4">
           <div className="flex justify-start">
-            <Button onClick={() => navigate("/pharmacy/prescriptions?patientId=" + id)} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => navigate(`/${hospital_slug}/pharmacy/prescriptions?patientId=${id}`)} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" /> New Prescription
             </Button>
           </div>

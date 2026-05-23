@@ -710,7 +710,7 @@ begin
       for i in 1..5 loop
         insert into public.beds (bed_number, ward_id, status)
         values ('M-BED-' || i, ward_id, 'Available')
-        on conflict do nothing;
+on conflict (name) do nothing;
       end loop;
     end if;
   end if;
@@ -911,7 +911,7 @@ create table if not exists public.radiology_categories (
 
 create table if not exists public.radiology_exams (
   id uuid not null default gen_random_uuid() primary key,
-  name text not null,
+  name text not null unique,
   category_id uuid not null references public.radiology_categories(id) on delete cascade,
   price numeric(10,2) not null default 0,
   description text,
