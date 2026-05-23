@@ -47,8 +47,10 @@ const RadiologyModule = () => {
       ]);
 
       const allPatientsCamel = toCamel(allPatients.data ?? []) as any[];
-      console.log("allPatientsCamel[0]:", allPatientsCamel[0]);
-      console.log("row[0] patientId:", rows[0]?.patientId);
+      console.log("allPatientsCamel[0]:", JSON.stringify(allPatientsCamel[0]));
+      console.log("row[0] patientId:", JSON.stringify(rows[0]?.patientId));
+      console.log("allPatientsCamel length:", allPatientsCamel.length);
+      console.log("all patient IDs:", JSON.stringify(allPatientsCamel.map((p: any) => p.id)));
 
       const patients = Object.fromEntries(
         allPatientsCamel.map((p: any) => [p.patientId, p])
@@ -56,6 +58,7 @@ const RadiologyModule = () => {
       const patientsById = Object.fromEntries(
         allPatientsCamel.map((p: any) => [p.id, p])
       );
+
       const exams = Object.fromEntries(
         (toCamel(examsRes.data ?? []) as any[]).map((e: any) => [e.id, e])
       );
@@ -64,17 +67,17 @@ const RadiologyModule = () => {
       );
 
       const merged = rows.map((r: any) => {
-        const patient = patients[r.patientId] ?? patientsById[r.patientId] ?? null;
-        console.log("patient lookup:", { patientId: r.patientId, found: !!patient, patientEntry: patient });
+        const byDisplayId = patients[r.patientId];
+        const byUuid = patientsById[r.patientId];
+        console.log("patient lookup:", { patientId: r.patientId, byDisplayId: !!byDisplayId, byUuid: !!byUuid });
         return {
           ...r,
-          patient,
+          patient: byDisplayId ?? byUuid ?? null,
           exam: exams[r.examId] ?? null,
           result: results[r.id] ?? null,
         };
       });
-      console.log("merged[0]:", merged[0]);
-      console.log("merged[0].patient:", merged[0]?.patient);
+      console.log("merged[0].patient:", JSON.stringify(merged[0]?.patient));
       return merged;
     },
   });
