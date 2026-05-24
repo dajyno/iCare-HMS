@@ -371,13 +371,17 @@ const DischargeProcessing = ({
                 disabled={generatingInvoice || hasInvoice || admission.careStatus === "Discharged"}
                 className={cn(
                   "w-full gap-1.5 text-xs font-semibold",
-                  hasInvoice
-                    ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 cursor-default"
-                    : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  invoicePaid
+                    ? "bg-emerald-600 text-white cursor-default"
+                    : hasInvoice
+                      ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 cursor-default"
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white"
                 )}
               >
                 {generatingInvoice ? (
                   <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating Invoice...</>
+                ) : invoicePaid ? (
+                  <><CheckCircle className="w-3.5 h-3.5" /> Invoice Paid</>
                 ) : hasInvoice ? (
                   <><CheckCircle className="w-3.5 h-3.5" /> Invoice Generated</>
                 ) : (
