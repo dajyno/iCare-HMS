@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { FileText, Search, CreditCard, DollarSign, Receipt, RefreshCw } from "lucide-react";
+import { FileText, Search, CreditCard, Wallet, Receipt, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -141,7 +141,7 @@ const BillingPage = () => {
             <div className="text-2xl font-extrabold text-emerald-600 tabular-nums">
               ₦{totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
-            <DollarSign className="w-5 h-5 text-emerald-400" />
+            <Wallet className="w-5 h-5 text-emerald-400" />
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm ring-1 ring-slate-200">

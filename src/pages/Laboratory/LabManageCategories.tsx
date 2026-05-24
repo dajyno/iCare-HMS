@@ -46,6 +46,13 @@ const LabManageCategories = ({ open, onClose }: Props) => {
       if (error) throw error;
       let result = toCamel(data ?? []);
 
+      const testToCategory = new Map<string, string>();
+      for (const cat of testCategories) {
+        for (const test of cat.tests) {
+          testToCategory.set(test, cat.name);
+        }
+      }
+
       const existingNames = new Set(result.map((t: any) => t.name));
       const hardcodedTests = testCategories.flatMap((c) => c.tests);
       const missingNames = hardcodedTests.filter(
@@ -55,13 +62,30 @@ const LabManageCategories = ({ open, onClose }: Props) => {
       if (missingNames.length > 0) {
         const inserts = missingNames.map((name) => ({
           name,
+          category: testToCategory.get(name) ?? null,
           status: "active",
           price: 0,
         }));
         const { error: insertError } = await supabase
           .from("lab_tests")
           .insert(inserts);
-        if (!insertError) {
+        if (insertError) throw insertError;
+        const { data: refreshed } = await supabase
+          .from("lab_tests")
+          .select("*")
+          .order("name");
+        if (refreshed) result = toCamel(refreshed);
+      } else {
+        const needsCategory = result.filter(
+          (t: any) => !t.category && testToCategory.has(t.name)
+        );
+        if (needsCategory.length > 0) {
+          for (const t of needsCategory) {
+            await supabase
+              .from("lab_tests")
+              .update({ category: testToCategory.get(t.name) })
+              .eq("id", t.id);
+          }
           const { data: refreshed } = await supabase
             .from("lab_tests")
             .select("*")
