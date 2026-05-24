@@ -143,7 +143,6 @@ const InventoryMatrix = () => {
         header: "",
         cell: ({ row }) => {
           const rowData = row.original as PharmacyInventoryItem;
-          if (rowData.status === "Out of Stock") return null;
           return (
             <div className="flex items-center gap-1.5">
               <button
@@ -343,12 +342,11 @@ const InventoryMatrix = () => {
               ) : (
                 rows.map((row) => {
                   const rowData = row.original as PharmacyInventoryItem;
-                  const oos = rowData.status === "Out of Stock";
                   return (
                     <TableRow
                       key={row.id}
-                      className={`transition-colors ${oos ? "opacity-40 pointer-events-none" : "hover:bg-sky-50/40 cursor-pointer"}`}
-                      onClick={() => { if (!oos) setEditItem(rowData); }}
+                      className="transition-colors hover:bg-sky-50/40 cursor-pointer"
+                      onClick={() => setEditItem(rowData)}
                     >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id} className="px-5 py-3">
