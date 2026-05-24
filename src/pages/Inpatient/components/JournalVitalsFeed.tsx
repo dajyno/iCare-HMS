@@ -107,7 +107,7 @@ const JournalVitalsFeed = ({
         description: `Attending: ${admission.attendingPhysician}`,
         timestamp: admission.admissionId.startsWith("ADM-")
           ? new Date(parseInt(admission.admissionId.replace("ADM-", ""))).toISOString()
-          : new Date(0).toISOString(),
+          : admission.admissionDate,
       },
     ];
     admission.vitalsHistory.forEach((v) => {
