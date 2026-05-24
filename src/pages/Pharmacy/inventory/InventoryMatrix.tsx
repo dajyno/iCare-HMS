@@ -48,6 +48,7 @@ const InventoryMatrix = () => {
   const { data: items, isLoading, error } = usePharmacyInventory();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
+  const [oosFilter, setOosFilter] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [editItem, setEditItem] = useState<PharmacyInventoryItem | null>(null);
@@ -67,45 +68,63 @@ const InventoryMatrix = () => {
 
   const filteredData = useMemo(() => {
     if (!Array.isArray(items)) return [];
-    if (!globalFilter.trim()) return items;
-    const q = globalFilter.toLowerCase();
-    return items.filter(
-      (r) =>
-        r.sku.toLowerCase().includes(q) ||
-        r.itemName.toLowerCase().includes(q) ||
-        r.packageType.toLowerCase().includes(q)
-    );
-  }, [items, globalFilter]);
+    let result = items;
+    if (oosFilter) {
+      result = result.filter((r) => r.status === "Out of Stock");
+    }
+    if (globalFilter.trim()) {
+      const q = globalFilter.toLowerCase();
+      result = result.filter(
+        (r) =>
+          r.sku.toLowerCase().includes(q) ||
+          r.itemName.toLowerCase().includes(q) ||
+          r.packageType.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [items, globalFilter, oosFilter]);
 
   const columns = useMemo(
     () => [
       columnHelper.accessor("sku", {
         header: "SKU",
-        cell: (info) => (
-          <span className="font-mono text-[11px] font-semibold text-slate-600 tracking-wider">
-            {info.getValue()}
-          </span>
-        ),
+        cell: (info) => {
+          const oos = info.row.original.status === "Out of Stock";
+          return (
+            <span className={`font-mono text-[11px] font-semibold tracking-wider ${oos ? "text-red-300" : "text-slate-600"}`}>
+              {info.getValue()}
+            </span>
+          );
+        },
       }),
       columnHelper.accessor("itemName", {
         header: "Item Name",
-        cell: (info) => (
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-slate-900">{info.getValue()}</span>
-          </div>
-        ),
+        cell: (info) => {
+          const oos = info.row.original.status === "Out of Stock";
+          return (
+            <div className="flex flex-col">
+              <span className={`text-sm font-medium ${oos ? "text-red-500" : "text-slate-900"}`}>{info.getValue()}</span>
+            </div>
+          );
+        },
       }),
       columnHelper.accessor("packageType", {
         header: "Package Type",
-        cell: (info) => (
-          <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">{info.getValue()}</span>
-        ),
+        cell: (info) => {
+          const oos = info.row.original.status === "Out of Stock";
+          return (
+            <span className={`text-xs font-medium uppercase tracking-wider ${oos ? "text-red-300" : "text-slate-500"}`}>{info.getValue()}</span>
+          );
+        },
       }),
       columnHelper.accessor("unitOfMeasurement", {
         header: "UoM",
-        cell: (info) => (
-          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">{info.getValue()}</span>
-        ),
+        cell: (info) => {
+          const oos = info.row.original.status === "Out of Stock";
+          return (
+            <span className={`text-[11px] uppercase tracking-wider font-semibold ${oos ? "text-red-300" : "text-slate-400"}`}>{info.getValue()}</span>
+          );
+        },
       }),
       columnHelper.accessor("unitsRemaining", {
         header: "Units Remaining",
@@ -119,7 +138,7 @@ const InventoryMatrix = () => {
             <span
               className={`font-mono tabular-nums text-sm font-bold text-right block ${
                 isOos
-                  ? "text-slate-300"
+                  ? "text-red-400"
                   : isLow
                   ? "text-rose-500"
                   : "text-slate-900"
@@ -132,11 +151,14 @@ const InventoryMatrix = () => {
       }),
       columnHelper.accessor("unitPrice", {
         header: "Unit Price",
-        cell: (info) => (
-          <span className="font-mono tabular-nums text-sm text-slate-700 text-right block">
-            ₦{info.getValue().toFixed(2)}
-          </span>
-        ),
+        cell: (info) => {
+          const oos = info.row.original.status === "Out of Stock";
+          return (
+            <span className={`font-mono tabular-nums text-sm text-right block ${oos ? "text-red-300" : "text-slate-700"}`}>
+              ₦{info.getValue().toFixed(2)}
+            </span>
+          );
+        },
       }),
       columnHelper.display({
         id: "actions",
@@ -281,8 +303,8 @@ const InventoryMatrix = () => {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-slate-100 bg-slate-50/30">
-          <div className="relative w-72">
+        <div className="p-4 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between gap-3">
+          <div className="relative w-72 shrink-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <Input
               value={globalFilter}
@@ -291,6 +313,16 @@ const InventoryMatrix = () => {
               className="pl-9 h-9 text-sm bg-white border-slate-200"
             />
           </div>
+          <button
+            onClick={() => setOosFilter((v) => !v)}
+            className={`h-9 px-3 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-colors shrink-0 ${
+              oosFilter
+                ? "bg-red-100 text-red-700 ring-1 ring-red-300"
+                : "bg-white text-slate-400 ring-1 ring-slate-200 hover:ring-red-200 hover:text-red-500"
+            }`}
+          >
+            Out of Stock {oosFilter && items ? `(${items.filter((i) => i.status === "Out of Stock").length})` : ""}
+          </button>
         </div>
 
         <div className="overflow-x-auto">
@@ -342,10 +374,11 @@ const InventoryMatrix = () => {
               ) : (
                 rows.map((row) => {
                   const rowData = row.original as PharmacyInventoryItem;
+                  const oos = rowData.status === "Out of Stock";
                   return (
                     <TableRow
                       key={row.id}
-                      className="transition-colors hover:bg-sky-50/40 cursor-pointer"
+                      className={`transition-colors cursor-pointer ${oos ? "bg-red-50/60 hover:bg-red-100/60" : "hover:bg-sky-50/40"}`}
                       onClick={() => setEditItem(rowData)}
                     >
                       {row.getVisibleCells().map((cell) => (
