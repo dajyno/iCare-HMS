@@ -1,9 +1,9 @@
--- ============================================================
+﻿-- ============================================================
 -- iCare HIMS - Supabase PostgreSQL Schema
 -- Paste this entire file into your Supabase SQL Editor
 -- ============================================================
 
--- 0a. Teardown — drops everything so this script is idempotent
+-- 0a. Teardown â€” drops everything so this script is idempotent
 drop trigger if exists on_auth_user_created on auth.users;
 drop function if exists public.handle_new_user();
 drop function if exists public.decrement_stock(med_id uuid, qty int);
@@ -435,15 +435,18 @@ alter table public.audit_logs enable row level security;
 alter table public.notifications enable row level security;
 
 -- Users can read/insert/update their own profile
+drop policy if exists "Users can read own profile" on public.users;
 create policy "Users can read own profile"
   on public.users for select
   using (auth.uid() = id);
 
+drop policy if exists "Users can insert own profile" on public.users;
 create policy "Users can insert own profile"
   on public.users for insert
   to authenticated
   with check (auth.uid() = id);
 
+drop policy if exists "Users can update own profile" on public.users;
 create policy "Users can update own profile"
   on public.users for update
   to authenticated
@@ -451,147 +454,176 @@ create policy "Users can update own profile"
   with check (auth.uid() = id);
 
 -- Service role can manage all users
+drop policy if exists "Users can read own profile" on public.departments;
 create policy "Users can read own profile"
   on public.departments for select
   to authenticated
   using (true);
 
+drop policy if exists "Users can read all patients" on public.patients;
 create policy "Users can read all patients"
   on public.patients for select
   to authenticated
   using (true);
 
+drop policy if exists "Users can read all appointments" on public.appointments;
 create policy "Users can read all appointments"
   on public.appointments for select
   to authenticated
   using (true);
 
+drop policy if exists "Users can read all consultations" on public.consultations;
 create policy "Users can read all consultations"
   on public.consultations for select
   to authenticated
   using (true);
 
+drop policy if exists "Users can read all medications" on public.medications;
 create policy "Users can read all medications"
   on public.medications for select
   to authenticated
   using (true);
 
+drop policy if exists "Users can read all lab tests" on public.lab_tests;
 create policy "Users can read all lab tests"
   on public.lab_tests for select
   to authenticated
   using (true);
 
+drop policy if exists "Users can insert lab tests" on public.lab_tests;
 create policy "Users can insert lab tests"
   on public.lab_tests for insert
   to authenticated
   with check (true);
 
+drop policy if exists "Users can update lab tests" on public.lab_tests;
 create policy "Users can update lab tests"
   on public.lab_tests for update
   to authenticated
   using (true);
 
+drop policy if exists "Users can read all lab requests" on public.lab_requests;
 create policy "Users can read all lab requests"
   on public.lab_requests for select
   to authenticated
   using (true);
 
+drop policy if exists "Users can read all lab results" on public.lab_results;
 create policy "Users can read all lab results"
   on public.lab_results for select
   to authenticated
   using (true);
 
+drop policy if exists "Users can read all inventory" on public.inventory_items;
 create policy "Users can read all inventory"
   on public.inventory_items for select
   to authenticated
   using (true);
 
+drop policy if exists "Users can read all invoices" on public.invoices;
 create policy "Users can read all invoices"
   on public.invoices for select
   to authenticated
   using (true);
 
+drop policy if exists "Users can read all beds" on public.beds;
 create policy "Users can read all beds"
   on public.beds for select
   to authenticated
   using (true);
 
+drop policy if exists "Users can read all wards" on public.wards;
 create policy "Users can read all wards"
   on public.wards for select
   to authenticated
   using (true);
 
+drop policy if exists "Users can read all admissions" on public.admissions;
 create policy "Users can read all admissions"
   on public.admissions for select
   to authenticated
   using (true);
 
+drop policy if exists "Users can read all prescriptions" on public.prescriptions;
 create policy "Users can read all prescriptions"
   on public.prescriptions for select
   to authenticated
   using (true);
 
+drop policy if exists "Users can read all suppliers" on public.suppliers;
 create policy "Users can read all suppliers"
   on public.suppliers for select
   to authenticated
   using (true);
 
+drop policy if exists "Users can read all vital signs" on public.vital_signs;
 create policy "Users can read all vital signs"
   on public.vital_signs for select
   to authenticated
   using (true);
 
 -- Insert policies for write operations
+drop policy if exists "Authenticated users can insert patients" on public.patients;
 create policy "Authenticated users can insert patients"
   on public.patients for insert
   to authenticated
   with check (true);
 
+drop policy if exists "Authenticated users can insert appointments" on public.appointments;
 create policy "Authenticated users can insert appointments"
   on public.appointments for insert
   to authenticated
   with check (true);
 
+drop policy if exists "Authenticated users can insert consultations" on public.consultations;
 create policy "Authenticated users can insert consultations"
   on public.consultations for insert
   to authenticated
   with check (true);
 
+drop policy if exists "Authenticated users can insert vital signs" on public.vital_signs;
 create policy "Authenticated users can insert vital signs"
   on public.vital_signs for insert
   to authenticated
   with check (true);
 
+drop policy if exists "Authenticated users can insert prescriptions" on public.prescriptions;
 create policy "Authenticated users can insert prescriptions"
   on public.prescriptions for insert
   to authenticated
   with check (true);
 
+drop policy if exists "Authenticated users can insert prescription items" on public.prescription_items;
 create policy "Authenticated users can insert prescription items"
   on public.prescription_items for insert
   to authenticated
   with check (true);
 
+drop policy if exists "Users can read all prescription items" on public.prescription_items;
 create policy "Users can read all prescription items"
   on public.prescription_items for select
   to authenticated
   using (true);
 
+drop policy if exists "Authenticated users can insert lab requests" on public.lab_requests;
 create policy "Authenticated users can insert lab requests"
   on public.lab_requests for insert
   to authenticated
   with check (true);
 
+drop policy if exists "Authenticated users can insert lab results" on public.lab_results;
 create policy "Authenticated users can insert lab results"
   on public.lab_results for insert
   to authenticated
   with check (true);
 
+drop policy if exists "Authenticated users can insert lab tests" on public.lab_tests;
 create policy "Authenticated users can insert lab tests"
   on public.lab_tests for insert
   to authenticated
   with check (true);
 
+drop policy if exists "Authenticated users can update prescriptions" on public.prescriptions;
 create policy "Authenticated users can update prescriptions"
   on public.prescriptions for update
   to authenticated
@@ -633,11 +665,13 @@ create policy "Authenticated users can update invoices"
   to authenticated
   using (true);
 
+drop policy if exists "Authenticated users can update lab requests" on public.lab_requests;
 create policy "Authenticated users can update lab requests"
   on public.lab_requests for update
   to authenticated
   using (true);
 
+drop policy if exists "Authenticated users can update beds" on public.beds;
 create policy "Authenticated users can update beds"
   on public.beds for update
   to authenticated
@@ -988,6 +1022,7 @@ create policy "Authenticated users can insert radiology_results"
 drop policy if exists "Authenticated users can read radiology_results" on public.radiology_results;
 create policy "Authenticated users can read radiology_results"
   on public.radiology_results for select to authenticated using (true);
+drop policy if exists "Authenticated users can update radiology_results" on public.radiology_results;
 create policy "Authenticated users can update radiology_results"
   on public.radiology_results for update to authenticated using (true);
 
