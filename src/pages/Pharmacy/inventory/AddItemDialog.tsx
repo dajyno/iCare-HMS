@@ -20,6 +20,9 @@ import { useAddInventoryItem } from "../hooks";
 const schema = z.object({
   name: z.string().min(1, "Item name is required"),
   sku: z.string().min(1, "SKU is required"),
+  strength: z.string().optional(),
+  genericName: z.string().optional(),
+  category: z.string().optional(),
   packageType: z.string().min(1, "Package type is required"),
   unitOfMeasurement: z.string().min(1, "Unit is required"),
   unitPrice: z.number().positive("Price must be positive"),
@@ -42,6 +45,9 @@ const AddItemDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (o
     defaultValues: {
       name: "",
       sku: "",
+      strength: "",
+      genericName: "",
+      category: "",
       packageType: "Bottle",
       unitOfMeasurement: "tablets",
       unitPrice: 0,
@@ -89,6 +95,19 @@ const AddItemDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (o
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
+              <Label htmlFor="strength" className="text-xs font-semibold text-slate-600">Strength</Label>
+              <Input id="strength" {...register("strength")} placeholder="e.g. 500mg, 250mg/5ml" className="h-9 text-sm" />
+              {errors.strength && <p className="text-[10px] text-red-500">{errors.strength.message}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="genericName" className="text-xs font-semibold text-slate-600">Generic Name</Label>
+              <Input id="genericName" {...register("genericName")} placeholder="e.g. Paracetamol" className="h-9 text-sm" />
+              {errors.genericName && <p className="text-[10px] text-red-500">{errors.genericName.message}</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
               <Label htmlFor="packageType" className="text-xs font-semibold text-slate-600">Package Type</Label>
               <Input id="packageType" {...register("packageType")} placeholder="e.g. Bottle, Box" className="h-9 text-sm" />
               {errors.packageType && <p className="text-[10px] text-red-500">{errors.packageType.message}</p>}
@@ -98,6 +117,12 @@ const AddItemDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (o
               <Input id="unitOfMeasurement" {...register("unitOfMeasurement")} placeholder="e.g. tablets, ml" className="h-9 text-sm" />
               {errors.unitOfMeasurement && <p className="text-[10px] text-red-500">{errors.unitOfMeasurement.message}</p>}
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="category" className="text-xs font-semibold text-slate-600">Category</Label>
+            <Input id="category" {...register("category")} placeholder="e.g. Analgesic, Antibiotic" className="h-9 text-sm" />
+            {errors.category && <p className="text-[10px] text-red-500">{errors.category.message}</p>}
           </div>
 
           <div className="grid grid-cols-3 gap-4">

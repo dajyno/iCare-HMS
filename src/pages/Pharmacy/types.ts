@@ -36,6 +36,9 @@ export interface PharmacyInventoryItem {
   id: string;
   sku: string;
   itemName: string;
+  strength: string;
+  genericName: string;
+  category: string;
   packageType: string;
   unitOfMeasurement: string;
   unitsRemaining: number;

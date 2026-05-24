@@ -198,6 +198,7 @@ model Medication {
   genericName      String?
   category         String?
   dosageForm       String?
+  unitOfMeasurement String?
   strength         String?
   batchNumber      String?
   expiryDate       DateTime?

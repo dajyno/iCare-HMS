@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Upload, FileSpreadsheet, CheckCircle2, X, Loader2 } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, X, Loader2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,6 +11,22 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { useBulkAddInventory } from "../hooks";
+
+const TEMPLATE_CSV = `name,strength,generic_name,category,package_type,unit_of_measurement,unit_price,quantity_in_stock,reorder_level
+Paracetamol,500mg,Paracetamol,Analgesic,Tablet,tablets,0.50,100,10
+Amoxicillin,250mg,Amoxicillin,Antibiotic,Capsule,capsules,1.20,50,15`;
+
+function downloadTemplate() {
+  const blob = new Blob([TEMPLATE_CSV], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "medication-import-template.csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 const UploadCsvDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) => {
   const [dragOver, setDragOver] = useState(false);
@@ -36,7 +52,11 @@ const UploadCsvDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: 
 
     const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
     const nameIdx = headers.findIndex((h) => h === "name" || h === "item_name");
+    const strengthIdx = headers.findIndex((h) => h === "strength");
+    const genericNameIdx = headers.findIndex((h) => h === "generic_name" || h === "genericname");
+    const categoryIdx = headers.findIndex((h) => h === "category");
     const packageIdx = headers.findIndex((h) => h.includes("package") || h === "dosage_form");
+    const uomIdx = headers.findIndex((h) => h === "unit_of_measurement" || h === "uom" || h === "unit");
     const priceIdx = headers.findIndex((h) => h.includes("price") || h === "unit_price");
     const stockIdx = headers.findIndex((h) => h.includes("stock") || h === "quantity_in_stock");
     const reorderIdx = headers.findIndex((h) => h.includes("reorder") || h === "reorder_level");
@@ -47,7 +67,11 @@ const UploadCsvDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: 
       const cols = line.split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
       return {
         name: cols[nameIdx] || "",
+        strength: strengthIdx >= 0 ? cols[strengthIdx] || null : null,
+        generic_name: genericNameIdx >= 0 ? cols[genericNameIdx] || null : null,
+        category: categoryIdx >= 0 ? cols[categoryIdx] || null : null,
         dosage_form: packageIdx >= 0 ? cols[packageIdx] || "Tablet" : "Tablet",
+        unit_of_measurement: uomIdx >= 0 ? cols[uomIdx] || "tablets" : "tablets",
         unit_price: priceIdx >= 0 ? parseFloat(cols[priceIdx]) || 0 : 0,
         quantity_in_stock: stockIdx >= 0 ? parseInt(cols[stockIdx]) || 0 : 0,
         reorder_level: reorderIdx >= 0 ? parseInt(cols[reorderIdx]) || 10 : 10,
@@ -247,14 +271,24 @@ const UploadCsvDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: 
                 </motion.div>
               )}
 
-              <div className="rounded-lg bg-slate-50 border border-slate-200 p-3">
+              <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 space-y-2">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Expected CSV Format</p>
-                <code className="text-[10px] text-slate-500 font-mono">
-                  name,package_type,unit_price,quantity_in_stock,reorder_level
+                <code className="text-[10px] text-slate-500 font-mono block">
+                  name,strength,generic_name,category,package_type,unit_of_measurement,unit_price,quantity_in_stock,reorder_level
                 </code>
-                <p className="text-[10px] text-slate-400 mt-1">
+                <p className="text-[10px] text-slate-400">
                   Only the <strong>name</strong> column is required. Other columns are optional.
                 </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 text-xs font-semibold border-slate-300"
+                  onClick={downloadTemplate}
+                >
+                  <Download className="w-3 h-3" />
+                  Download Template
+                </Button>
               </div>
             </motion.div>
           )}

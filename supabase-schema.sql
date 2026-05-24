@@ -163,6 +163,7 @@ create table public.medications (
   generic_name      text,
   category          text,
   dosage_form       text,
+  unit_of_measurement text,
   strength          text,
   batch_number      text,
   expiry_date       date,

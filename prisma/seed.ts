@@ -325,10 +325,10 @@ async function main() {
 
   // 4. Medications
   const meds = [
-    { name: "Paracetamol", dosageForm: "Tablet", strength: "500mg", unitPrice: 0.5, quantityInStock: 1000 },
-    { name: "Amoxicillin", dosageForm: "Capsule", strength: "250mg", unitPrice: 1.2, quantityInStock: 500 },
-    { name: "Ibuprofen", dosageForm: "Tablet", strength: "400mg", unitPrice: 0.8, quantityInStock: 800 },
-    { name: "Insulin", dosageForm: "Injection", strength: "100IU/ml", unitPrice: 45.0, quantityInStock: 50 },
+    { name: "Paracetamol", dosageForm: "Tablet", unitOfMeasurement: "tablets", strength: "500mg", unitPrice: 0.5, quantityInStock: 1000 },
+    { name: "Amoxicillin", dosageForm: "Capsule", unitOfMeasurement: "capsules", strength: "250mg", unitPrice: 1.2, quantityInStock: 500 },
+    { name: "Ibuprofen", dosageForm: "Tablet", unitOfMeasurement: "tablets", strength: "400mg", unitPrice: 0.8, quantityInStock: 800 },
+    { name: "Insulin", dosageForm: "Injection", unitOfMeasurement: "ml", strength: "100IU/ml", unitPrice: 45.0, quantityInStock: 50 },
   ];
 
   for (const m of meds) {

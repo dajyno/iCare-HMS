@@ -221,6 +221,18 @@ create policy "Users can read all invoice_items"
   to authenticated
   using (true);
 
+-- Add unit_of_measurement column to medications if not present
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'medications' and column_name = 'unit_of_measurement'
+  ) then
+    alter table public.medications add column unit_of_measurement text;
+  end if;
+end
+$$;
+
 -- 3. RPC: INSERT MEDICATION (bypasses RLS for pharmacy stock)
 -- ============================================================
 create or replace function public.insert_medication(
@@ -228,7 +240,8 @@ create or replace function public.insert_medication(
   p_dosage_form text default 'Tablet',
   p_unit_price double precision default 0,
   p_quantity_in_stock integer default 0,
-  p_reorder_level integer default 10
+  p_reorder_level integer default 10,
+  p_unit_of_measurement text default 'tablets'
 ) returns uuid
 language plpgsql
 security definer
@@ -237,9 +250,9 @@ declare
   new_id uuid;
 begin
   insert into public.medications (
-    name, dosage_form, unit_price, quantity_in_stock, reorder_level, status
+    name, dosage_form, unit_price, quantity_in_stock, reorder_level, status, unit_of_measurement
   ) values (
-    p_name, p_dosage_form, p_unit_price, p_quantity_in_stock, p_reorder_level, 'available'
+    p_name, p_dosage_form, p_unit_price, p_quantity_in_stock, p_reorder_level, 'available', p_unit_of_measurement
   )
   returning id into new_id;
   return new_id;
@@ -260,14 +273,15 @@ begin
   for item in select * from jsonb_array_elements(p_items)
   loop
     insert into public.medications (
-      name, dosage_form, unit_price, quantity_in_stock, reorder_level, status
+      name, dosage_form, unit_price, quantity_in_stock, reorder_level, status, unit_of_measurement
     ) values (
       item->>'name',
-      coalesce(item->>'dosage_form', 'Tablet'),
+      coalesce(item->>'dosage_form', item->>'package_type', 'Tablet'),
       (item->>'unit_price')::double precision,
       (item->>'quantity_in_stock')::integer,
       coalesce((item->>'reorder_level')::integer, 10),
-      'available'
+      'available',
+      item->>'unit_of_measurement'
     );
     count := count + 1;
   end loop;

@@ -47,7 +47,7 @@ function toPharmacyPrescription(row: any): PharmacyPrescription {
         itemName: med.name ?? "Unknown",
         strength: med.strength ?? "",
         packageType: med.dosageForm ?? med.dosage_form ?? "Tablet",
-        unitOfMeasurement: med.dosageForm ?? med.dosage_form ?? "tablets",
+        unitOfMeasurement: med.unitOfMeasurement ?? med.unit_of_measurement ?? "tablets",
         dosage: item.dosage,
         frequency: item.frequency,
         duration: item.duration,
@@ -153,8 +153,11 @@ export function usePharmacyInventory() {
           id: med.id,
           sku: makeSku(med),
           itemName: med.name ?? "Unknown",
+          strength: med.strength ?? "",
+          genericName: med.genericName ?? med.generic_name ?? "",
+          category: med.category ?? "",
           packageType: med.dosageForm ?? med.dosage_form ?? "Bottle",
-          unitOfMeasurement: med.dosageForm ?? med.dosage_form ?? "tablets",
+          unitOfMeasurement: med.unitOfMeasurement ?? med.unit_of_measurement ?? "tablets",
           unitsRemaining: remaining,
           reorderLevel: reorder,
           unitPrice: med.unitPrice ?? med.unit_price ?? 0,
@@ -214,6 +217,9 @@ export function useAddInventoryItem() {
     mutationFn: async (item: {
       name: string;
       sku: string;
+      strength?: string;
+      genericName?: string;
+      category?: string;
       packageType: string;
       unitOfMeasurement: string;
       unitPrice: number;
@@ -222,7 +228,11 @@ export function useAddInventoryItem() {
     }) => {
       const { error } = await (supabase as any).from("medications").insert({
         name: item.name,
+        strength: item.strength || null,
+        generic_name: item.genericName || null,
+        category: item.category || null,
         dosage_form: item.packageType,
+        unit_of_measurement: item.unitOfMeasurement,
         unit_price: item.unitPrice,
         quantity_in_stock: item.initialStock,
         reorder_level: item.reorderLevel,
@@ -241,7 +251,11 @@ export function useBulkAddInventory() {
   return useMutation({
     mutationFn: async (items: Array<{
       name: string;
+      strength?: string;
+      generic_name?: string;
+      category?: string;
       dosage_form: string;
+      unit_of_measurement?: string;
       unit_price: number;
       quantity_in_stock: number;
       reorder_level: number;
