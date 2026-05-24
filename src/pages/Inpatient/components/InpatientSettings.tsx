@@ -248,19 +248,23 @@ const InpatientSettings = ({
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
                             <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-                              Department
+                              Ward Type
                             </Label>
-                            <Input
+                            <Select
                               value={newWard.department}
-                              onChange={(e) =>
-                                setNewWard((p) => ({
-                                  ...p,
-                                  department: e.target.value,
-                                }))
+                              onValueChange={(val) =>
+                                setNewWard((p) => ({ ...p, department: val }))
                               }
-                              placeholder="e.g. Pediatrics"
-                              className="h-9 text-xs"
-                            />
+                            >
+                              <SelectTrigger className="h-9 text-xs">
+                                <SelectValue placeholder="Select ward type..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {["General", "Semi-Private", "Private", "ICU", "Emergency"].map((t) => (
+                                  <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                           <div className="space-y-1">
                             <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
