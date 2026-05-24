@@ -25,9 +25,10 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
   const [patientQuery, setPatientQuery] = useState("");
   const [folderNo, setFolderNo] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-  const [customInputs, setCustomInputs] = useState<Record<string, string>>({});
-  const [customSaved, setCustomSaved] = useState<Record<string, string[]>>({});
-  const [customInputVisible, setCustomInputVisible] = useState<Record<string, boolean>>({});
+  const [customSaved, setCustomSaved] = useState<{ name: string; price: number }[]>([]);
+  const [customInputRows, setCustomInputRows] = useState<{ id: string; name: string; price: string }[]>([
+    { id: "row-0", name: "", price: "" },
+  ]);
 
   const { data: patients } = useQuery({
     queryKey: ["patients"],
@@ -108,10 +109,8 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
 
   const allSelectedExamNames = useMemo(() => {
     const names = Array.from(selectedExams);
-    for (const saved of Object.values(customSaved)) {
-      for (const name of saved) {
-        if (name.trim()) names.push(name.trim());
-      }
+    for (const item of customSaved) {
+      if (item.name.trim()) names.push(item.name.trim());
     }
     return [...new Set(names)];
   }, [selectedExams, customSaved]);
@@ -125,35 +124,26 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
     });
   };
 
-  const handleSaveCustom = (catId: string) => {
-    const val = customInputs[catId]?.trim();
-    if (!val) return;
-    const cat = displayCategories.find((c: any) => c.id === catId);
-    if (cat && cat.exams.includes(val)) return;
+  const handleSaveCustom = (rowIndex: number) => {
+    const row = customInputRows[rowIndex];
+    if (!row || !row.name.trim()) return;
+    const price = parseFloat(row.price) || 0;
     setCustomSaved((prev) => {
-      const next = { ...prev };
-      const list = [...(next[catId] ?? [])];
-      if (!list.includes(val)) list.push(val);
-      next[catId] = list;
+      const exists = prev.some((item) => item.name === row.name.trim());
+      if (exists) return prev;
+      return [...prev, { name: row.name.trim(), price }];
+    });
+    setCustomInputRows((prev) => {
+      const next = prev.filter((_, i) => i !== rowIndex);
+      if (next.length === 0) {
+        return [{ id: `row-${Date.now()}`, name: "", price: "" }];
+      }
       return next;
     });
-    setCustomInputs((prev) => {
-      const next = { ...prev };
-      delete next[catId];
-      return next;
-    });
-    setCustomInputVisible((prev) => ({ ...prev, [catId]: false }));
   };
 
-  const handleDeleteCustom = (catId: string, idx: number) => {
-    setCustomSaved((prev) => {
-      const next = { ...prev };
-      const list = [...(next[catId] ?? [])];
-      list.splice(idx, 1);
-      if (list.length > 0) next[catId] = list;
-      else delete next[catId];
-      return next;
-    });
+  const handleDeleteCustom = (idx: number) => {
+    setCustomSaved((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const generateBatchId = () => {
@@ -172,6 +162,11 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
         for (const t of allExams) existingMap.set(t.name, t.id);
       }
 
+      const customPriceMap = new Map<string, number>();
+      for (const item of customSaved) {
+        customPriceMap.set(item.name, item.price);
+      }
+
       const examIdMap = new Map<string, string>();
 
       for (const name of allSelectedExamNames) {
@@ -179,21 +174,21 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
           examIdMap.set(name, existingMap.get(name)!);
           continue;
         }
+        const price = customPriceMap.get(name) ?? 0;
         const { data: catData } = await supabase
           .from("radiology_categories")
           .select("id")
           .limit(1);
         const fallbackCatId = catData?.[0]?.id;
         if (fallbackCatId) {
-          const { error } = await supabase
+          await supabase
             .from("radiology_exams")
             .insert({
               name,
               category_id: fallbackCatId,
-              price: 0,
+              price,
               status: "active",
-            })
-            .select("id");
+            });
           const { data: newExam } = await supabase
             .from("radiology_exams")
             .select("id")
@@ -424,8 +419,7 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
           ) : displayCategories.map((category) => {
             const isExpanded = expandedCategories.has(category.id);
             const catSelectedCount =
-              category.exams.filter((t) => selectedExams.has(t)).length +
-              (customSaved[category.id]?.length ?? 0);
+              category.exams.filter((t) => selectedExams.has(t)).length;
 
             return (
               <div
@@ -473,116 +467,105 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
                           />
                         ))}
                       </div>
-
-                      {/* Saved custom exams */}
-                      {(customSaved[category.id]?.length ?? 0) > 0 && (
-                        <div className="px-3 pb-1 space-y-1">
-                          {customSaved[category.id]!.map((name, idx) => (
-                            <div
-                              key={`${name}-${idx}`}
-                              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#005EB8]/10 text-[#005EB8] text-[12px] font-medium"
-                            >
-                              <span className="flex-1">{name}</span>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteCustom(category.id, idx)}
-                                className="text-slate-400 hover:text-red-500 transition-colors"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Add Custom Category - morphs into input */}
-                      <div className="px-3 pb-3">
-                        <AnimatePresence mode="wait">
-                          {customInputVisible[category.id] ? (
-                            <motion.div
-                              key="input"
-                              initial={{ opacity: 0, scaleY: 0.8, height: 0 }}
-                              animate={{ opacity: 1, scaleY: 1, height: "auto" }}
-                              exit={{ opacity: 0, scaleY: 0.8, height: 0 }}
-                              transition={{
-                                type: "spring",
-                                stiffness: 400,
-                                damping: 30,
-                              }}
-                              className="origin-top"
-                            >
-                              <div className="flex gap-1.5">
-                                <Input
-                                  value={customInputs[category.id] ?? ""}
-                                  onChange={(e) =>
-                                    setCustomInputs((prev) => ({
-                                      ...prev,
-                                      [category.id]: e.target.value,
-                                    }))
-                                  }
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter")
-                                      handleSaveCustom(category.id);
-                                  }}
-                                  placeholder="Enter custom exam name..."
-                                  className="h-8 text-xs border-dashed border-slate-300 flex-1"
-                                  autoFocus
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => handleSaveCustom(category.id)}
-                                  disabled={!customInputs[category.id]?.trim()}
-                                  className="h-8 w-8 rounded-lg flex items-center justify-center bg-emerald-50 text-emerald-600 hover:bg-emerald-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
-                                >
-                                  <Check className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setCustomInputVisible((prev) => ({
-                                      ...prev,
-                                      [category.id]: false,
-                                    }));
-                                    setCustomInputs((prev) => {
-                                      const next = { ...prev };
-                                      delete next[category.id];
-                                      return next;
-                                    });
-                                  }}
-                                  className="h-8 w-8 rounded-lg flex items-center justify-center bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors shrink-0"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
-                              </div>
-                            </motion.div>
-                          ) : (
-                            <motion.button
-                              key="add"
-                              type="button"
-                              onClick={() =>
-                                setCustomInputVisible((prev) => ({
-                                  ...prev,
-                                  [category.id]: true,
-                                }))
-                              }
-                              initial={{ opacity: 0, y: 4 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: 4 }}
-                              transition={{ duration: 0.15 }}
-                              className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-slate-300 text-[11px] text-slate-500 hover:border-[#005EB8] hover:text-[#005EB8] hover:bg-[#005EB8]/5 transition-all"
-                            >
-                              <Plus className="w-3 h-3" />
-                              Add Custom Exam
-                            </motion.button>
-                          )}
-                        </AnimatePresence>
-                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
             );
           })}
+        </div>
+
+        {/* Custom Exams - Unified Input */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50/80">
+            <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+              Custom Exams
+            </span>
+          </div>
+          <div className="p-4">
+            {/* Saved custom exam chips */}
+            {customSaved.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {customSaved.map((item, idx) => (
+                  <div
+                    key={`saved-${item.name}-${idx}`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#005EB8]/10 text-[#005EB8] text-[12px] font-medium"
+                  >
+                    <span>{item.name}</span>
+                    <span className="text-slate-300">—</span>
+                    <span>GH₵{item.price.toFixed(2)}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCustom(idx)}
+                      className="text-slate-400 hover:text-red-500 transition-colors ml-0.5"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Input rows */}
+            <div className="space-y-2">
+              {customInputRows.map((row, idx) => (
+                <div key={row.id} className="flex gap-2 items-center">
+                  <Input
+                    value={row.name}
+                    onChange={(e) =>
+                      setCustomInputRows((prev) =>
+                        prev.map((r, i) => (i === idx ? { ...r, name: e.target.value } : r))
+                      )
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveCustom(idx);
+                    }}
+                    placeholder="Enter custom exam name..."
+                    className="h-9 text-xs border-dashed border-slate-300 flex-1"
+                  />
+                  <Input
+                    type="number"
+                    value={row.price}
+                    onChange={(e) =>
+                      setCustomInputRows((prev) =>
+                        prev.map((r, i) => (i === idx ? { ...r, price: e.target.value } : r))
+                      )
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveCustom(idx);
+                    }}
+                    placeholder="Price"
+                    className="h-9 text-xs w-24 border-dashed border-slate-300"
+                    step="0.01"
+                    min="0"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleSaveCustom(idx)}
+                    disabled={!row.name.trim()}
+                    className="h-9 w-9 rounded-lg flex items-center justify-center bg-emerald-50 text-emerald-600 hover:bg-emerald-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Add new line button */}
+            <button
+              type="button"
+              onClick={() =>
+                setCustomInputRows((prev) => [
+                  ...prev,
+                  { id: `row-${Date.now()}`, name: "", price: "" },
+                ])
+              }
+              className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-slate-300 text-[11px] text-slate-500 hover:border-[#005EB8] hover:text-[#005EB8] hover:bg-[#005EB8]/5 transition-all"
+            >
+              <Plus className="w-3 h-3" />
+              Add new line
+            </button>
+          </div>
         </div>
       </div>
 

@@ -920,7 +920,7 @@ alter table public.admissions     drop constraint if exists admissions_admitting
 -- ============================================================
 -- ENSURE LAB TEST (bypasses RLS for test creation)
 -- ============================================================
-create or replace function public.ensure_lab_test(test_name text)
+create or replace function public.ensure_lab_test(test_name text, test_price numeric(10,2) default 0)
 returns uuid
 language plpgsql
 security definer
@@ -930,7 +930,7 @@ declare
 begin
   select id into v_id from public.lab_tests where name = test_name;
   if v_id is null then
-    insert into public.lab_tests (name, status) values (test_name, 'active')
+    insert into public.lab_tests (name, status, price) values (test_name, 'active', test_price)
     returning id into v_id;
   end if;
   return v_id;

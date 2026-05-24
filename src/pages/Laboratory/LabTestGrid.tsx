@@ -11,6 +11,7 @@ import {
   Loader2,
   Check,
   Trash2,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,8 +31,10 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(testCategories.map((c) => c.id))
   );
-  const [customInputs, setCustomInputs] = useState<Record<string, string>>({});
-  const [customSaved, setCustomSaved] = useState<Record<string, string[]>>({});
+  const [customSaved, setCustomSaved] = useState<{ name: string; price: number }[]>([]);
+  const [customInputRows, setCustomInputRows] = useState<{ id: string; name: string; price: string }[]>([
+    { id: "row-0", name: "", price: "" },
+  ]);
   const [hormoneValues, setHormoneValues] = useState<Record<string, string>>({});
   const queryClient = useQueryClient();
 
@@ -122,10 +125,8 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
 
   const allSelectedTestNames = useMemo(() => {
     const names = Array.from(selectedTests);
-    for (const saved of Object.values(customSaved)) {
-      for (const name of saved) {
-        if (name.trim()) names.push(name.trim());
-      }
+    for (const item of customSaved) {
+      if (item.name.trim()) names.push(item.name.trim());
     }
     if (Array.isArray(dbLabTests)) {
       const dbTestMap = new Map<string, string>();
@@ -147,32 +148,26 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
     });
   };
 
-  const handleSaveCustom = (catId: string) => {
-    const val = customInputs[catId]?.trim();
-    if (!val) return;
+  const handleSaveCustom = (rowIndex: number) => {
+    const row = customInputRows[rowIndex];
+    if (!row || !row.name.trim()) return;
+    const price = parseFloat(row.price) || 0;
     setCustomSaved((prev) => {
-      const next = { ...prev };
-      const list = [...(next[catId] ?? [])];
-      if (!list.includes(val)) list.push(val);
-      next[catId] = list;
-      return next;
+      const exists = prev.some((item) => item.name === row.name.trim());
+      if (exists) return prev;
+      return [...prev, { name: row.name.trim(), price }];
     });
-    setCustomInputs((prev) => {
-      const next = { ...prev };
-      delete next[catId];
+    setCustomInputRows((prev) => {
+      const next = prev.filter((_, i) => i !== rowIndex);
+      if (next.length === 0) {
+        return [{ id: `row-${Date.now()}`, name: "", price: "" }];
+      }
       return next;
     });
   };
 
-  const handleDeleteCustom = (catId: string, idx: number) => {
-    setCustomSaved((prev) => {
-      const next = { ...prev };
-      const list = [...(next[catId] ?? [])];
-      list.splice(idx, 1);
-      if (list.length > 0) next[catId] = list;
-      else delete next[catId];
-      return next;
-    });
+  const handleDeleteCustom = (idx: number) => {
+    setCustomSaved((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const submitMutation = useMutation({
@@ -185,6 +180,11 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
         for (const t of allLabTests) existingMap.set(t.name, t.id);
       }
 
+      const customPriceMap = new Map<string, number>();
+      for (const item of customSaved) {
+        customPriceMap.set(item.name, item.price);
+      }
+
       const testIdMap = new Map<string, string>();
 
       for (const name of allSelectedTestNames) {
@@ -192,15 +192,16 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
           testIdMap.set(name, existingMap.get(name)!);
           continue;
         }
+        const price = customPriceMap.get(name) ?? 0;
         let resolvedId: string | null = null;
         const { data: rpcId } = await supabase
-          .rpc("ensure_lab_test", { test_name: name });
+          .rpc("ensure_lab_test", { test_name: name, test_price: price });
         if (rpcId) {
           resolvedId = rpcId as string;
         } else {
           const { data: inserted } = await supabase
             .from("lab_tests")
-            .insert({ name, status: "active" })
+            .insert({ name, status: "active", price })
             .select("id")
             .maybeSingle();
           if (inserted) {
@@ -494,8 +495,7 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
           {testCategories.map((category) => {
             const isExpanded = expandedCategories.has(category.id);
             const catSelectedCount =
-              category.tests.filter((t) => selectedTests.has(t)).length +
-              (customSaved[category.id]?.length ?? 0);
+              category.tests.filter((t) => selectedTests.has(t)).length;
 
             return (
               <div
@@ -536,57 +536,6 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
                     ))}
                   </div>
 
-                  {/* Saved custom tests */}
-                  {(customSaved[category.id]?.length ?? 0) > 0 && (
-                    <div className="px-3 pb-1 space-y-1">
-                      {customSaved[category.id]!.map((name, idx) => (
-                        <div
-                          key={`${name}-${idx}`}
-                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#005EB8]/10 text-[#005EB8] text-[12px] font-medium"
-                        >
-                          <span className="flex-1">{name}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteCustom(category.id, idx)}
-                            className="text-slate-400 hover:text-red-500 transition-colors"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Custom entry with Save + Trash */}
-                  <div className="px-3 pb-3">
-                    <p className="text-[10px] text-slate-400 mb-1.5 font-medium">
-                      — or type a custom test —
-                    </p>
-                    <div className="flex gap-1.5">
-                      <Input
-                        value={customInputs[category.id] ?? ""}
-                        onChange={(e) =>
-                          setCustomInputs((prev) => ({
-                            ...prev,
-                            [category.id]: e.target.value,
-                          }))
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveCustom(category.id);
-                        }}
-                        placeholder="Enter custom test name..."
-                        className="h-8 text-xs border-dashed border-slate-300 flex-1"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleSaveCustom(category.id)}
-                        disabled={!customInputs[category.id]?.trim()}
-                        className="h-8 w-8 rounded-lg flex items-center justify-center bg-emerald-50 text-emerald-600 hover:bg-emerald-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
                 </div>
               </div>
             );
@@ -670,6 +619,96 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
                 )
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Custom Tests - Unified Input */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50/80">
+            <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+              Custom Tests
+            </span>
+          </div>
+          <div className="p-4">
+            {customSaved.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {customSaved.map((item, idx) => (
+                  <div
+                    key={`saved-${item.name}-${idx}`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#005EB8]/10 text-[#005EB8] text-[12px] font-medium"
+                  >
+                    <span>{item.name}</span>
+                    <span className="text-slate-300">—</span>
+                    <span>GH₵{item.price.toFixed(2)}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCustom(idx)}
+                      className="text-slate-400 hover:text-red-500 transition-colors ml-0.5"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {customInputRows.map((row, idx) => (
+                <div key={row.id} className="flex gap-2 items-center">
+                  <Input
+                    value={row.name}
+                    onChange={(e) =>
+                      setCustomInputRows((prev) =>
+                        prev.map((r, i) => (i === idx ? { ...r, name: e.target.value } : r))
+                      )
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveCustom(idx);
+                    }}
+                    placeholder="Enter custom test name..."
+                    className="h-9 text-xs border-dashed border-slate-300 flex-1"
+                  />
+                  <Input
+                    type="number"
+                    value={row.price}
+                    onChange={(e) =>
+                      setCustomInputRows((prev) =>
+                        prev.map((r, i) => (i === idx ? { ...r, price: e.target.value } : r))
+                      )
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveCustom(idx);
+                    }}
+                    placeholder="Price"
+                    className="h-9 text-xs w-24 border-dashed border-slate-300"
+                    step="0.01"
+                    min="0"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleSaveCustom(idx)}
+                    disabled={!row.name.trim()}
+                    className="h-9 w-9 rounded-lg flex items-center justify-center bg-emerald-50 text-emerald-600 hover:bg-emerald-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                setCustomInputRows((prev) => [
+                  ...prev,
+                  { id: `row-${Date.now()}`, name: "", price: "" },
+                ])
+              }
+              className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-slate-300 text-[11px] text-slate-500 hover:border-[#005EB8] hover:text-[#005EB8] hover:bg-[#005EB8]/5 transition-all"
+            >
+              <Plus className="w-3 h-3" />
+              Add new line
+            </button>
           </div>
         </div>
       </div>
