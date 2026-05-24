@@ -49,7 +49,7 @@ const consultationSchema = z.object({
 });
 
 const ConsultationWorkspace = () => {
-  const { patientId } = useParams();
+  const { patientId, hospital_slug } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -606,7 +606,7 @@ const ConsultationWorkspace = () => {
       setSavedPrescriptions([]);
       setSavedLabs([]);
       setSavedRadiology([]);
-      navigate("/consultations");
+      navigate(`/${hospital_slug}/consultations`);
     },
     onError: (err: any) => {
       setError(err?.message || "Failed to complete consultation");
@@ -638,7 +638,7 @@ const ConsultationWorkspace = () => {
     <form onSubmit={handleSubmit(onComplete, onFormError)} className="space-y-8 animate-in fade-in duration-500 max-w-5xl mx-auto pb-20">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button type="button" variant="ghost" size="icon" onClick={() => navigate("/consultations")} className="h-9 w-9">
+          <Button type="button" variant="ghost" size="icon" onClick={() => navigate(`/${hospital_slug}/consultations`)} className="h-9 w-9">
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
@@ -996,7 +996,7 @@ const ConsultationWorkspace = () => {
           )}
 
           <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline" className="h-12 px-8" onClick={() => navigate("/consultations")}>Cancel</Button>
+            <Button type="button" variant="outline" className="h-12 px-8" onClick={() => navigate(`/${hospital_slug}/consultations`)}>Cancel</Button>
             <Button type="submit" className="h-12 px-8 bg-blue-600 hover:bg-blue-700 font-bold" disabled={completeConsultation.isPending}>
               {completeConsultation.isPending ? "Saving..." : (
                 <><Save className="w-4 h-4 mr-2" /> Complete Consultation</>

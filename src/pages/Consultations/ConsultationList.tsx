@@ -196,7 +196,7 @@ const ConsultationList = () => {
           <h1 className="text-2xl font-bold text-slate-900">Recent Consultations</h1>
           <p className="text-sm text-slate-500">{sorted.length} encounter{sorted.length !== 1 ? "s" : ""}</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => navigate("/consultations/workspace")}>
+        <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => navigate(`/${hospital_slug}/consultations/workspace`)}>
           <Plus className="w-4 h-4 mr-2" /> Start New Consultation
         </Button>
       </div>
@@ -204,7 +204,7 @@ const ConsultationList = () => {
       {sorted.length === 0 ? (
         <div className="bg-white rounded-xl border shadow-sm p-12 text-center text-slate-400">
           <p>No consultations found.</p>
-          <Button className="mt-4 bg-blue-600 hover:bg-blue-700" onClick={() => navigate("/consultations/workspace")}>
+          <Button className="mt-4 bg-blue-600 hover:bg-blue-700" onClick={() => navigate(`/${hospital_slug}/consultations/workspace`)}>
             <Plus className="w-4 h-4 mr-2" /> Start New Consultation
           </Button>
         </div>
