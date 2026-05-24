@@ -955,26 +955,37 @@ alter table public.radiology_exams enable row level security;
 alter table public.radiology_requests enable row level security;
 alter table public.radiology_results enable row level security;
 
+drop policy if exists "Authenticated users can read radiology_categories" on public.radiology_categories;
 create policy "Authenticated users can read radiology_categories"
   on public.radiology_categories for select to authenticated using (true);
+drop policy if exists "Authenticated users can insert radiology_categories" on public.radiology_categories;
 create policy "Authenticated users can insert radiology_categories"
   on public.radiology_categories for insert to authenticated with check (true);
+drop policy if exists "Authenticated users can update radiology_categories" on public.radiology_categories;
 create policy "Authenticated users can update radiology_categories"
   on public.radiology_categories for update to authenticated using (true);
+drop policy if exists "Authenticated users can read radiology_exams" on public.radiology_exams;
 create policy "Authenticated users can read radiology_exams"
   on public.radiology_exams for select to authenticated using (true);
+drop policy if exists "Authenticated users can insert radiology_exams" on public.radiology_exams;
 create policy "Authenticated users can insert radiology_exams"
   on public.radiology_exams for insert to authenticated with check (true);
+drop policy if exists "Authenticated users can update radiology_exams" on public.radiology_exams;
 create policy "Authenticated users can update radiology_exams"
   on public.radiology_exams for update to authenticated using (true);
+drop policy if exists "Authenticated users can insert radiology_requests" on public.radiology_requests;
 create policy "Authenticated users can insert radiology_requests"
   on public.radiology_requests for insert to authenticated with check (true);
+drop policy if exists "Authenticated users can read radiology_requests" on public.radiology_requests;
 create policy "Authenticated users can read radiology_requests"
   on public.radiology_requests for select to authenticated using (true);
+drop policy if exists "Authenticated users can update radiology_requests" on public.radiology_requests;
 create policy "Authenticated users can update radiology_requests"
   on public.radiology_requests for update to authenticated using (true);
+drop policy if exists "Authenticated users can insert radiology_results" on public.radiology_results;
 create policy "Authenticated users can insert radiology_results"
   on public.radiology_results for insert to authenticated with check (true);
+drop policy if exists "Authenticated users can read radiology_results" on public.radiology_results;
 create policy "Authenticated users can read radiology_results"
   on public.radiology_results for select to authenticated using (true);
 create policy "Authenticated users can update radiology_results"
