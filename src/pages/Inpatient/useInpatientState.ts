@@ -160,7 +160,7 @@ export function useInpatientState() {
           attendingPhysician: "Unassigned",
           admissionDate: a.admission_date,
           daysAdmitted: computeDaysAdmitted(a.admission_date),
-          careStatus: "Stable",
+          careStatus: a.status === "Discharged" ? "Discharged" : "Stable",
           vitalsHistory: [],
           medicationSchedule: [],
           fluidLedger: { intake: [], output: [] },
@@ -350,7 +350,7 @@ export function useInpatientState() {
             if (clinical) return { ...a, ...clinical };
             // Fallback: merge from persisted localStorage
             const persistedAdm = persisted.activeAdmissions.find((p: any) => p.admissionId === a.admissionId);
-            if (persistedAdm) return { ...a, vitalsHistory: persistedAdm.vitalsHistory, medicationSchedule: persistedAdm.medicationSchedule, fluidLedger: persistedAdm.fluidLedger, clinicalNotes: persistedAdm.clinicalNotes };
+            if (persistedAdm) return { ...a, careStatus: persistedAdm.careStatus, vitalsHistory: persistedAdm.vitalsHistory, medicationSchedule: persistedAdm.medicationSchedule, fluidLedger: persistedAdm.fluidLedger, clinicalNotes: persistedAdm.clinicalNotes };
             return a;
           });
 
