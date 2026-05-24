@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import SearchableSelect from "@/components/ui/searchable-select";
-import { testCategories, testDictionary } from "./testCategories";
+import { testCategories } from "./testCategories";
 import ToggleTile from "./ToggleTile";
 import { useStaff } from "../Staff/StaffContext";
 import { generateInvoiceNumber } from "@/src/lib/invoiceNumber";
@@ -71,21 +71,6 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
       return toCamel(data);
     },
   });
-
-  const customTestCategories = useMemo(() => {
-    if (!Array.isArray(dbLabTests)) return [];
-    const hardcodedNames = new Set(testDictionary);
-    const filtered = dbLabTests.filter((t: any) => !hardcodedNames.has(t.name));
-    const grouped: Record<string, any[]> = {};
-    for (const t of filtered) {
-      const cat = t.category ?? "Other";
-      if (!grouped[cat]) grouped[cat] = [];
-      grouped[cat].push(t);
-    }
-    return Object.entries(grouped)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([name, tests]) => ({ name, tests }));
-  }, [dbLabTests]);
 
   const [selectedDbTests, setSelectedDbTests] = useState<Set<string>>(new Set());
 
@@ -542,52 +527,6 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
           })}
         </div>
 
-        {/* Custom Tests — from database */}
-        {customTestCategories.length > 0 && (
-          <div className="mt-6">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#005EB8]" />
-              <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-                Custom Tests ({customTestCategories.reduce((s, c) => s + c.tests.length, 0)})
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {customTestCategories.map((cat) => {
-                const catSelectedCount = cat.tests.filter((t) => selectedDbTests.has(t.id)).length;
-                return (
-                  <div
-                    key={cat.name}
-                    className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
-                  >
-                    <div className="px-4 py-2.5 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                          {cat.name}
-                        </span>
-                        {catSelectedCount > 0 && (
-                          <span className="text-[10px] font-bold text-[#005EB8] bg-[#005EB8]/10 px-1.5 py-0.5 rounded">
-                            {catSelectedCount}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="p-3 space-y-1.5">
-                      {cat.tests.map((test) => (
-                        <ToggleTile
-                          key={test.id}
-                          label={test.name}
-                          selected={selectedDbTests.has(test.id)}
-                          onToggle={() => toggleDbTest(test.id)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {/* Hormone Profiles - Specialized Inputs */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
           <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50/80">
@@ -639,7 +578,7 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
                   >
                     <span>{item.name}</span>
                     <span className="text-slate-300">—</span>
-                    <span>GH₵{item.price.toFixed(2)}</span>
+                    <span>₦{item.price.toFixed(2)}</span>
                     <button
                       type="button"
                       onClick={() => handleDeleteCustom(idx)}

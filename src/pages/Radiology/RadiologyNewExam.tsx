@@ -493,7 +493,7 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
                   >
                     <span>{item.name}</span>
                     <span className="text-slate-300">—</span>
-                    <span>GH₵{item.price.toFixed(2)}</span>
+                    <span>₦{item.price.toFixed(2)}</span>
                     <button
                       type="button"
                       onClick={() => handleDeleteCustom(idx)}
