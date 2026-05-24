@@ -255,19 +255,6 @@ const ConsultationWorkspace = () => {
 
   useEffect(() => {
     if (existingPrescriptions?.length > 0) {
-      const rxItems = existingPrescriptions.flatMap((rx: any) =>
-        (rx.items || []).map((item: any) => ({
-          medicationId: item.medicationId,
-          medicationName: item.medication?.name || "",
-          dosage: item.dosage,
-          frequency: item.frequency,
-          duration: item.duration,
-          instructions: item.instructions || "",
-          route: item.instructions || "",
-          quantity: item.quantity || 1,
-        }))
-      );
-      if (rxItems.length > 0) replacePrescriptions(rxItems);
       setSavedPrescriptions(existingPrescriptions);
     }
     if (existingLabRequests?.length > 0) {
