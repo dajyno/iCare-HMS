@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import SearchableSelect from "@/components/ui/searchable-select";
+import { testCategories } from "./testCategories";
 import { Plus, Pencil, Save, X, Beaker, AlertTriangle } from "lucide-react";
 
 interface Props {
@@ -43,7 +44,33 @@ const LabManageCategories = ({ open, onClose }: Props) => {
         .select("*")
         .order("name");
       if (error) throw error;
-      return toCamel(data);
+      let result = toCamel(data ?? []);
+
+      const existingNames = new Set(result.map((t: any) => t.name));
+      const hardcodedTests = testCategories.flatMap((c) => c.tests);
+      const missingNames = hardcodedTests.filter(
+        (name) => !existingNames.has(name)
+      );
+
+      if (missingNames.length > 0) {
+        const inserts = missingNames.map((name) => ({
+          name,
+          status: "active",
+          price: 0,
+        }));
+        const { error: insertError } = await supabase
+          .from("lab_tests")
+          .insert(inserts);
+        if (!insertError) {
+          const { data: refreshed } = await supabase
+            .from("lab_tests")
+            .select("*")
+            .order("name");
+          if (refreshed) result = toCamel(refreshed);
+        }
+      }
+
+      return result;
     },
     enabled: open,
   });
