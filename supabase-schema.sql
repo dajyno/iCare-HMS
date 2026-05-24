@@ -1104,15 +1104,6 @@ alter table public.invoices add column if not exists paid_at timestamptz;
 -- ============================================================
 -- MIGRATION: Appointments start_time/end_time columns (safe to re-run)
 -- ============================================================
-alter table public.appointments add column if not exists start_time timestamptz;
-alter table public.appointments add column if not exists end_time timestamptz;
-
--- Backfill: derive from existing date + time (30-min default duration)
-update public.appointments
-set start_time = (date + time::time)::timestamptz,
-    end_time = (date + time::time)::timestamptz + interval '30 minutes'
-where start_time is null and date is not null and time is not null;
-
 alter table public.appointments add column if not exists invoice_amount double precision;
 alter table public.appointments add column if not exists invoice_id uuid;
 
