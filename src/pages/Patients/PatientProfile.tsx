@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
@@ -9,7 +9,7 @@ import {
   Stethoscope, FlaskConical, Pill, Activity, AlertCircle, Loader2,
   BadgeCheck, FolderOpen, Users, Building, Shield, Clock, Plus,
   HeartPulse, Microscope, Receipt, Bone, Thermometer, Scale, Droplets, Ruler,
-  X, Edit3
+  X, Edit3, Camera
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import SearchableSelect from "@/components/ui/searchable-select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ConsultationDetailCard from "@/src/components/ConsultationDetailCard";
 
 const categoryBadge: Record<string, string> = {
@@ -295,6 +296,36 @@ const PatientProfile = () => {
       setShowEditModal(false);
     },
   });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingPic, setUploadingPic] = useState(false);
+
+  const updateProfilePicture = useMutation({
+    mutationFn: async (base64: string) => {
+      setUploadingPic(true);
+      const { error } = await supabase.from("patients").update({ profile_picture: base64 }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patient", id] });
+      setUploadingPic(false);
+    },
+    onError: (err: Error) => {
+      setUploadingPic(false);
+      alert(`Failed to update profile picture: ${err.message}`);
+    },
+  });
+
+  const handleProfilePicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      updateProfilePicture.mutate(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
 
   const createConsultation = useMutation({
     mutationFn: async (payload: any) => {
@@ -653,8 +684,17 @@ const PatientProfile = () => {
       <Card className="border-none shadow-sm ring-1 ring-slate-200">
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row items-start gap-6">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center text-2xl font-bold shadow-md shrink-0">
-              {patient.firstName?.[0]}{patient.lastName?.[0]}
+            <div className="relative shrink-0 group">
+              <Avatar className="w-20 h-20 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                <AvatarImage src={patient.profilePicture} alt={`${patient.firstName} ${patient.lastName}`} className="object-cover" />
+                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white text-2xl font-bold rounded-full">
+                  {patient.firstName?.[0]}{patient.lastName?.[0]}
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                {uploadingPic ? <Loader2 className="w-6 h-6 text-white animate-spin" /> : <Camera className="w-6 h-6 text-white" />}
+              </div>
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleProfilePicChange} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-3">
