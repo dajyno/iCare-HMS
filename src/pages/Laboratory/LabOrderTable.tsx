@@ -211,7 +211,17 @@ const LabOrderTable = ({
         id: "actions",
         header: "",
         cell: ({ row }) => {
-          if (row.original.isBatch) return null;
+          if (row.original.isBatch) {
+            if (row.original.paymentStatus !== "Paid") {
+              return (
+                <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-amber-50 text-amber-600 border border-amber-200 whitespace-nowrap">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  UNPAID — Awaiting Payment
+                </span>
+              );
+            }
+            return null;
+          }
           const id = row.original.id;
           const isUnpaid = row.original.paymentStatus !== "Paid";
 
