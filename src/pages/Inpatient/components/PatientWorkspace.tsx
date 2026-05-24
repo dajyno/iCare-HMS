@@ -31,6 +31,7 @@ interface PatientWorkspaceProps {
   onGenerateInvoice: () => Promise<{ invoiceNumber: string } | null>;
   onSaveClinicalNotes: (notes: string) => void;
   onInvoicePaid: (admissionId: string) => void;
+  onInvoiceRecovered: (admissionId: string, invoiceId: string, paid: boolean) => void;
   searchMedications: (query: string) => Promise<{ drugId: string; name: string; unitPrice: number }[]>;
   getBedPrice: (wardCode: string, bedNo: string) => number;
 }
@@ -50,6 +51,7 @@ const PatientWorkspace = ({
   onGenerateInvoice,
   onSaveClinicalNotes,
   onInvoicePaid,
+  onInvoiceRecovered,
   searchMedications,
   getBedPrice,
 }: PatientWorkspaceProps) => {
@@ -130,6 +132,7 @@ const PatientWorkspace = ({
               onGenerateInvoice={onGenerateInvoice}
               onSaveClinicalNotes={onSaveClinicalNotes}
               onInvoicePaid={onInvoicePaid}
+              onInvoiceRecovered={onInvoiceRecovered}
               getBedPrice={getBedPrice}
             />
           </TabsContent>

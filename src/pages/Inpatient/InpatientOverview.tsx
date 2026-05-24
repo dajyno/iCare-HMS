@@ -183,6 +183,16 @@ const InpatientOverview = () => {
                   ),
                 }))
               }
+              onInvoiceRecovered={(admissionId, invoiceId, paid) =>
+                setState((prev) => ({
+                  ...prev,
+                  activeAdmissions: prev.activeAdmissions.map((a) =>
+                    a.admissionId === admissionId
+                      ? { ...a, dischargeInvoiceId: invoiceId, dischargeInvoicePaid: paid }
+                      : a
+                  ),
+                }))
+              }
               searchMedications={searchMedications}
               getBedPrice={getBedPrice}
             />

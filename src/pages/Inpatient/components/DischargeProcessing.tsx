@@ -39,6 +39,7 @@ const DischargeProcessing = ({
   onGenerateInvoice,
   onSaveClinicalNotes,
   onInvoicePaid,
+  onInvoiceRecovered,
   getBedPrice,
 }: {
   admission: ActiveAdmission;
@@ -46,6 +47,7 @@ const DischargeProcessing = ({
   onGenerateInvoice: () => Promise<{ invoiceNumber: string } | null>;
   onSaveClinicalNotes?: (notes: string) => void;
   onInvoicePaid?: (admissionId: string) => void;
+  onInvoiceRecovered?: (admissionId: string, invoiceId: string, paid: boolean) => void;
   getBedPrice?: (wardCode: string, bedNo: string) => number;
 }) => {
   const [summary, setSummary] = useState("");
@@ -89,12 +91,57 @@ const DischargeProcessing = ({
     return { days, bedRate, bedStayCost, medDetails, medCost, total: bedStayCost + medCost };
   }, [admission, getBedPrice]);
 
-  // Check invoice payment status
+  // Recover invoice ID if it was lost from state
+  useEffect(() => {
+    if (admission.dischargeInvoiceId || admission.careStatus === "Discharged") return;
+
+    let cancelled = false;
+    const recoverInvoice = async () => {
+      const patientId = admission.patient.patientId;
+      if (!patientId) return;
+
+      // Check Supabase for unpaid Inpatient invoices for this patient
+      const { data: supaInvoices } = await (supabase as any)
+        .from("invoices")
+        .select("id, status")
+        .eq("patient_id", patientId)
+        .eq("source_type", "Inpatient")
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (!cancelled && supaInvoices?.[0]) {
+        const inv = supaInvoices[0];
+        onInvoiceRecovered?.(admission.admissionId, inv.id, inv.status === "Paid");
+        return;
+      }
+
+      // Check localStorage fallback
+      try {
+        const raw = localStorage.getItem("icare_billing_local");
+        if (raw) {
+          const localInvoices = JSON.parse(raw);
+          const match = localInvoices.find(
+            (inv: any) =>
+              inv.patientId === patientId &&
+              inv.sourceType === "Inpatient"
+          );
+          if (!cancelled && match) {
+            onInvoiceRecovered?.(admission.admissionId, match.id, match.status === "Paid");
+          }
+        }
+      } catch { /* ignore */ }
+    };
+
+    recoverInvoice();
+  }, [admission.dischargeInvoiceId, admission.careStatus, admission.admissionId, admission.patient.patientId, onInvoiceRecovered]);
+
+  // Check invoice payment status (both Supabase and localStorage)
   useEffect(() => {
     if (!admission.dischargeInvoiceId || admission.dischargeInvoicePaid || admission.careStatus === "Discharged") return;
 
     let cancelled = false;
     const checkPayment = async () => {
+      // Check Supabase
       const { data } = await (supabase as any)
         .from("invoices")
         .select("status")
@@ -102,7 +149,22 @@ const DischargeProcessing = ({
         .single() as { data: { status: string } | null };
       if (!cancelled && data?.status === "Paid") {
         onInvoicePaid?.(admission.admissionId);
+        return;
       }
+
+      // Check localStorage fallback from billing module
+      try {
+        const raw = localStorage.getItem("icare_billing_local");
+        if (raw) {
+          const localInvoices = JSON.parse(raw);
+          const match = localInvoices.find(
+            (inv: any) => inv.id === admission.dischargeInvoiceId
+          );
+          if (!cancelled && match?.status === "Paid") {
+            onInvoicePaid?.(admission.admissionId);
+          }
+        }
+      } catch { /* ignore */ }
     };
 
     checkPayment();
