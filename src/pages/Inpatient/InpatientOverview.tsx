@@ -39,6 +39,7 @@ const InpatientOverview = () => {
     recordAdministration,
     recordFluidEntry,
     authorizeDischarge,
+    generateDischargeInvoice,
     saveClinicalNotes,
     updateWardConfig,
     updateBedStatus,
@@ -166,8 +167,21 @@ const InpatientOverview = () => {
               onAuthorizeDischarge={(summary) =>
                 authorizeDischarge(selectedPatient.admissionId, summary)
               }
+              onGenerateInvoice={() =>
+                generateDischargeInvoice(selectedPatient.admissionId)
+              }
               onSaveClinicalNotes={(notes) =>
                 saveClinicalNotes(selectedPatient.admissionId, notes)
+              }
+              onInvoicePaid={(admissionId) =>
+                setState((prev) => ({
+                  ...prev,
+                  activeAdmissions: prev.activeAdmissions.map((a) =>
+                    a.admissionId === admissionId
+                      ? { ...a, dischargeInvoicePaid: true }
+                      : a
+                  ),
+                }))
               }
               searchMedications={searchMedications}
               getBedPrice={getBedPrice}

@@ -877,16 +877,11 @@ export function useInpatientState() {
     [state.wardConfiguration]
   );
 
-  const authorizeDischarge = useCallback(
-    async (admissionId: string, dischargeSummary: string) => {
+  const generateDischargeInvoice = useCallback(
+    async (admissionId: string): Promise<{ invoiceNumber: string } | null> => {
       const s2 = supabase as any;
       const admission = state.activeAdmissions.find((a) => a.admissionId === admissionId);
-      if (!admission) return;
-
-      const now = new Date().toISOString();
-      const updatedNotes = admission.clinicalNotes
-        ? `${admission.clinicalNotes}\n[${new Date().toLocaleString()}] Discharged: ${dischargeSummary}`
-        : `[${new Date().toLocaleString()}] Discharged: ${dischargeSummary}`;
+      if (!admission) return null;
 
       const bedStayDays = admission.admissionDate
         ? Math.max(1, Math.floor((Date.now() - new Date(admission.admissionDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)
@@ -902,6 +897,79 @@ export function useInpatientState() {
       }, 0);
 
       const totalAmount = bedStayCost + medsTotal || 0;
+
+      if (totalAmount <= 0) return null;
+
+      try {
+        const invoiceNumber = await generateInvoiceNumber(supabase);
+        const { data: invoice, error: invError } = await s2
+          .from("invoices")
+          .insert([{
+            invoice_number: invoiceNumber,
+            patient_id: admission.patient.patientId,
+            total_amount: totalAmount,
+            amount_paid: 0,
+            balance: totalAmount,
+            status: "Unpaid",
+            source_type: "Inpatient",
+          }])
+          .select()
+          .single();
+
+        if (invError) throw invError;
+
+        if (invoice) {
+          const { error: itemsError } = await s2
+            .from("invoice_items")
+            .insert([
+              {
+                invoice_id: invoice.id,
+                description: `Bed Stay - ${admission.wardCode} ${admission.bedNo} (${bedStayDays} days @ ₦${bedRatePerDay}/day)`,
+                quantity: bedStayDays,
+                unit_price: bedRatePerDay,
+                total: bedStayCost,
+              },
+              {
+                invoice_id: invoice.id,
+                description: `Administered Medications (${admission.medicationSchedule.length} drugs)`,
+                quantity: 1,
+                unit_price: medsTotal,
+                total: medsTotal,
+              },
+            ]);
+
+          if (itemsError) throw itemsError;
+        }
+
+        // Store invoice ID on the admission in local state
+        setState((prev) => ({
+          ...prev,
+          activeAdmissions: prev.activeAdmissions.map((a) =>
+            a.admissionId === admissionId
+              ? { ...a, dischargeInvoiceId: invoice.id, dischargeInvoicePaid: false }
+              : a
+          ),
+        }));
+
+        return { invoiceNumber };
+      } catch (err) {
+        console.error("Failed to create discharge invoice:", err);
+        return null;
+      }
+    },
+    [state.activeAdmissions, state.wardConfiguration, getBedPrice]
+  );
+
+  const authorizeDischarge = useCallback(
+    async (admissionId: string, dischargeSummary: string) => {
+      const s2 = supabase as any;
+      const admission = state.activeAdmissions.find((a) => a.admissionId === admissionId);
+      if (!admission) return;
+
+      const now = new Date().toISOString();
+      const updatedNotes = admission.clinicalNotes
+        ? `${admission.clinicalNotes}\n[${new Date().toLocaleString()}] Discharged: ${dischargeSummary}`
+        : `[${new Date().toLocaleString()}] Discharged: ${dischargeSummary}`;
 
       // Persist discharge to Supabase
       try {
@@ -927,54 +995,6 @@ export function useInpatientState() {
         console.warn("[discharge] DB persistence failed:", err);
       }
 
-      // Create invoice if there are charges
-      if (totalAmount > 0) {
-        try {
-          const invoiceNumber = await generateInvoiceNumber(supabase);
-          const { data: invoice, error: invError } = await s2
-            .from("invoices")
-            .insert([{
-              invoice_number: invoiceNumber,
-              patient_id: admission.patient.patientId,
-              total_amount: totalAmount,
-              amount_paid: 0,
-              balance: totalAmount,
-              status: "Unpaid",
-              source_type: "Inpatient",
-            }])
-            .select()
-            .single();
-
-          if (invError) throw invError;
-
-          if (invoice) {
-            const { error: itemsError } = await s2
-              .from("invoice_items")
-              .insert([
-                {
-                  invoice_id: invoice.id,
-                  description: `Bed Stay - ${admission.wardCode} ${admission.bedNo} (${bedStayDays} days @ ₦${bedRatePerDay}/day)`,
-                  quantity: bedStayDays,
-                  unit_price: bedRatePerDay,
-                  total: bedStayCost,
-                },
-                {
-                  invoice_id: invoice.id,
-                  description: `Administered Medications (${admission.medicationSchedule.length} drugs)`,
-                  quantity: 1,
-                  unit_price: medsTotal,
-                  total: medsTotal,
-                },
-              ]);
-
-            if (itemsError) throw itemsError;
-          }
-          console.log(`Invoice ${invoiceNumber} created for ₦${totalAmount}`);
-        } catch (err) {
-          console.error("Failed to create invoice in Supabase:", err);
-        }
-      }
-
       // Update local state
       setState((prev) => ({
         ...prev,
@@ -995,7 +1015,7 @@ export function useInpatientState() {
         })),
       }));
     },
-    [state.activeAdmissions, state.wardConfiguration, getBedPrice]
+    [state.activeAdmissions, state.wardConfiguration]
   );
 
   const updateWardConfig = useCallback(
@@ -1145,6 +1165,7 @@ export function useInpatientState() {
     recordAdministration,
     recordFluidEntry,
     authorizeDischarge,
+    generateDischargeInvoice,
     saveClinicalNotes,
     updateWardConfig,
     updateBedStatus,

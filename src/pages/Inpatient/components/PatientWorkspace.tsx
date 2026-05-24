@@ -28,7 +28,9 @@ interface PatientWorkspaceProps {
     entry: Omit<FluidEntry, "itemId" | "timestamp">
   ) => void;
   onAuthorizeDischarge: (summary: string) => void;
+  onGenerateInvoice: () => Promise<{ invoiceNumber: string } | null>;
   onSaveClinicalNotes: (notes: string) => void;
+  onInvoicePaid: (admissionId: string) => void;
   searchMedications: (query: string) => Promise<{ drugId: string; name: string; unitPrice: number }[]>;
   getBedPrice: (wardCode: string, bedNo: string) => number;
 }
@@ -45,7 +47,9 @@ const PatientWorkspace = ({
   onRecordAdministration,
   onRecordFluidEntry,
   onAuthorizeDischarge,
+  onGenerateInvoice,
   onSaveClinicalNotes,
+  onInvoicePaid,
   searchMedications,
   getBedPrice,
 }: PatientWorkspaceProps) => {
@@ -123,7 +127,9 @@ const PatientWorkspace = ({
             <DischargeProcessing
               admission={admission}
               onAuthorizeDischarge={onAuthorizeDischarge}
+              onGenerateInvoice={onGenerateInvoice}
               onSaveClinicalNotes={onSaveClinicalNotes}
+              onInvoicePaid={onInvoicePaid}
               getBedPrice={getBedPrice}
             />
           </TabsContent>

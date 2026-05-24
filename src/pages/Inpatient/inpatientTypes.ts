@@ -58,6 +58,8 @@ export interface ActiveAdmission {
   medicationSchedule: MedicationSchedule[];
   fluidLedger: FluidLedger;
   clinicalNotes: string;
+  dischargeInvoiceId?: string;
+  dischargeInvoicePaid?: boolean;
 }
 
 export interface BedUnit {

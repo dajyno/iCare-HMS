@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "motion/react";
 import {
   CheckCircle2,
@@ -7,15 +7,24 @@ import {
   Calculator,
   ArrowRight,
   Loader2,
-  AlertTriangle,
   Receipt,
   Bed,
   Pill,
   StickyNote,
+  CreditCard,
+  CheckCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/src/lib/supabase";
 import type { ActiveAdmission } from "../inpatientTypes";
 
 interface ChecklistItem {
@@ -27,17 +36,25 @@ interface ChecklistItem {
 const DischargeProcessing = ({
   admission,
   onAuthorizeDischarge,
+  onGenerateInvoice,
   onSaveClinicalNotes,
+  onInvoicePaid,
   getBedPrice,
 }: {
   admission: ActiveAdmission;
   onAuthorizeDischarge: (summary: string) => void;
+  onGenerateInvoice: () => Promise<{ invoiceNumber: string } | null>;
   onSaveClinicalNotes?: (notes: string) => void;
+  onInvoicePaid?: (admissionId: string) => void;
   getBedPrice?: (wardCode: string, bedNo: string) => number;
 }) => {
   const [summary, setSummary] = useState("");
   const [clinicalNotes, setClinicalNotes] = useState(admission.clinicalNotes || "");
   const [authorizing, setAuthorizing] = useState(false);
+  const [generatingInvoice, setGeneratingInvoice] = useState(false);
+  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
+  const [showDischargeSuccess, setShowDischargeSuccess] = useState(false);
+  const [lastInvoiceNumber, setLastInvoiceNumber] = useState("");
   const [checklist, setChecklist] = useState<ChecklistItem[]>([
     { id: "chart", label: "Medical chart reconciled", checked: true },
     { id: "labs", label: "All laboratory results reviewed", checked: true },
@@ -72,6 +89,30 @@ const DischargeProcessing = ({
     return { days, bedRate, bedStayCost, medDetails, medCost, total: bedStayCost + medCost };
   }, [admission, getBedPrice]);
 
+  // Check invoice payment status
+  useEffect(() => {
+    if (!admission.dischargeInvoiceId || admission.dischargeInvoicePaid || admission.careStatus === "Discharged") return;
+
+    let cancelled = false;
+    const checkPayment = async () => {
+      const { data } = await (supabase as any)
+        .from("invoices")
+        .select("status")
+        .eq("id", admission.dischargeInvoiceId)
+        .single() as { data: { status: string } | null };
+      if (!cancelled && data?.status === "Paid") {
+        onInvoicePaid?.(admission.admissionId);
+      }
+    };
+
+    checkPayment();
+    const interval = setInterval(checkPayment, 5000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [admission.dischargeInvoiceId, admission.dischargeInvoicePaid, admission.careStatus, admission.admissionId, onInvoicePaid]);
+
+  const invoicePaid = admission.dischargeInvoicePaid === true;
+  const hasInvoice = !!admission.dischargeInvoiceId;
+
   const handleSaveClinicalNotes = () => {
     if (onSaveClinicalNotes) {
       onSaveClinicalNotes(clinicalNotes);
@@ -83,15 +124,77 @@ const DischargeProcessing = ({
     }
   };
 
+  const handleGenerateInvoice = async () => {
+    setGeneratingInvoice(true);
+    const result = await onGenerateInvoice();
+    setGeneratingInvoice(false);
+    if (result) {
+      setLastInvoiceNumber(result.invoiceNumber);
+      setShowInvoiceDialog(true);
+    }
+  };
+
   const handleAuthorize = async () => {
     if (!allChecked || !summary.trim()) return;
     setAuthorizing(true);
     await onAuthorizeDischarge(summary);
     setAuthorizing(false);
+    setShowDischargeSuccess(true);
   };
+
+  let dischargeDisabledReason = "";
+  if (!allChecked) dischargeDisabledReason = "Complete all checklist items";
+  else if (!summary.trim()) dischargeDisabledReason = "Write a discharge summary";
+  else if (!hasInvoice) dischargeDisabledReason = "Generate an invoice first";
+  else if (!invoicePaid) dischargeDisabledReason = "Invoice not yet paid — direct patient to billing counter";
+  const dischargeDisabled = !!dischargeDisabledReason || authorizing || admission.careStatus === "Discharged";
 
   return (
     <div className="space-y-6 max-w-3xl">
+      {/* Invoice Generated Dialog */}
+      <Dialog open={showInvoiceDialog} onOpenChange={(o) => { if (!o) setShowInvoiceDialog(false); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-emerald-600" />
+              </div>
+              <DialogTitle>Invoice Generated</DialogTitle>
+            </div>
+            <DialogDescription className="text-sm text-slate-600 space-y-2 pt-2">
+              <p>
+                Invoice <span className="font-bold text-slate-900">#{lastInvoiceNumber}</span> has been created successfully.
+              </p>
+              <p>
+                Please direct the patient to the billing counter to complete payment. The discharge can only proceed after the invoice is paid.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+
+      {/* Discharge Success Dialog */}
+      <Dialog open={showDischargeSuccess} onOpenChange={(o) => { if (!o) setShowDischargeSuccess(false); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-sky-600" />
+              </div>
+              <DialogTitle>Discharge Complete</DialogTitle>
+            </div>
+            <DialogDescription className="text-sm text-slate-600 space-y-2 pt-2">
+              <p>
+                Patient <span className="font-semibold text-slate-900">{admission.patient.name}</span> has been successfully discharged.
+              </p>
+              <p>
+                Bed <span className="font-semibold text-slate-900">{admission.bedNo}</span> in {admission.wardCode} is now available.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+
       <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
         <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -197,6 +300,30 @@ const DischargeProcessing = ({
               ₦{billingBreakdown.total.toLocaleString()}
             </span>
           </div>
+
+          {billingBreakdown.total > 0 && (
+            <div className="pt-2">
+              <Button
+                size="sm"
+                onClick={handleGenerateInvoice}
+                disabled={generatingInvoice || hasInvoice || admission.careStatus === "Discharged"}
+                className={cn(
+                  "w-full gap-1.5 text-xs font-semibold",
+                  hasInvoice
+                    ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100 cursor-default"
+                    : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                )}
+              >
+                {generatingInvoice ? (
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating Invoice...</>
+                ) : hasInvoice ? (
+                  <><CheckCircle className="w-3.5 h-3.5" /> Invoice Generated</>
+                ) : (
+                  <><CreditCard className="w-3.5 h-3.5" /> Generate Invoice</>
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -214,10 +341,16 @@ const DischargeProcessing = ({
         />
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex flex-col items-end gap-2">
+        {dischargeDisabledReason && admission.careStatus !== "Discharged" && (
+          <p className="text-xs text-amber-600 flex items-center gap-1">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500" />
+            {dischargeDisabledReason}
+          </p>
+        )}
         <Button
           size="lg"
-          disabled={!allChecked || !summary.trim() || authorizing || admission.careStatus === "Discharged"}
+          disabled={dischargeDisabled}
           onClick={handleAuthorize}
           className={cn(
             "gap-2 px-8 text-sm font-bold",
