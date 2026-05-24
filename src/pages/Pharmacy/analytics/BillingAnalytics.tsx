@@ -1,4 +1,4 @@
-import { BarChart3, TrendingUp, DollarSign, Receipt } from "lucide-react";
+import { BarChart3, TrendingUp, Wallet, Pill } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AnalyticsBoard from "./AnalyticsBoard";
 import { useAnalyticsData } from "../hooks";
@@ -27,7 +27,7 @@ const BillingAnalytics = () => {
             <div className="text-2xl font-extrabold text-slate-900 tabular-nums">
               ₦{analytics.totalRevenue.toLocaleString()}
             </div>
-            <DollarSign className="w-5 h-5 text-emerald-500" />
+            <Wallet className="w-5 h-5 text-emerald-500" />
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm ring-1 ring-slate-200">
@@ -38,7 +38,7 @@ const BillingAnalytics = () => {
             <div className="text-2xl font-extrabold text-slate-900 tabular-nums">
               {analytics.totalPrescriptions.toLocaleString()}
             </div>
-            <Receipt className="w-5 h-5 text-blue-500" />
+            <Pill className="w-5 h-5 text-blue-500" />
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm ring-1 ring-slate-200">
