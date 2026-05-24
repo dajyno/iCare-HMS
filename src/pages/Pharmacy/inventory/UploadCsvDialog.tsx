@@ -273,7 +273,7 @@ const UploadCsvDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: 
 
               <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 space-y-2">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Expected CSV Format</p>
-                <code className="text-[10px] text-slate-500 font-mono block">
+                <code className="text-[10px] text-slate-500 font-mono block whitespace-normal break-all">
                   name,strength,generic_name,category,package_type,unit_of_measurement,unit_price,quantity_in_stock,reorder_level
                 </code>
                 <p className="text-[10px] text-slate-400">

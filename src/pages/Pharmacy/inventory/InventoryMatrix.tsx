@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -17,6 +17,7 @@ import {
   Plus,
   Upload,
   AlertTriangle,
+  Trash2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,7 @@ import Pagination from "@/components/ui/pagination";
 import AddItemDialog from "./AddItemDialog";
 import UploadCsvDialog from "./UploadCsvDialog";
 import EditItemDialog from "./EditItemDialog";
-import { usePharmacyInventory } from "../hooks";
+import { usePharmacyInventory, useDeleteInventoryItem } from "../hooks";
 import type { PharmacyInventoryItem } from "../types";
 
 const columnHelper = createColumnHelper<PharmacyInventoryItem>();
@@ -50,6 +51,14 @@ const InventoryMatrix = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [editItem, setEditItem] = useState<PharmacyInventoryItem | null>(null);
+  const deleteItem = useDeleteInventoryItem();
+
+  const handleDelete = (e: React.MouseEvent, id: string, name: string) => {
+    e.stopPropagation();
+    if (window.confirm(`Delete "${name}" from inventory? This cannot be undone.`)) {
+      deleteItem.mutate(id);
+    }
+  };
 
   const lowStockCount = useMemo(
     () => (items ?? []).filter((i) => i.status === "Low Stock" || i.status === "Out of Stock").length,
@@ -136,12 +145,21 @@ const InventoryMatrix = () => {
           const rowData = row.original as PharmacyInventoryItem;
           if (rowData.status === "Out of Stock") return null;
           return (
-            <button
-              onClick={(e) => { e.stopPropagation(); setEditItem(rowData); }}
-              className="text-[11px] font-semibold text-sky-600 hover:text-sky-700 hover:underline"
-            >
-              Edit
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={(e) => { e.stopPropagation(); setEditItem(rowData); }}
+                className="text-[11px] font-semibold text-sky-600 hover:text-sky-700 hover:underline"
+              >
+                Edit
+              </button>
+              <button
+                onClick={(e) => handleDelete(e, rowData.id, rowData.itemName)}
+                className="p-1 text-slate-300 hover:text-red-500 transition-colors"
+                title="Delete"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
           );
         },
       }),
@@ -281,25 +299,28 @@ const InventoryMatrix = () => {
             <TableHeader>
               {table.getHeaderGroups().map((hg) => (
                 <TableRow key={hg.id}>
-                  {hg.headers.map((header) => (
-                    <TableHead
-                      key={header.id}
-                      className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 px-5 py-3.5"
-                    >
-                      <button
-                        className="flex items-center gap-1 select-none"
-                        onClick={header.column.getToggleSortingHandler()}
+                  {hg.headers.map((header) => {
+                    const align = (header.column.columnDef.meta as any)?.align === "right";
+                    return (
+                      <TableHead
+                        key={header.id}
+                        className={`text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 px-5 py-3.5 ${align ? "text-right" : ""}`}
                       >
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        {{
-                          asc: <ArrowUp className="w-3 h-3" />,
-                          desc: <ArrowDown className="w-3 h-3" />,
-                        }[header.column.getIsSorted() as string] ?? (
-                          <ArrowUpDown className="w-3 h-3 opacity-30" />
-                        )}
-                      </button>
-                    </TableHead>
-                  ))}
+                        <button
+                          className={`flex items-center gap-1 select-none ${align ? "justify-end" : ""}`}
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {{
+                            asc: <ArrowUp className="w-3 h-3" />,
+                            desc: <ArrowDown className="w-3 h-3" />,
+                          }[header.column.getIsSorted() as string] ?? (
+                            <ArrowUpDown className="w-3 h-3 opacity-30" />
+                          )}
+                        </button>
+                      </TableHead>
+                    );
+                  })}
                 </TableRow>
               ))}
             </TableHeader>

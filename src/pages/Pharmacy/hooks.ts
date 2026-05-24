@@ -246,6 +246,22 @@ export function useAddInventoryItem() {
   });
 }
 
+export function useDeleteInventoryItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any)
+        .from("medications")
+        .delete()
+        .eq("id", id);
+      if (error) throw new Error(error.message || "Failed to delete item");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pharmacy-inventory"] });
+    },
+  });
+}
+
 export function useBulkAddInventory() {
   const queryClient = useQueryClient();
   return useMutation({
