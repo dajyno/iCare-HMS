@@ -212,7 +212,7 @@ create table public.lab_requests (
   batch_id        text,
   status          text not null default 'Requested' check (status in ('Requested','SampleCollected','InProgress','AwaitingValidation','Completed','Cancelled')),
   payment_status  text not null default 'Unpaid' check (payment_status in ('Unpaid','Paid')),
-  invoice_id      uuid references public.invoices(id) on delete set null,
+  invoice_id      uuid,
   created_at      timestamptz not null default now()
 );
 
@@ -603,7 +603,7 @@ create policy "Authenticated users can insert medications"
   to authenticated
   with check (true);
 
-drop policy if exists "Authenticated users can update medications";
+drop policy if exists "Authenticated users can update medications" on public.medications;
 create policy "Authenticated users can update medications"
   on public.medications for update
   to authenticated
@@ -670,8 +670,8 @@ insert into public.lab_tests (name, category, price, sample_type) values
   ('Complete Blood Count', 'Hematology', 25.0, 'Blood'),
   ('Lipid Profile', 'Biochemistry', 40.0, 'Blood'),
   ('Urinalysis', 'Urology', 15.0, 'Urine'),
-  ('Chest X-Ray', 'Radiology', 60.0, 'Imaging')
-on conflict do nothing;
+   ('Chest X-Ray', 'Radiology', 60.0, 'Imaging')
+on conflict (name) do nothing;
 
 -- Patients (2 per category for testing)
 insert into public.patients (patient_id, first_name, last_name, gender, date_of_birth, phone, email, address, category, status, blood_group, allergies, next_of_kin_name, next_of_kin_phone, next_of_kin_relation) values
@@ -711,7 +711,7 @@ begin
       for i in 1..5 loop
         insert into public.beds (bed_number, ward_id, status)
         values ('M-BED-' || i, ward_id, 'Available')
-on conflict (name) do nothing;
+on conflict do nothing;
       end loop;
     end if;
   end if;
