@@ -3,6 +3,7 @@ export interface Patient {
   name: string;
   age: number;
   allergies: string[];
+  patientId?: string;
 }
 
 export interface VitalsRecord {

@@ -145,6 +145,7 @@ export function useInpatientState() {
           bedNo: a.bed?.bed_number ?? "Unknown",
           patient: {
             folderNo: a.patient?.patient_id ?? "",
+            patientId: a.patient?.id ?? "",
             name: `${a.patient?.first_name ?? ""} ${a.patient?.last_name ?? ""}`.trim(),
             age: a.patient?.date_of_birth
               ? Math.floor(
@@ -592,7 +593,7 @@ export function useInpatientState() {
         admissionId: newAdm.id,
         wardCode: payload.wardCode,
         bedNo: payload.bedNo,
-        patient: payload.patient,
+        patient: { ...payload.patient, patientId: patientData.id },
         attendingPhysician: payload.attendingPhysician,
         admissionDate: now,
         daysAdmitted: 0,
@@ -934,11 +935,12 @@ export function useInpatientState() {
             .from("invoices")
             .insert([{
               invoice_number: invoiceNumber,
-              patient_id: admission.patient.folderNo,
+              patient_id: admission.patient.patientId,
               total_amount: totalAmount,
               amount_paid: 0,
               balance: totalAmount,
               status: "Unpaid",
+              source_type: "Inpatient",
             }])
             .select()
             .single();
