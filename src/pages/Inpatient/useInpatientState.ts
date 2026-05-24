@@ -128,7 +128,7 @@ export function useInpatientState() {
         const { data, error } = await supabase
           .from("admissions")
           .select("*, patient:patients(*), ward:wards(name), bed:beds(bed_number)")
-          .eq("status", "Admitted")
+          .in("status", ["Admitted", "Discharged"])
           .order("admission_date", { ascending: false });
         if (cancelled) return null;
         if (error) {
@@ -1135,12 +1135,18 @@ export function useInpatientState() {
     [s]
   );
 
-  const liveAdmissions = state.activeAdmissions.map((a) => ({
-    ...a,
-    daysAdmitted: a.admissionDate
-      ? Math.max(1, Math.floor((Date.now() - new Date(a.admissionDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)
-      : 1,
-  }));
+  const liveAdmissions = state.activeAdmissions
+    .map((a) => ({
+      ...a,
+      daysAdmitted: a.admissionDate
+        ? Math.max(1, Math.floor((Date.now() - new Date(a.admissionDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)
+        : 1,
+    }))
+    .sort((a, b) => {
+      if (a.careStatus === "Discharged" && b.careStatus !== "Discharged") return 1;
+      if (a.careStatus !== "Discharged" && b.careStatus === "Discharged") return -1;
+      return 0;
+    });
 
   const wards = Array.from(new Set(liveAdmissions.map((a) => a.wardCode)))
     .sort()
