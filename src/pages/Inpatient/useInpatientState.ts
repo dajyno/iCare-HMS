@@ -613,6 +613,7 @@ export function useInpatientState() {
           ),
         })),
       }));
+      setDiagnostic(null);
       return true;
     },
     []
