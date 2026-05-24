@@ -393,7 +393,7 @@ const ConsultationWorkspace = () => {
         const testPrice = lr.test?.price || 0;
         const { data: inv, error: invError } = await supabase.from("invoices").insert({
           invoice_number: `LAB-${Date.now()}-${lr.id.substring(0, 8)}`,
-          patient_id: pId, lab_request_id: lr.id,
+          patient_id: pId,
           source_type: "Laboratory", status: "Unpaid",
           total_amount: testPrice, amount_paid: 0, balance: testPrice,
         }).select("id").single();
@@ -427,7 +427,7 @@ const ConsultationWorkspace = () => {
       if (!pId) throw new Error("No patient selected");
       const cId = await ensureConsultation(pId);
       const inserts = items.map((rr: any) => ({
-        patient_id: pId, exam_id: rr.examId, requested_by_id: user?.id, consultation_id: cId, status: "Requested",
+        patient_id: pId, exam_id: rr.examId, requested_by_id: user?.id, status: "Requested",
       }));
       const { data, error } = await supabase.from("radiology_requests").insert(inserts).select("*, exam:radiology_exams(name, price)");
       if (error) throw error;
@@ -436,7 +436,7 @@ const ConsultationWorkspace = () => {
         const examPrice = rr.exam?.price || 0;
         const { data: inv, error: invError } = await supabase.from("invoices").insert({
           invoice_number: `RAD-${Date.now()}-${rr.id.substring(0, 8)}`,
-          patient_id: pId, radiology_request_id: rr.id,
+          patient_id: pId,
           source_type: "Radiology", status: "Unpaid",
           total_amount: examPrice, amount_paid: 0, balance: examPrice,
         }).select("id").single();
@@ -540,7 +540,7 @@ const ConsultationWorkspace = () => {
           const testPrice = lr.test?.price || 0;
           const { data: inv, error: invError } = await supabase.from("invoices").insert({
             invoice_number: `LAB-${Date.now()}-${lr.id.substring(0, 8)}`,
-            patient_id: pId, lab_request_id: lr.id,
+            patient_id: pId,
             source_type: "Laboratory", status: "Unpaid",
             total_amount: testPrice, amount_paid: 0, balance: testPrice,
           }).select("id").single();
@@ -555,7 +555,7 @@ const ConsultationWorkspace = () => {
 
       if (formData.radiologyRequests?.length > 0) {
         const radInserts = formData.radiologyRequests.map((rr: any) => ({
-          patient_id: pId, exam_id: rr.examId, requested_by_id: user?.id, consultation_id: cId, status: "Requested",
+          patient_id: pId, exam_id: rr.examId, requested_by_id: user?.id, status: "Requested",
         }));
         const { data: savedRads, error } = await supabase.from("radiology_requests").insert(radInserts).select("*, exam:radiology_exams(name, price)");
         if (error) throw error;
@@ -563,7 +563,7 @@ const ConsultationWorkspace = () => {
           const examPrice = rr.exam?.price || 0;
           const { data: inv, error: invError } = await supabase.from("invoices").insert({
             invoice_number: `RAD-${Date.now()}-${rr.id.substring(0, 8)}`,
-            patient_id: pId, radiology_request_id: rr.id,
+            patient_id: pId,
             source_type: "Radiology", status: "Unpaid",
             total_amount: examPrice, amount_paid: 0, balance: examPrice,
           }).select("id").single();
