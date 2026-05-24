@@ -685,7 +685,7 @@ const PatientProfile = () => {
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row items-start gap-6">
             <div className="relative shrink-0 group">
-              <Avatar className="w-20 h-20 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+              <Avatar key={patient.profilePicture || "avatar"} className="w-20 h-20 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                 <AvatarImage src={patient.profilePicture} alt={`${patient.firstName} ${patient.lastName}`} className="object-cover" />
                 <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white text-2xl font-bold rounded-full">
                   {patient.firstName?.[0]}{patient.lastName?.[0]}
