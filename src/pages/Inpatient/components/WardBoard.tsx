@@ -30,9 +30,7 @@ const WardBoard = ({
   admissions: ActiveAdmission[];
   onSelectPatient: (admission: ActiveAdmission) => void;
 }) => {
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: "wardBed", desc: false },
-  ]);
+  const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
 
   const data = useMemo(
