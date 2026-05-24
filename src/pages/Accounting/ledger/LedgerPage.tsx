@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from "react";
+import React, { useMemo, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Search, X, Printer, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ const LedgerPage = () => {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
   const entries = useMemo(() => {
@@ -36,6 +37,7 @@ const LedgerPage = () => {
       bank_name: inc.bank_name || "",
       status: inc.status,
       source_id: inc.id,
+      payment_method: inc.payment_method,
     }));
     const expenseEntries: LedgerEntryType[] = (expenses || []).map((exp) => ({
       id: `ledger-expense-${exp.id}`,
@@ -49,6 +51,7 @@ const LedgerPage = () => {
       bank_name: exp.bank_name || "",
       status: exp.status,
       source_id: exp.id,
+      payment_method: exp.payment_method,
     }));
     return [...incomeEntries, ...expenseEntries].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -255,28 +258,65 @@ const LedgerPage = () => {
                   </tr>
                 ) : (
                   paginatedEntries.map((entry) => (
-                    <tr key={entry.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 text-slate-600 tabular-nums whitespace-nowrap">{entry.date}</td>
-                      <td className="px-4 py-3">
-                        <div className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${entry.type === "Income" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
-                          {entry.type === "Income" ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                          {entry.type}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-slate-700 font-medium">{entry.category}</td>
-                      <td className="px-4 py-3 text-slate-600 max-w-[220px] truncate">
-                        {entry.description || entry.payee || "—"}
-                      </td>
-                      <td className={`px-4 py-3 text-right font-bold tabular-nums ${entry.type === "Income" ? "text-emerald-600" : "text-rose-600"}`}>
-                        {entry.type === "Income" ? "+" : "-"}₦{entry.amount.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-500">{entry.bank_name || entry.bank_id}</td>
-                      <td className="px-4 py-3">
-                        <Badge variant="outline" className={`text-[10px] font-semibold ${STATUS_STYLES[entry.status]}`}>
-                          {entry.status}
-                        </Badge>
-                      </td>
-                    </tr>
+                    <React.Fragment key={entry.id}>
+                      <tr
+                        onClick={() => setExpandedRow(expandedRow === entry.id ? null : entry.id)}
+                        className="hover:bg-slate-50 transition-colors cursor-pointer"
+                      >
+                        <td className="px-4 py-3 text-slate-600 tabular-nums whitespace-nowrap">{entry.date}</td>
+                        <td className="px-4 py-3">
+                          <div className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${entry.type === "Income" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
+                            {entry.type === "Income" ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                            {entry.type}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-slate-700 font-medium">{entry.category}</td>
+                        <td className="px-4 py-3 text-slate-600 max-w-[220px] truncate">
+                          {entry.description || entry.payee || "—"}
+                        </td>
+                        <td className={`px-4 py-3 text-right font-bold tabular-nums ${entry.type === "Income" ? "text-emerald-600" : "text-rose-600"}`}>
+                          {entry.type === "Income" ? "+" : "-"}₦{entry.amount.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-500">{entry.bank_name || entry.bank_id}</td>
+                        <td className="px-4 py-3">
+                          <Badge variant="outline" className={`text-[10px] font-semibold ${STATUS_STYLES[entry.status]}`}>
+                            {entry.status}
+                          </Badge>
+                        </td>
+                      </tr>
+                      {expandedRow === entry.id && (
+                        <tr className="bg-slate-50/50">
+                          <td colSpan={7} className="px-4 py-3">
+                            <div className="grid grid-cols-3 gap-4 text-xs">
+                              <div>
+                                <span className="font-semibold text-slate-500">Payment Method</span>
+                                <p className="text-slate-800 mt-0.5">{entry.payment_method || "—"}</p>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-slate-500">Payee</span>
+                                <p className="text-slate-800 mt-0.5">{entry.payee || "—"}</p>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-slate-500">Bank Account</span>
+                                <p className="text-slate-800 mt-0.5">{entry.bank_name || entry.bank_id || "—"}</p>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-slate-500">Source ID</span>
+                                <p className="text-slate-800 mt-0.5 font-mono">{entry.source_id}</p>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-slate-500">Full Description</span>
+                                <p className="text-slate-800 mt-0.5 break-words">{entry.description || entry.payee || "—"}</p>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-slate-500">Transaction Type</span>
+                                <p className="text-slate-800 mt-0.5">{entry.type === "Income" ? "Income (Credit)" : "Expense (Debit)"}</p>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))
                 )}
               </tbody>

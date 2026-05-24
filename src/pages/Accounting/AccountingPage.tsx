@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   Calculator,
   Plus,
@@ -21,6 +21,7 @@ import NewExpenseModal from "./registries/NewExpenseModal";
 
 const AccountingPage = () => {
   const navigate = useNavigate();
+  const { hospital_slug } = useParams();
   const { data: banks } = useBankAccounts();
   const { data: income } = useIncome();
   const { data: expenses } = useExpenses();
@@ -119,10 +120,10 @@ const AccountingPage = () => {
         <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5" onClick={() => setShowNewExpense(true)}>
           <Plus className="w-3.5 h-3.5" /> New Expense
         </Button>
-        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate("/accounting/banks")}>
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/${hospital_slug}/accounting/banks`)}>
           <Banknote className="w-3.5 h-3.5" /> Reconcile
         </Button>
-        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate("/accounting/reports")}>
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate(`/${hospital_slug}/accounting/reports`)}>
           <Calculator className="w-3.5 h-3.5" /> View Reports
         </Button>
       </div>

@@ -47,6 +47,7 @@ export type LedgerEntry = {
   bank_name: string;
   status: "Pending" | "Verified";
   source_id: string;
+  payment_method?: string;
 };
 
 export interface CategoryItem {

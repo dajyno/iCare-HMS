@@ -125,23 +125,6 @@ const NewIncomeModal = ({ open, onClose, banks }: Props) => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="inc-bank">Bank Account</Label>
-                <SearchableSelect
-                  value={isCash ? "" : bankId}
-                  onValueChange={(v) => setBankId(v)}
-                  options={banks.map((b) => ({ value: b.bank_id, label: b.bank_name }))}
-                  placeholder={isCash ? "N/A — Cash transaction" : "Select bank"}
-                  disabled={isCash}
-                />
-                {isCash && <p className="text-[10px] text-slate-400 mt-0.5">Bank not required for cash payments</p>}
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="inc-date">Date</Label>
-                <Input id="inc-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
                 <Label htmlFor="inc-method">Payment Method</Label>
                 <select
                   id="inc-method"
@@ -154,6 +137,23 @@ const NewIncomeModal = ({ open, onClose, banks }: Props) => {
                   <option value="Transfer">Bank Transfer</option>
                   <option value="Insurance Split">Insurance Split</option>
                 </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="inc-date">Date</Label>
+                <Input id="inc-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="inc-bank">Bank Account</Label>
+                <SearchableSelect
+                  value={isCash ? "" : bankId}
+                  onValueChange={(v) => setBankId(v)}
+                  options={banks.map((b) => ({ value: b.bank_id, label: b.bank_name }))}
+                  placeholder={isCash ? "N/A — Cash transaction" : "Select bank"}
+                  disabled={isCash}
+                />
+                {isCash && <p className="text-[10px] text-slate-400 mt-0.5">Bank not required for cash payments</p>}
               </div>
               <div className="space-y-1.5" ref={patientRef}>
                 <Label htmlFor="inc-patient">Patient</Label>

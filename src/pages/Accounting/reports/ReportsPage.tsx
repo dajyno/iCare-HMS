@@ -152,7 +152,7 @@ const ReportsPage = () => {
       </div>
 
       <div className="flex items-center justify-center gap-4 pt-2 text-sm">
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/accounting/ledger")}>
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate(`/${hospital_slug}/accounting/ledger`)}>
           View Full Ledger <ArrowRight className="w-3 h-3" />
         </Button>
       </div>
