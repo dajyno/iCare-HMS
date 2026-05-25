@@ -43,7 +43,7 @@ type FilterTab = (typeof SOURCE_TABS)[number];
 const BillingOverview = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterTab>("All");
-  const [showPaidOnly, setShowPaidOnly] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "unpaid">("all");
   const [showNewInvoice, setShowNewInvoice] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceSummary | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -70,9 +70,13 @@ const BillingOverview = () => {
 
     let list = deduped;
 
-    if (showPaidOnly) {
+    if (statusFilter === "paid") {
       list = list.filter((inv) => inv.status === "Paid");
-    } else if (activeFilter !== "All") {
+    } else if (statusFilter === "unpaid") {
+      list = list.filter((inv) => inv.status === "Unpaid");
+    }
+
+    if (statusFilter === "all" && activeFilter !== "All") {
       list = list.filter(
         (inv) => inv.sourceType?.toLowerCase() === activeFilter.toLowerCase()
       );
@@ -91,11 +95,11 @@ const BillingOverview = () => {
     }
 
     return list;
-  }, [invoices, activeFilter, showPaidOnly, searchTerm]);
+  }, [invoices, activeFilter, statusFilter, searchTerm]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeFilter, showPaidOnly, searchTerm]);
+  }, [activeFilter, statusFilter, searchTerm]);
 
   const paginatedInvoices = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -287,7 +291,7 @@ const BillingOverview = () => {
         {SOURCE_TABS.map((tab) => (
           <button
             key={tab}
-            onClick={() => { setActiveFilter(tab); setShowPaidOnly(false); clearSelection(); }}
+            onClick={() => { setActiveFilter(tab); setStatusFilter("all"); clearSelection(); }}
             className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               activeFilter === tab
                 ? "bg-blue-50 text-blue-700 border border-blue-200 shadow-sm"
@@ -299,9 +303,20 @@ const BillingOverview = () => {
         ))}
         <div className="w-px h-6 bg-slate-200 mx-1" />
         <button
-          onClick={() => { setShowPaidOnly(!showPaidOnly); setActiveFilter("All"); clearSelection(); }}
+          onClick={() => { setStatusFilter(statusFilter === "unpaid" ? "all" : "unpaid"); setActiveFilter("All"); clearSelection(); }}
           className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-            showPaidOnly
+            statusFilter === "unpaid"
+              ? "bg-red-600 text-white shadow-sm ring-2 ring-red-300"
+              : "text-red-700 bg-red-50 border border-red-200 hover:bg-red-100"
+          }`}
+        >
+          <X className="w-3 h-3 inline mr-1 -mt-0.5" />
+          Unpaid Invoices
+        </button>
+        <button
+          onClick={() => { setStatusFilter(statusFilter === "paid" ? "all" : "paid"); setActiveFilter("All"); clearSelection(); }}
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            statusFilter === "paid"
               ? "bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-300"
               : "text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100"
           }`}

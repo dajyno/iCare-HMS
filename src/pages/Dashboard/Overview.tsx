@@ -56,7 +56,7 @@ async function fetchStats(): Promise<DashboardStats> {
     { count: pendingScans },
     { count: pendingRx },
     { data: beds },
-    { data: payments },
+    { data: dailyPayments },
     { count: unpaidInvoices },
     { count: activeStaff },
   ] = await Promise.all([
@@ -70,8 +70,9 @@ async function fetchStats(): Promise<DashboardStats> {
     supabase.from("prescriptions").select("*", { count: "exact", head: true })
       .eq("status", "Paid"),
     supabase.from("beds").select("status"),
-    supabase.from("payments").select("amount")
-      .gte("created_at", today.toISOString()).lt("created_at", tomorrow.toISOString()),
+    supabase.from("invoices").select("amount_paid")
+      .eq("status", "Paid")
+      .gte("paid_at", today.toISOString()).lt("paid_at", tomorrow.toISOString()),
     supabase.from("invoices").select("*", { count: "exact", head: true })
       .neq("status", "Paid"),
     (adminSupabase as any).from("staff").select("*", { count: "exact", head: true }),
@@ -87,7 +88,7 @@ async function fetchStats(): Promise<DashboardStats> {
     pendingScans: pendingScans || 0,
     pendingRx: pendingRx || 0,
     bedOccupancy: Math.round((occupiedBeds / totalBeds) * 100),
-    dailyRevenue: (payments || []).reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0,
+    dailyRevenue: (dailyPayments || []).reduce((sum: number, p: any) => sum + (p.amount_paid || 0), 0) || 0,
     outstandingClaims: unpaidInvoices || 0,
     activeStaff: activeStaff || 0,
   };
@@ -211,7 +212,7 @@ const Overview = () => {
     { icon: Pill, label: "Pharmacy", metric: `${stats?.pendingRx} pending`, href: "/pharmacy/prescriptions", color: "text-rose-600", bg: "bg-rose-50" },
     { icon: Bed, label: "Inpatient", metric: `${stats?.bedOccupancy}% occupied`, href: "/inpatient", color: "text-cyan-600", bg: "bg-cyan-50" },
     { icon: CreditCard, label: "Billing", metric: `₦${(stats?.dailyRevenue ?? 0).toLocaleString()} total`, href: "/billing", color: "text-indigo-600", bg: "bg-indigo-50" },
-    { icon: Calculator, label: "Accounting", metric: `${stats?.outstandingClaims} claims`, href: "/accounting", color: "text-teal-600", bg: "bg-teal-50" },
+    { icon: Calculator, label: "Accounting", metric: `${stats?.outstandingClaims} unpaid`, href: "/accounting", color: "text-teal-600", bg: "bg-teal-50" },
     { icon: UserPlus, label: "Staff", metric: `${stats?.activeStaff} registered`, href: "/staff", color: "text-orange-600", bg: "bg-orange-50" },
     { icon: BarChart3, label: "Reports", metric: "Analytics & KPIs", href: "/reports", color: "text-slate-600", bg: "bg-slate-100" },
   ];
