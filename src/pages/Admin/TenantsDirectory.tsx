@@ -120,7 +120,9 @@ const TenantsDirectory: React.FC = () => {
           });
 
           if (insertError) {
-            setFormError(`Tenant and auth user created, but profile insert failed: ${insertError.message}.`);
+            setFormError(`Tenant and auth user created, but profile insert failed: ${insertError.message}. You can retry by resetting the password from the tenant details page.`);
+            setSubmitting(false);
+            return;
           }
         }
       } catch (err: any) {

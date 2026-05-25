@@ -153,21 +153,101 @@ const TenantDetail: React.FC = () => {
     }
     setResettingPassword(true);
     try {
-      const { data: users } = await adminSupabase
+      const { data: existing } = await adminSupabase
         .from("users")
         .select("id, email")
         .eq("tenant_id", tenantId)
         .limit(1);
 
-      if (users && users.length > 0) {
-        const user = users[0];
+      if (existing && existing.length > 0) {
+        const user = existing[0];
         await adminSupabase.auth.admin.updateUserById(user.id, { password: newPassword });
         setPasswordSuccess(`Password updated for ${user.email || "tenant admin"}`);
         setNewPassword("");
         setConfirmPassword("");
         setTimeout(() => { setShowResetModal(false); setPasswordSuccess(""); }, 2000);
+        setResettingPassword(false);
+        return;
+      }
+
+      // No user record with this tenant_id — try to find the auth user by
+      // the tenant's admin_email and create the users table record
+      const { data: tData } = await (adminSupabase as any)
+        .from("tenants")
+        .select("admin_email, hospital_name")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      const adminEmail = (tData as any)?.admin_email;
+      if (!adminEmail) {
+        setPasswordError("No admin email is set for this tenant. Set one in Admin Management first, then try again.");
+        setResettingPassword(false);
+        return;
+      }
+
+      const { data: authUsers } = await (adminSupabase as any).auth.admin.listUsers();
+      const authUser = (authUsers as any)?.users?.find((u: any) => u.email === adminEmail);
+
+      if (authUser) {
+        const { error: insertErr } = await (adminSupabase as any).from("users").insert({
+          id: authUser.id,
+          email: adminEmail,
+          tenant_id: tenantId,
+          full_name: (tData as any)?.hospital_name ? `${(tData as any).hospital_name} Admin` : adminEmail,
+          role: "HospitalAdmin",
+          status: "active",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+
+        if (insertErr) {
+          setPasswordError(`Could not link auth user to tenant: ${insertErr.message}`);
+          setResettingPassword(false);
+          return;
+        }
+
+        await adminSupabase.auth.admin.updateUserById(authUser.id, { password: newPassword });
+        setPasswordSuccess(`Password updated for ${adminEmail}`);
+        setNewPassword("");
+        setConfirmPassword("");
+        setTimeout(() => { setShowResetModal(false); setPasswordSuccess(""); }, 2000);
       } else {
-        setPasswordError("No user found for this tenant. Ensure a user exists with this tenant_id.");
+        const tempPw = Math.random().toString(36).slice(2, 10) + "A1!";
+        const { data: newAuth, error: createErr } = await (adminSupabase as any).auth.admin.createUser({
+          email: adminEmail,
+          password: tempPw,
+          email_confirm: true,
+          user_metadata: { full_name: (tData as any)?.hospital_name ? `${(tData as any).hospital_name} Admin` : adminEmail, role: "HospitalAdmin" },
+        });
+
+        if (createErr || !(newAuth as any)?.user?.id) {
+          setPasswordError(`Could not create auth user: ${createErr?.message || "Unknown error"}`);
+          setResettingPassword(false);
+          return;
+        }
+
+        const { error: insertErr2 } = await (adminSupabase as any).from("users").insert({
+          id: (newAuth as any).user.id,
+          email: adminEmail,
+          tenant_id: tenantId,
+          full_name: (tData as any)?.hospital_name ? `${(tData as any).hospital_name} Admin` : adminEmail,
+          role: "HospitalAdmin",
+          status: "active",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+
+        if (insertErr2) {
+          setPasswordError(`Auth user created but profile insert failed: ${insertErr2.message}`);
+          setResettingPassword(false);
+          return;
+        }
+
+        await (adminSupabase as any).auth.admin.updateUserById((newAuth as any).user.id, { password: newPassword });
+        setPasswordSuccess(`Admin account created and password set for ${adminEmail}`);
+        setNewPassword("");
+        setConfirmPassword("");
+        setTimeout(() => { setShowResetModal(false); setPasswordSuccess(""); }, 2000);
       }
     } catch (err: any) {
       setPasswordError(err.message || "Password reset failed");
