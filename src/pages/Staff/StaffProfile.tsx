@@ -55,7 +55,7 @@ const POSITION_OPTIONS: StaffPosition[] = [
 ];
 
 export default function StaffProfile() {
-  const { id } = useParams<{ id: string }>();
+  const { id, hospital_slug } = useParams<{ id: string; hospital_slug: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { records, updateRecord, deleteRecord } = useStaff();
@@ -101,7 +101,7 @@ export default function StaffProfile() {
       <div className="text-center py-24">
         <p className="text-lg text-slate-500">Staff member not found</p>
         <Button
-          onClick={() => navigate("/staff")}
+          onClick={() => navigate(`/${hospital_slug}/staff`)}
           variant="outline"
           className="mt-4"
         >
@@ -218,7 +218,7 @@ export default function StaffProfile() {
   const handleDelete = async () => {
     await deleteRecord(staff.staff_id);
     setShowDeleteConfirm(false);
-    navigate("/staff");
+    navigate(`/${hospital_slug}/staff`);
   };
 
   const changed =
@@ -252,7 +252,7 @@ export default function StaffProfile() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate("/staff")}
+          onClick={() => navigate(`/${hospital_slug}/staff`)}
           className="h-8 w-8"
         >
           <ArrowLeft className="w-4 h-4" />
