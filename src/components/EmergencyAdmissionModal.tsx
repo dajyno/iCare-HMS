@@ -71,9 +71,10 @@ const EmergencyAdmissionModal = ({ open, onClose }: EmergencyAdmissionModalProps
   useEffect(() => {
     if (!open) return;
     (async () => {
-      const [{ data: wardData }, { data: userData }] = await Promise.all([
+      const [{ data: wardData }, { data: userData }, { data: staffData }] = await Promise.all([
         (supabase as any).from("wards").select("id, name, type, beds_count, beds(id, bed_number, status), department:departments(name)").order("name", { ascending: true }),
         (adminSupabase as any).from("users").select("id, full_name").eq("role", "Doctor"),
+        (adminSupabase as any).from("staff").select("staff_id, name, auth_user_id").eq("is_clinician", true),
       ]);
       if (wardData) {
         const grouped: WardConfig[] = wardData.map((w: any) => ({
@@ -88,9 +89,21 @@ const EmergencyAdmissionModal = ({ open, onClose }: EmergencyAdmissionModalProps
         }));
         setWards(grouped);
       }
+      const doctorMap = new Map<string, string>();
       if (userData) {
-        setDoctors(userData.map((d: any) => ({ id: d.id, fullName: d.full_name })));
+        for (const d of userData) {
+          doctorMap.set(d.id, d.full_name);
+        }
       }
+      if (staffData) {
+        for (const s of staffData) {
+          const id = s.auth_user_id || s.staff_id;
+          if (!doctorMap.has(id)) {
+            doctorMap.set(id, s.name);
+          }
+        }
+      }
+      setDoctors(Array.from(doctorMap.entries()).map(([id, name]) => ({ id, fullName: name })));
     })();
   }, [open]);
 
