@@ -20,7 +20,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import SearchableSelect from "@/components/ui/searchable-select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ConsultationDetailCard from "@/src/components/ConsultationDetailCard";
 
 const categoryBadge: Record<string, string> = {
@@ -306,8 +305,11 @@ const PatientProfile = () => {
       const { error } = await supabase.from("patients").update({ profile_picture: base64 }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["patient", id] });
+    onSuccess: (_, base64) => {
+      queryClient.setQueryData(["patient", id], (old: any) => {
+        if (!old) return old;
+        return { ...old, profilePicture: base64 };
+      });
       setUploadingPic(false);
     },
     onError: (err: Error) => {
@@ -685,12 +687,13 @@ const PatientProfile = () => {
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row items-start gap-6">
             <div className="relative shrink-0 group">
-              <Avatar key={patient.profilePicture || "avatar"} className="w-20 h-20 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                <AvatarImage src={patient.profilePicture} alt={`${patient.firstName} ${patient.lastName}`} className="object-cover" />
-                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white text-2xl font-bold rounded-full">
+              {patient.profilePicture ? (
+                <img src={patient.profilePicture} alt={`${patient.firstName} ${patient.lastName}`} className="w-20 h-20 rounded-full object-cover shadow-md cursor-pointer" onClick={() => fileInputRef.current?.click()} />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center text-2xl font-bold shadow-md cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                   {patient.firstName?.[0]}{patient.lastName?.[0]}
-                </AvatarFallback>
-              </Avatar>
+                </div>
+              )}
               <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                 {uploadingPic ? <Loader2 className="w-6 h-6 text-white animate-spin" /> : <Camera className="w-6 h-6 text-white" />}
               </div>
