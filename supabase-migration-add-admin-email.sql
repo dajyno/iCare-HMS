@@ -1,12 +1,48 @@
--- Adds admin_email column to tenants table for tenant admin management
+-- ============================================================
+-- Phase 1: Ensure tenants table has admin_email + demo tenant
+-- ============================================================
 alter table public.tenants add column if not exists admin_email text;
-
--- Seed admin email for demo tenant
 update public.tenants set admin_email = 'admin@demo.icare.ng' where tenant_id = 'T-DEMO-01' and admin_email is null;
 
 -- ============================================================
--- Populate tenant_id on existing demo data
--- Safe to re-run: WHERE tenant_id IS NULL avoids overwriting
+-- Phase 2: Add tenant_id column (with FK) to all data tables
+-- Uses IF NOT EXISTS so safe to re-run
+-- ============================================================
+
+alter table public.users add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.departments add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.staff_profiles add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.patients add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.appointments add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.consultations add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.vital_signs add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.prescriptions add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.prescription_items add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.medications add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.lab_tests add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.lab_requests add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.lab_results add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.invoices add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.invoice_items add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.payments add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.inventory_items add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.suppliers add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.purchase_orders add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.purchase_order_items add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.wards add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.beds add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.admissions add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.discharges add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.radiology_categories add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.radiology_exams add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.radiology_requests add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.radiology_results add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.audit_logs add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.notifications add column if not exists tenant_id text references public.tenants(tenant_id);
+
+-- ============================================================
+-- Phase 3: Populate tenant_id on existing demo data
+-- WHERE tenant_id IS NULL avoids overwriting manually assigned data
 -- ============================================================
 
 update public.users set tenant_id = 'T-DEMO-01' where tenant_id is null;
