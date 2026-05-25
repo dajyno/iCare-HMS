@@ -193,7 +193,7 @@ const Overview = () => {
 
       const [usersRes, staffRes] = await Promise.all([
         supabase.from("users").select("id, full_name").eq("role", "Doctor"),
-        (adminSupabase as any).from("staff").select("id, full_name").eq("is_clinician", true),
+        (adminSupabase as any).from("staff").select("id, name").eq("is_clinician", true),
       ]);
       if (cancelled) return;
 
@@ -202,9 +202,10 @@ const Overview = () => {
         if (u.full_name) doctorMap.set(u.id, u.full_name);
       }
       for (const s of (staffRes.data || []) as any[]) {
-        if (s.full_name && !doctorMap.has(s.id)) doctorMap.set(s.id, s.full_name);
+        if (s.name && !doctorMap.has(s.id)) doctorMap.set(s.id, s.name);
       }
-      setAttendingDoctors(Array.from(doctorMap.values()).sort());
+      const names = Array.from(doctorMap.values()).sort();
+      setAttendingDoctors(names.length > 0 ? names : ["Unassigned"]);
     }
 
     load();
