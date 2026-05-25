@@ -39,8 +39,17 @@ function formatTimestamp(ts: string) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+function formatDate(ts: string | null | undefined) {
+  if (!ts) return "N/A";
+  return new Date(ts).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 const Profile = () => {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [profilePicture, setProfilePicture] = useState(() =>
     localStorage.getItem("staff_profile_picture") || ""
@@ -135,12 +144,12 @@ const Profile = () => {
     try {
       const { error: userErr } = await (adminSupabase as any)
         .from("users")
-        .update({
+        .upsert({
+          id: user.id,
           full_name: editName,
           email: editEmail,
           phone: editPhone || null,
-        })
-        .eq("id", user.id);
+        }, { onConflict: "id" });
       if (userErr) throw new Error(userErr.message || "Failed to update profile");
 
       if (staffRecord) {
@@ -159,7 +168,7 @@ const Profile = () => {
       }
 
       setEditOpen(false);
-      await refreshUser();
+      window.location.reload();
     } catch (err: any) {
       setEditError(err.message);
     } finally {
@@ -247,7 +256,7 @@ const Profile = () => {
                 </div>
                 <div>
                   <p className="text-slate-400 text-[10px] uppercase font-bold">Phone Number</p>
-                  <p className="text-slate-900 font-medium">{user?.phone || "+1 (555) 000-0000"}</p>
+                  <p className="text-slate-900 font-medium">{user?.phone || staffRecord?.phone || "+1 (555) 000-0000"}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 text-sm">
@@ -276,7 +285,7 @@ const Profile = () => {
                 <div>
                   <p className="text-xs font-bold text-slate-900">Department</p>
                   <p className="text-sm text-slate-500">
-                    {staffRecord?.department || "Clinical Operations / General Medicine"}
+                    {staffRecord?.department || user?.departmentId || "Clinical Operations / General Medicine"}
                   </p>
                 </div>
               </div>
@@ -284,7 +293,9 @@ const Profile = () => {
                 <Calendar className="w-4 h-4 text-sky-500 mt-0.5" />
                 <div>
                   <p className="text-xs font-bold text-slate-900">Member Since</p>
-                  <p className="text-sm text-slate-500">January 2024</p>
+                  <p className="text-sm text-slate-500">
+                    {formatDate(user?.createdAt)}
+                  </p>
                 </div>
               </div>
             </CardContent>
