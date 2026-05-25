@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/src/lib/supabase";
+import { adminSupabase } from "@/src/lib/adminSupabase";
 import { cn } from "@/lib/utils";
 import {
   Search,
@@ -62,7 +63,7 @@ const EmergencyAdmissionModal = ({ open, onClose }: EmergencyAdmissionModalProps
   const [selectedDepartment, setSelectedDepartment] = useState("");
   const [selectedWardId, setSelectedWardId] = useState("");
   const [selectedBedCode, setSelectedBedCode] = useState("");
-  const [doctors, setDoctors] = useState<string[]>([]);
+  const [doctors, setDoctors] = useState<{ id: string; fullName: string }[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -72,7 +73,7 @@ const EmergencyAdmissionModal = ({ open, onClose }: EmergencyAdmissionModalProps
     (async () => {
       const [{ data: wardData }, { data: userData }] = await Promise.all([
         (supabase as any).from("wards").select("id, name, type, beds_count, beds(id, bed_number, status), department:departments(name)").order("name", { ascending: true }),
-        (supabase as any).from("users").select("full_name").eq("role", "Doctor"),
+        (adminSupabase as any).from("users").select("id, full_name").eq("role", "Doctor"),
       ]);
       if (wardData) {
         const grouped: WardConfig[] = wardData.map((w: any) => ({
@@ -88,7 +89,7 @@ const EmergencyAdmissionModal = ({ open, onClose }: EmergencyAdmissionModalProps
         setWards(grouped);
       }
       if (userData) {
-        setDoctors(userData.map((d: any) => d.full_name));
+        setDoctors(userData.map((d: any) => ({ id: d.id, fullName: d.full_name })));
       }
     })();
   }, [open]);
@@ -272,7 +273,15 @@ const EmergencyAdmissionModal = ({ open, onClose }: EmergencyAdmissionModalProps
                     <div className="space-y-2">
                       <Label className="text-sm font-semibold text-slate-700">Ward</Label>
                       <Select value={selectedWardId} onValueChange={(v) => { setSelectedWardId(v); setSelectedBedCode(""); }}>
-                        <SelectTrigger><SelectValue placeholder="Select ward..." /></SelectTrigger>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select ward...">
+                            {(value: string | null) => {
+                              if (!value) return null;
+                              const ward = wards.find(w => w.wardId === value);
+                              return ward ? `${ward.name} (${ward.totalBeds} beds)` : value;
+                            }}
+                          </SelectValue>
+                        </SelectTrigger>
                         <SelectContent>
                           {filteredWards.map((w) => (
                             <SelectItem key={w.wardId} value={w.wardId}>{w.name} ({w.totalBeds} beds)</SelectItem>
@@ -338,10 +347,18 @@ const EmergencyAdmissionModal = ({ open, onClose }: EmergencyAdmissionModalProps
               <div className="space-y-2">
                 <Label className="text-sm font-semibold text-slate-700">Attending Physician</Label>
                 <Select value={selectedDoctor} onValueChange={setSelectedDoctor}>
-                  <SelectTrigger><SelectValue placeholder="Assign physician..." /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Assign physician...">
+                      {(value: string | null) => {
+                        if (!value) return null;
+                        const doc = doctors.find(d => d.id === value);
+                        return doc ? doc.fullName : value;
+                      }}
+                    </SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
                     {doctors.map((doc) => (
-                      <SelectItem key={doc} value={doc}>{doc}</SelectItem>
+                      <SelectItem key={doc.id} value={doc.id}>{doc.fullName}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
