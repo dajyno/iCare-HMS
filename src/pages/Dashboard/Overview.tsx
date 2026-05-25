@@ -266,7 +266,12 @@ const Overview = () => {
 
     let doctorId: string | null = null;
     const { data: userData } = await s.from("users").select("id").ilike("full_name", `%${payload.attendingPhysician.replace(/^Dr\.\s*/i, "")}%`).maybeSingle();
-    if (userData) doctorId = userData.id;
+    if (userData) {
+      doctorId = userData.id;
+    } else {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) doctorId = user.id;
+    }
 
     const { error: admError, data: newAdm } = await s.from("admissions").insert({
       patient_id: patientData.id,
