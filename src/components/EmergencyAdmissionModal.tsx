@@ -66,6 +66,7 @@ const EmergencyAdmissionModal = ({ open, onClose }: EmergencyAdmissionModalProps
   const [doctors, setDoctors] = useState<{ id: string; fullName: string }[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
+  const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -153,6 +154,7 @@ const EmergencyAdmissionModal = ({ open, onClose }: EmergencyAdmissionModalProps
     setSelectedBedCode("");
     setSelectedDoctor("");
     setDiagnosis("");
+    setError("");
     setSubmitting(false);
     onClose();
   };
@@ -160,30 +162,49 @@ const EmergencyAdmissionModal = ({ open, onClose }: EmergencyAdmissionModalProps
   const handleSubmit = async () => {
     if (!canSubmit || !selectedPatient || !selectedWardId || !selectedBedCode) return;
     setSubmitting(true);
+    setError("");
     try {
       const bedNumber = selectedBedCode.split("-").pop() || "";
-      const { data: bedRow } = await (supabase as any)
+      const { data: bedRow } = await (adminSupabase as any)
         .from("beds")
         .select("id")
         .eq("ward_id", selectedWardId)
         .eq("bed_number", bedNumber)
         .maybeSingle();
-      if (bedRow) {
-        await (supabase as any).from("admissions").insert({
+      if (!bedRow) {
+        setError("Selected bed not found in database");
+        setSubmitting(false);
+        return;
+      }
+      const { error: admError } = await (adminSupabase as any)
+        .from("admissions")
+        .insert({
           patient_id: selectedPatient.id,
           ward_id: selectedWardId,
           bed_id: bedRow.id,
           admitting_doctor_id: selectedDoctor,
+          admission_date: new Date().toISOString(),
           diagnosis,
           notes: "Emergency admission",
           status: "Admitted",
         });
-        await (supabase as any).from("beds").update({ status: "Occupied" }).eq("id", bedRow.id);
+      if (admError) {
+        setError("Failed to save admission: " + admError.message);
+        setSubmitting(false);
+        return;
+      }
+      const { error: bedError } = await (adminSupabase as any)
+        .from("beds")
+        .update({ status: "Occupied" })
+        .eq("id", bedRow.id);
+      if (bedError) {
+        setError("Admission saved but failed to mark bed occupied: " + bedError.message);
+        setSubmitting(false);
+        return;
       }
       handleClose();
-    } catch {
-      // silently fail
-    } finally {
+    } catch (err: any) {
+      setError(err?.message || "Unexpected error during admission");
       setSubmitting(false);
     }
   };
@@ -376,6 +397,11 @@ const EmergencyAdmissionModal = ({ open, onClose }: EmergencyAdmissionModalProps
                   </SelectContent>
                 </Select>
               </div>
+              {error && (
+                <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
+                  {error}
+                </div>
+              )}
               <div className="flex justify-between pt-2">
                 <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
                 <Button
