@@ -3,6 +3,7 @@ import { supabase, toCamel } from "../lib/supabase";
 import { adminSupabase } from "../lib/adminSupabase";
 import type { StaffRecord } from "../pages/Staff/types";
 import { getCustomAccounts } from "../lib/accountsStore";
+import { mapPositionToRole } from "../pages/Staff/data";
 import type { User } from "../lib/types";
 
 interface AuthContextType {
@@ -44,11 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .maybeSingle();
 
       if (staffRow) {
-        const role = (staffRow.position === "Medical Doctors" ? "Doctor" :
-          staffRow.position === "Nursing" ? "Nurse" :
-          staffRow.position === "Pharmacy" ? "Pharmacist" :
-          staffRow.position === "Laboratory" ? "LabTechnician" :
-          "HospitalAdmin") as User["role"];
+        const role = mapPositionToRole(staffRow.position) as User["role"];
         setUser({
           id: userId,
           email: authUser.email || "",
@@ -137,12 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               r.canLogin
           );
           if (match) {
-            const role: string =
-              match.position === "Medical Doctors" ? "Doctor" :
-              match.position === "Nursing" ? "Nurse" :
-              match.position === "Pharmacy" ? "Pharmacist" :
-              match.position === "Laboratory" ? "LabTechnician" :
-              "HospitalAdmin";
+            const role = mapPositionToRole(match.position);
             account = { name: match.name, role };
           }
         } catch {

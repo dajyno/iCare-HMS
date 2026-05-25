@@ -37,23 +37,13 @@ import { saveCustomAccount, removeCustomAccount } from "@/src/lib/accountsStore"
 import { useCheckSeatLimit } from "@/src/hooks/useSeatLimit";
 import UpgradeSubscriptionModal from "@/src/components/UpgradeSubscriptionModal";
 import { useStaff } from "./StaffContext";
-import type { StaffPosition } from "./types";
-import { DEPARTMENT_OPTIONS } from "./data";
+import { DEPARTMENT_CATEGORIES, getPositionsForDepartment, CLINICIAN_POSITIONS, mapPositionToRole } from "./data";
 
 const STATUS_STYLES: Record<string, string> = {
   Active: "bg-emerald-100 text-emerald-700 border-emerald-200",
   "Off-Duty": "bg-slate-100 text-slate-500 border-slate-200",
   "On Leave": "bg-amber-100 text-amber-700 border-amber-200",
 };
-
-const POSITION_OPTIONS: StaffPosition[] = [
-  "Medical Doctors",
-  "Nursing",
-  "Pharmacy",
-  "Laboratory",
-  "Administration",
-  "Others",
-];
 
 export default function StaffProfile() {
   const { id, hospital_slug } = useParams<{ id: string; hospital_slug: string }>();
@@ -70,7 +60,7 @@ export default function StaffProfile() {
   const staff = records.find((r) => r.staff_id === id);
 
   const [name, setName] = useState("");
-  const [position, setPosition] = useState<StaffPosition | "">("");
+  const [position, setPosition] = useState("");
   const [department, setDepartment] = useState("");
   const [gender, setGender] = useState("");
   const [address, setAddress] = useState("");
@@ -113,12 +103,7 @@ export default function StaffProfile() {
   }
 
   const isOwnProfile = user?.email === staff.email;
-  const staffRole: string =
-    staff.position === "Medical Doctors" ? "Doctor" :
-    staff.position === "Nursing" ? "Nurse" :
-    staff.position === "Pharmacy" ? "Pharmacist" :
-    staff.position === "Laboratory" ? "LabTechnician" :
-    "HospitalAdmin";
+  const staffRole: string = mapPositionToRole(staff.position);
 
   const handlePictureUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -142,14 +127,14 @@ export default function StaffProfile() {
     if (!position) return;
     await updateRecord(staff.staff_id, {
       name,
-      position: position as StaffPosition,
+      position,
       department,
       gender,
       address,
       email,
       phone,
       profilePicture,
-      is_clinician: position === "Medical Doctors",
+      is_clinician: CLINICIAN_POSITIONS.includes(position),
     });
 
     if (staff.authUserId) {
@@ -161,7 +146,7 @@ export default function StaffProfile() {
       if (existingUser) {
         await (adminSupabase as any)
           .from("users")
-          .update({ role: staffRole })
+          .update({ role: mapPositionToRole(position) })
           .eq("id", staff.authUserId);
       }
     }
@@ -359,33 +344,34 @@ export default function StaffProfile() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="edPosition">Position</Label>
-                    <Select
-                      value={position}
-                      onValueChange={(v) => setPosition(v as StaffPosition)}
-                    >
-                      <SelectTrigger className="w-full h-10" id="edPosition">
-                        <SelectValue />
+                    <Label htmlFor="edDept">Department Category</Label>
+                    <Select value={department} onValueChange={(v) => { setDepartment(v); setPosition(""); }}>
+                      <SelectTrigger className="w-full h-10" id="edDept">
+                        <SelectValue placeholder="Select department..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {POSITION_OPTIONS.map((opt) => (
-                          <SelectItem key={opt} value={opt}>
-                            {opt}
+                        {DEPARTMENT_CATEGORIES.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="edDept">Department</Label>
-                    <Select value={department} onValueChange={setDepartment}>
-                      <SelectTrigger className="w-full h-10" id="edDept">
-                        <SelectValue placeholder="Select department" />
+                    <Label htmlFor="edPosition">Position</Label>
+                    <Select
+                      value={position}
+                      onValueChange={setPosition}
+                      disabled={!department}
+                    >
+                      <SelectTrigger className="w-full h-10" id="edPosition">
+                        <SelectValue placeholder={department ? "Select a position..." : "Pick a department first"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {DEPARTMENT_OPTIONS.map((dep) => (
-                          <SelectItem key={dep} value={dep}>
-                            {dep}
+                        {getPositionsForDepartment(department).map((opt) => (
+                          <SelectItem key={opt} value={opt}>
+                            {opt}
                           </SelectItem>
                         ))}
                       </SelectContent>

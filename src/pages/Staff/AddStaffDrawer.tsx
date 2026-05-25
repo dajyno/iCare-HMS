@@ -20,16 +20,8 @@ import {
 import { useStaff } from "./StaffContext";
 import { useCheckSeatLimit } from "@/src/hooks/useSeatLimit";
 import UpgradeSubscriptionModal from "@/src/components/UpgradeSubscriptionModal";
-import type { StaffRecord, StaffPosition } from "./types";
-
-const POSITION_OPTIONS: StaffPosition[] = [
-  "Medical Doctors",
-  "Nursing",
-  "Pharmacy",
-  "Laboratory",
-  "Administration",
-  "Others",
-];
+import type { StaffRecord } from "./types";
+import { DEPARTMENT_CATEGORIES, getPositionsForDepartment, CLINICIAN_POSITIONS } from "./data";
 
 interface Props {
   open: boolean;
@@ -48,7 +40,9 @@ export default function AddStaffModal({ open, onClose }: Props) {
   const [department, setDepartment] = useState("");
   const [gender, setGender] = useState("");
   const [address, setAddress] = useState("");
-  const [position, setPosition] = useState<StaffPosition | "">("");
+  const [position, setPosition] = useState("");
+
+  const positionOptions = department ? getPositionsForDepartment(department) : [];
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -63,10 +57,10 @@ export default function AddStaffModal({ open, onClose }: Props) {
     const newRecord: StaffRecord = {
       staff_id: staffId,
       name: `${firstName} ${lastName}`.trim(),
-      position: position as StaffPosition,
+      position,
       department,
       availability_status: "Active",
-      is_clinician: position === "Medical Doctors",
+      is_clinician: CLINICIAN_POSITIONS.includes(position),
       gender,
       address,
       email,
@@ -162,13 +156,19 @@ export default function AddStaffModal({ open, onClose }: Props) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="adepartment">Assigned Department</Label>
-              <Input
-                id="adepartment"
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                placeholder="e.g., Cardiology"
-              />
+              <Label htmlFor="adepartment">Department Category</Label>
+              <Select value={department} onValueChange={(v) => { setDepartment(v); setPosition(""); }}>
+                <SelectTrigger className="w-full h-10" id="adepartment">
+                  <SelectValue placeholder="Select department..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {DEPARTMENT_CATEGORIES.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -190,13 +190,14 @@ export default function AddStaffModal({ open, onClose }: Props) {
               <Label htmlFor="aposition">Position</Label>
               <Select
                 value={position}
-                onValueChange={(val) => setPosition(val as StaffPosition)}
+                onValueChange={setPosition}
+                disabled={!department}
               >
                 <SelectTrigger className="w-full h-10" id="aposition">
-                  <SelectValue placeholder="Select a position..." />
+                  <SelectValue placeholder={department ? "Select a position..." : "Pick a department first"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {POSITION_OPTIONS.map((opt) => (
+                  {positionOptions.map((opt) => (
                     <SelectItem key={opt} value={opt}>
                       {opt}
                     </SelectItem>

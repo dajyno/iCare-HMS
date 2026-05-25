@@ -1,6 +1,5 @@
 import { useState, useRef, type ChangeEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/src/lib/supabase";
 import { adminSupabase } from "@/src/lib/adminSupabase";
 import { useAuth } from "@/src/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DEPARTMENT_OPTIONS } from "@/src/pages/Staff/data";
+import { DEPARTMENT_CATEGORIES, getPositionsForDepartment, CLINICIAN_POSITIONS, mapPositionToRole } from "@/src/pages/Staff/data";
 import { Mail, Phone, MapPin, Briefcase, Calendar, Camera, Pencil, Loader2 } from "lucide-react";
 
 interface AuditLog {
@@ -67,6 +66,7 @@ const Profile = () => {
   const [editEmail, setEditEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editDepartment, setEditDepartment] = useState("");
+  const [editPosition, setEditPosition] = useState("");
   const [editGender, setEditGender] = useState("");
   const [editAddress, setEditAddress] = useState("");
   const [saving, setSaving] = useState(false);
@@ -76,7 +76,7 @@ const Profile = () => {
     queryKey: ["profile-staff", user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data } = await supabase
+      const { data } = await (adminSupabase as any)
         .from("staff")
         .select("*")
         .eq("auth_user_id", user.id)
@@ -88,11 +88,7 @@ const Profile = () => {
   });
 
   const profileRole = staffRecord?.position
-    ? (staffRecord.position === "Medical Doctors" ? "Doctor" :
-       staffRecord.position === "Nursing" ? "Nurse" :
-       staffRecord.position === "Pharmacy" ? "Pharmacist" :
-       staffRecord.position === "Laboratory" ? "LabTechnician" :
-       "HospitalAdmin")
+    ? mapPositionToRole(staffRecord.position)
     : user?.role;
 
   const { data: auditLogs = [] } = useQuery({
@@ -117,10 +113,12 @@ const Profile = () => {
     setEditPhone(user?.phone || "");
     if (staffRecord) {
       setEditDepartment(staffRecord.department || "");
+      setEditPosition(staffRecord.position || "");
       setEditGender(staffRecord.gender || "");
       setEditAddress(staffRecord.address || "");
     } else {
       setEditDepartment("");
+      setEditPosition("");
       setEditGender("");
       setEditAddress("");
     }
@@ -159,6 +157,7 @@ const Profile = () => {
     setSaving(true);
     setEditError("");
     try {
+      const mappedRole = mapPositionToRole(editPosition);
       const { error: userErr } = await (adminSupabase as any)
         .from("users")
         .upsert({
@@ -166,7 +165,7 @@ const Profile = () => {
           full_name: editName,
           email: editEmail,
           phone: editPhone || null,
-          role: user.role,
+          role: mappedRole,
           status: "active",
         }, { onConflict: "id" });
       if (userErr) throw new Error(userErr.message || "Failed to update profile");
@@ -179,6 +178,8 @@ const Profile = () => {
             email: editEmail,
             phone: editPhone || null,
             department: editDepartment,
+            position: editPosition,
+            is_clinician: CLINICIAN_POSITIONS.includes(editPosition),
             gender: editGender,
             address: editAddress,
           })
@@ -304,7 +305,7 @@ const Profile = () => {
                 <div>
                   <p className="text-xs font-bold text-slate-900">Department</p>
                   <p className="text-sm text-slate-500">
-                    {staffRecord?.department || user?.departmentId || "Clinical Operations / General Medicine"}
+                    {staffRecord?.department || "Not assigned"}
                   </p>
                 </div>
               </div>
@@ -403,30 +404,54 @@ const Profile = () => {
                 <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="h-9 text-sm" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-600">Department</Label>
-                <Select value={editDepartment} onValueChange={setEditDepartment}>
+                <Label className="text-xs font-semibold text-slate-600">Gender</Label>
+                <Select value={editGender} onValueChange={setEditGender}>
                   <SelectTrigger className="w-full h-9 text-sm">
-                    <SelectValue placeholder="Select department" />
+                    <SelectValue placeholder="Select gender..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {DEPARTMENT_OPTIONS.map((dep) => (
-                      <SelectItem key={dep} value={dep}>
-                        {dep}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="Male">Male</SelectItem>
+                    <SelectItem value="Female">Female</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-600">Gender</Label>
-                <Input value={editGender} onChange={(e) => setEditGender(e.target.value)} className="h-9 text-sm" />
+                <Label className="text-xs font-semibold text-slate-600">Department Category</Label>
+                <Select value={editDepartment} onValueChange={(v) => { setEditDepartment(v); setEditPosition(""); }}>
+                  <SelectTrigger className="w-full h-9 text-sm">
+                    <SelectValue placeholder="Select department..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEPARTMENT_CATEGORIES.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-600">Address</Label>
-                <Input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} className="h-9 text-sm" />
+                <Label className="text-xs font-semibold text-slate-600">Position</Label>
+                <Select value={editPosition} onValueChange={setEditPosition} disabled={!editDepartment}>
+                  <SelectTrigger className="w-full h-9 text-sm">
+                    <SelectValue placeholder={editDepartment ? "Select position..." : "Pick department first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getPositionsForDepartment(editDepartment).map((opt) => (
+                      <SelectItem key={opt} value={opt}>
+                        {opt}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-600">Address</Label>
+              <Input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} className="h-9 text-sm" />
             </div>
             {editError && (
               <div className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{editError}</div>

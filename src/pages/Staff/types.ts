@@ -1,12 +1,6 @@
 export type AvailabilityStatus = "Active" | "Off-Duty" | "On Leave";
 
-export type StaffPosition =
-  | "Medical Doctors"
-  | "Nursing"
-  | "Pharmacy"
-  | "Laboratory"
-  | "Administration"
-  | "Others";
+export type StaffPosition = string;
 
 export interface StaffRecord {
   staff_id: string;

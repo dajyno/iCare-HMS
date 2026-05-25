@@ -1,24 +1,78 @@
-export const POSITIONS = [
-  "All Staff",
+export const DEPARTMENT_POSITIONS: Record<string, string[]> = {
+  "Clinical / Medical": [
+    "Medical Doctors",
+    "Nursing",
+    "Anesthesiology",
+    "Resident / Intern",
+  ],
+  "Clinical Support Services": [
+    "Laboratory",
+    "Pharmacy",
+    "Nursing Services",
+    "Nutrition & Dietetics",
+    "Physiotherapy / Physical Therapy",
+    "Medical Records",
+    "Infection Control",
+    "Blood Bank / Transfusion Medicine",
+  ],
+  "Diagnostic & Imaging": [
+    "Radiology",
+    "Pathology",
+    "Diagnostic Cardiology",
+    "Diagnostic Neurology",
+  ],
+  "Administrative": [
+    "Hospital Administration",
+    "Human Resources",
+    "Finance / Accounts",
+    "Billing & Insurance",
+    "Procurement / Supply Chain",
+    "Public Relations / Communications",
+    "Legal / Compliance",
+    "Quality Assurance",
+    "IT / Health Informatics",
+    "Medical Education / Training",
+    "Research & Development",
+  ],
+  "Operations & Facilities": [
+    "Housekeeping / Environmental Services",
+    "Security Services",
+    "Patient Transport / Portering",
+    "Patient Relations",
+    "Social Work",
+    "Facilities Management / Engineering",
+  ],
+};
+
+export const DEPARTMENT_CATEGORIES = Object.keys(DEPARTMENT_POSITIONS);
+
+export const ALL_POSITIONS = Object.values(DEPARTMENT_POSITIONS).flat();
+
+export const CLINICIAN_POSITIONS: readonly string[] = [
   "Medical Doctors",
   "Nursing",
-  "Pharmacy",
-  "Laboratory",
-  "Administration",
-  "Others",
-] as const;
+  "Anesthesiology",
+  "Resident / Intern",
+];
 
-export const DEPARTMENT_OPTIONS = [
-  "Internal Medicine",
-  "Surgery",
-  "Pediatrics",
-  "OB/GYN",
-  "Orthopedics",
-  "Cardiology",
-  "Family Medicine",
-  "Laboratory",
-  "Pharmacy",
-  "Radiology",
-  "Emergency",
-  "General Medicine",
-] as const;
+export function getPositionsForDepartment(category: string): string[] {
+  return DEPARTMENT_POSITIONS[category] || [];
+}
+
+const POSITION_TO_ROLE: Record<string, string> = {
+  "Medical Doctors": "Doctor",
+  "Nursing": "Nurse",
+  "Nursing Services": "Nurse",
+  "Pharmacy": "Pharmacist",
+  "Laboratory": "LabTechnician",
+  "Resident / Intern": "Doctor",
+  "Anesthesiology": "Doctor",
+  "Radiology": "Doctor",
+  "Pathology": "Doctor",
+  "Diagnostic Cardiology": "Doctor",
+  "Diagnostic Neurology": "Doctor",
+};
+
+export function mapPositionToRole(position: string): string {
+  return POSITION_TO_ROLE[position] || "HospitalAdmin";
+}
