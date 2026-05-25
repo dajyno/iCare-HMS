@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import NewAdmissionWizard from "@/src/pages/Inpatient/components/NewAdmissionWizard";
 import type { WardConfig } from "@/src/pages/Inpatient/inpatientTypes";
+import { toast } from "sonner";
 
 interface DashboardStats {
   totalPatients: number;
@@ -290,6 +291,7 @@ const Overview = () => {
     }
 
     await s.from("beds").update({ status: "Occupied" }).eq("id", bedData.id);
+    toast.success("Patient admitted successfully");
     return true;
   }, []);
 

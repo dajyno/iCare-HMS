@@ -52,6 +52,7 @@ export interface ActiveAdmission {
   patient: Patient;
   attendingPhysician: string;
   admissionDate: string;
+  dischargeDate?: string;
   daysAdmitted: number;
   careStatus: "Meds Due" | "Critical Observation" | "Stable" | "Discharged";
   vitalsHistory: VitalsRecord[];

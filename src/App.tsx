@@ -1,5 +1,6 @@
 import React from "react";
 import { Routes, Route, Navigate, BrowserRouter, useLocation } from "react-router-dom";
+import { Toaster } from "sonner";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { AdminAuthProvider, useAdminAuth } from "./context/AdminAuthContext";
 import { TenantProvider } from "./context/TenantContext";
@@ -79,6 +80,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <Toaster richColors />
         <TenantProvider>
           <AuthProvider>
             <AdminAuthProvider>

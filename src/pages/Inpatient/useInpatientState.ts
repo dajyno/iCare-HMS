@@ -30,10 +30,10 @@ function loadPersistedState(): InpatientMasterState {
   return INITIAL_STATE;
 }
 
-function computeDaysAdmitted(admissionDate: string): number {
+function computeDaysAdmitted(admissionDate: string, dischargeDate?: string): number {
   const admitted = new Date(admissionDate);
-  const now = new Date();
-  const diff = now.getTime() - admitted.getTime();
+  const end = dischargeDate ? new Date(dischargeDate) : new Date();
+  const diff = end.getTime() - admitted.getTime();
   return Math.max(1, Math.floor(diff / (1000 * 60 * 60 * 24)) + 1);
 }
 
@@ -127,7 +127,7 @@ export function useInpatientState() {
 
         const { data, error } = await supabase
           .from("admissions")
-          .select("*, patient:patients(*), ward:wards(name), bed:beds(bed_number)")
+          .select("*, patient:patients(*), ward:wards(name), bed:beds(bed_number), discharge:discharges!left(discharge_date)")
           .in("status", ["Admitted", "Discharged"])
           .order("admission_date", { ascending: false });
         if (cancelled) return null;
@@ -139,6 +139,24 @@ export function useInpatientState() {
         if (!data || data.length === 0) {
           return [];
         }
+
+        // Batch-resolve doctor names from admitting_doctor_id
+        const doctorIds = data
+          .map((a: any) => a.admitting_doctor_id)
+          .filter(Boolean);
+        const doctorMap = new Map<string, string>();
+        if (doctorIds.length > 0) {
+          const { data: users } = await (supabase as any)
+            .from("users")
+            .select("id, full_name")
+            .in("id", doctorIds);
+          if (users) {
+            for (const u of users) {
+              if (u.full_name) doctorMap.set(u.id, u.full_name);
+            }
+          }
+        }
+
         return (data).map((a: any) => ({
           admissionId: a.id,
           wardCode: a.ward?.name ?? "Unknown",
@@ -157,9 +175,10 @@ export function useInpatientState() {
               ? a.patient.allergies.split(",").map((s: string) => s.trim()).filter(Boolean)
               : [],
           },
-          attendingPhysician: "Unassigned",
+          attendingPhysician: doctorMap.get(a.admitting_doctor_id) ?? "Unassigned",
           admissionDate: a.admission_date,
-          daysAdmitted: computeDaysAdmitted(a.admission_date),
+          dischargeDate: a.discharge?.discharge_date ?? undefined,
+          daysAdmitted: computeDaysAdmitted(a.admission_date, a.discharge?.discharge_date ?? undefined),
           careStatus: a.status === "Discharged" ? "Discharged" : "Stable",
           vitalsHistory: [],
           medicationSchedule: [],
@@ -1003,6 +1022,7 @@ export function useInpatientState() {
             ? {
                 ...a,
                 careStatus: "Discharged" as const,
+                dischargeDate: now,
                 clinicalNotes: updatedNotes,
               }
             : a
@@ -1139,7 +1159,7 @@ export function useInpatientState() {
     .map((a) => ({
       ...a,
       daysAdmitted: a.admissionDate
-        ? Math.max(1, Math.floor((Date.now() - new Date(a.admissionDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)
+        ? computeDaysAdmitted(a.admissionDate, a.dischargeDate)
         : 1,
     }))
     .sort((a, b) => {
