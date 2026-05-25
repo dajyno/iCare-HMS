@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type ChangeEvent } from "react";
+import { useState, useRef, type ChangeEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/src/lib/supabase";
 import { adminSupabase } from "@/src/lib/adminSupabase";
@@ -40,21 +40,40 @@ function formatTimestamp(ts: string) {
 }
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [profilePicture, setProfilePicture] = useState(() =>
+    localStorage.getItem("staff_profile_picture") || ""
+  );
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
-  const [profilePicture, setProfilePicture] = useState("");
+  const [editDepartment, setEditDepartment] = useState("");
+  const [editGender, setEditGender] = useState("");
+  const [editAddress, setEditAddress] = useState("");
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState("");
+
+  const { data: staffRecord } = useQuery({
+    queryKey: ["profile-staff", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from("staff")
+        .select("*")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+      return data as Record<string, any> | null;
+    },
+    enabled: !!user?.id,
+  });
 
   const { data: auditLogs = [] } = useQuery({
     queryKey: ["profile-audit-logs", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("audit_logs")
         .select("*")
         .eq("user_id", user.id)
@@ -66,20 +85,24 @@ const Profile = () => {
     enabled: !!user?.id,
   });
 
-  useEffect(() => {
-    const stored = localStorage.getItem("staff_profile_picture");
-    if (stored) setProfilePicture(stored);
-  }, []);
-
   const openEdit = () => {
     setEditName(user?.fullName || "");
     setEditEmail(user?.email || "");
     setEditPhone(user?.phone || "");
+    if (staffRecord) {
+      setEditDepartment(staffRecord.department || "");
+      setEditGender(staffRecord.gender || "");
+      setEditAddress(staffRecord.address || "");
+    } else {
+      setEditDepartment("");
+      setEditGender("");
+      setEditAddress("");
+    }
     setEditError("");
     setEditOpen(true);
   };
 
-  const handlePictureUpload = (e: ChangeEvent<HTMLInputElement>) => {
+  const handlePictureUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -110,7 +133,7 @@ const Profile = () => {
     setSaving(true);
     setEditError("");
     try {
-      const { error } = await (adminSupabase as any)
+      const { error: userErr } = await (adminSupabase as any)
         .from("users")
         .update({
           full_name: editName,
@@ -118,9 +141,25 @@ const Profile = () => {
           phone: editPhone || null,
         })
         .eq("id", user.id);
-      if (error) throw new Error(error.message || "Failed to update profile");
+      if (userErr) throw new Error(userErr.message || "Failed to update profile");
+
+      if (staffRecord) {
+        const { error: staffErr } = await (adminSupabase as any)
+          .from("staff")
+          .update({
+            name: editName,
+            email: editEmail,
+            phone: editPhone || null,
+            department: editDepartment,
+            gender: editGender,
+            address: editAddress,
+          })
+          .eq("staff_id", staffRecord.staff_id);
+        if (staffErr) throw new Error(staffErr.message || "Failed to update staff record");
+      }
+
       setEditOpen(false);
-      window.location.reload();
+      await refreshUser();
     } catch (err: any) {
       setEditError(err.message);
     } finally {
@@ -217,7 +256,9 @@ const Profile = () => {
                 </div>
                 <div>
                   <p className="text-slate-400 text-[10px] uppercase font-bold">Office Location</p>
-                  <p className="text-slate-900 font-medium">Main Hospital Wing, Level 2</p>
+                  <p className="text-slate-900 font-medium">
+                    {staffRecord?.address || "Main Hospital Wing, Level 2"}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -234,7 +275,9 @@ const Profile = () => {
                 <Briefcase className="w-4 h-4 text-sky-500 mt-0.5" />
                 <div>
                   <p className="text-xs font-bold text-slate-900">Department</p>
-                  <p className="text-sm text-slate-500">Clinical Operations / General Medicine</p>
+                  <p className="text-sm text-slate-500">
+                    {staffRecord?.department || "Clinical Operations / General Medicine"}
+                  </p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -325,6 +368,18 @@ const Profile = () => {
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-600">Phone</Label>
               <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="h-9 text-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-600">Department</Label>
+              <Input value={editDepartment} onChange={(e) => setEditDepartment(e.target.value)} className="h-9 text-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-600">Gender</Label>
+              <Input value={editGender} onChange={(e) => setEditGender(e.target.value)} className="h-9 text-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-600">Address</Label>
+              <Input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} className="h-9 text-sm" />
             </div>
             {editError && (
               <div className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{editError}</div>
