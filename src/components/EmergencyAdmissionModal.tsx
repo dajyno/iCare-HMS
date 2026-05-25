@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { supabase, toCamel } from "@/src/lib/supabase";
+import { supabase } from "@/src/lib/supabase";
 import { cn } from "@/lib/utils";
 import {
   Search,
@@ -70,22 +70,27 @@ const EmergencyAdmissionModal = ({ open, onClose }: EmergencyAdmissionModalProps
   useEffect(() => {
     if (!open) return;
     (async () => {
-      const [{ data: wardData }, { data: doctorData }] = await Promise.all([
-        (supabase as any).from("wards").select("id, name, type, beds_count, department_id, departments(name)"),
-        (supabase as any).from("users").select("full_name").eq("role", "Doctor"),
+      const [{ data: wardData }, { data: deptData }, { data: userData }] = await Promise.all([
+        (supabase as any).from("wards").select("id, name, type, beds_count, department_id"),
+        (supabase as any).from("departments").select("id, name"),
+        (supabase as any).from("users").select("full_name"),
       ]);
+      const deptMap: Record<string, string> = {};
+      if (deptData) {
+        deptData.forEach((d: any) => { deptMap[d.id] = d.name; });
+      }
       if (wardData) {
         const grouped: WardConfig[] = wardData.map((w: any) => ({
           wardId: w.id,
           name: w.name,
-          department: w.departments?.name || "General",
+          department: deptMap[w.department_id] || "General",
           totalBeds: w.beds_count,
           beds: [],
         }));
         setWards(grouped);
       }
-      if (doctorData) {
-        setDoctors(doctorData.map((d: any) => d.full_name));
+      if (userData) {
+        setDoctors(userData.map((d: any) => d.full_name));
       }
     })();
   }, [open]);
