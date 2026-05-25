@@ -305,11 +305,11 @@ const TenantDetail: React.FC = () => {
             />
             {emailError && <p className="text-[10px] text-red-400">{emailError}</p>}
           </div>
-          <Button onClick={handleSaveAdminEmail} disabled={savingEmail} className="bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_12px_rgba(0,136,255,0.15)] text-sm h-10">
+          <Button onClick={handleSaveAdminEmail} disabled={savingEmail} className="bg-emerald-600 hover:bg-emerald-700 shadow-[0_0_12px_rgba(16,185,129,0.2)] text-sm font-bold px-6 h-11">
             {savingEmail ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
             {emailSaved ? "Saved" : "Save"}
           </Button>
-          <Button onClick={() => setShowResetModal(true)} variant="outline" className="border-[#1a1a35] text-[#b0b0cc] hover:text-white text-sm h-10">
+          <Button onClick={() => setShowResetModal(true)} variant="outline" className="border-[#3a3a5a] text-[#ccccdd] hover:text-white text-sm h-10">
             <Key className="w-3.5 h-3.5 mr-1.5" />
             Reset Password
           </Button>
@@ -382,7 +382,7 @@ const TenantDetail: React.FC = () => {
             Edit Limits
           </Button>
           {tenant.status !== "Suspended" ? (
-            <Button onClick={() => handleStatusAction("Suspended")} variant="outline" className="border-red-800/50 text-red-400 hover:bg-red-900/30 text-sm">
+            <Button onClick={() => handleStatusAction("Suspended")} className="bg-red-600 hover:bg-red-700 text-white text-sm">
               Suspend Account
             </Button>
           ) : (
@@ -390,7 +390,7 @@ const TenantDetail: React.FC = () => {
               Reactivate Account
             </Button>
           )}
-          <Button onClick={() => handleStatusAction("Trial")} variant="outline" className="border-amber-800/50 text-amber-400 hover:bg-amber-900/30 text-sm">
+          <Button onClick={() => handleStatusAction("Trial")} className="bg-amber-600 hover:bg-amber-700 text-white text-sm">
             Set to Trial
           </Button>
         </div>
