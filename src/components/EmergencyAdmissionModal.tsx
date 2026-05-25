@@ -70,22 +70,20 @@ const EmergencyAdmissionModal = ({ open, onClose }: EmergencyAdmissionModalProps
   useEffect(() => {
     if (!open) return;
     (async () => {
-      const [{ data: wardData }, { data: deptData }, { data: userData }] = await Promise.all([
-        (supabase as any).from("wards").select("id, name, type, beds_count, department_id"),
-        (supabase as any).from("departments").select("id, name"),
-        (supabase as any).from("users").select("full_name"),
+      const [{ data: wardData }, { data: userData }] = await Promise.all([
+        (supabase as any).from("wards").select("id, name, type, beds_count, beds(id, bed_number, status), department:departments(name)").order("name", { ascending: true }),
+        (supabase as any).from("users").select("full_name").eq("role", "Doctor"),
       ]);
-      const deptMap: Record<string, string> = {};
-      if (deptData) {
-        deptData.forEach((d: any) => { deptMap[d.id] = d.name; });
-      }
       if (wardData) {
         const grouped: WardConfig[] = wardData.map((w: any) => ({
           wardId: w.id,
           name: w.name,
-          department: deptMap[w.department_id] || "General",
+          department: w.department?.name ?? "General",
           totalBeds: w.beds_count,
-          beds: [],
+          beds: (w.beds || []).map((b: any) => ({
+            bedCode: `${w.name}-${b.bed_number}`,
+            status: b.status,
+          })),
         }));
         setWards(grouped);
       }
@@ -94,27 +92,6 @@ const EmergencyAdmissionModal = ({ open, onClose }: EmergencyAdmissionModalProps
       }
     })();
   }, [open]);
-
-  useEffect(() => {
-    if (!selectedDepartment || !selectedWardId) return;
-    (async () => {
-      const ward = wards.find((w) => w.wardId === selectedWardId);
-      if (!ward) return;
-      const { data: beds } = await (supabase as any)
-        .from("beds")
-        .select("id, bed_number, status")
-        .eq("ward_id", selectedWardId);
-      if (beds) {
-        setWards((prev) =>
-          prev.map((w) =>
-            w.wardId === selectedWardId
-              ? { ...w, beds: beds.map((b: any) => ({ bedCode: `${w.name}-${b.bed_number}`, status: b.status })) }
-              : w
-          )
-        );
-      }
-    })();
-  }, [selectedDepartment, selectedWardId, wards]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
