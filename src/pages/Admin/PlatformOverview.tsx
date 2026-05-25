@@ -8,7 +8,6 @@ import { adminSupabase } from "../../lib/adminSupabase";
 const CURRENCY = "\u20A6";
 const tierPrices: Record<string, number> = { Standard: 199_000, Premium: 499_000, Enterprise: 999_000 };
 const tierIcons: Record<string, React.ElementType> = { Standard: Building2, Premium: TrendingUp, Enterprise: DollarSign };
-const tierColors: Record<string, string> = { Standard: "bg-blue-500/20 text-blue-400", Premium: "bg-violet-500/20 text-violet-400", Enterprise: "bg-amber-500/20 text-amber-400" };
 
 interface Metrics {
   totalTenants: number;
@@ -22,11 +21,11 @@ interface Metrics {
   byTier: Record<string, { count: number; mrr: number }>;
 }
 
-const MetricCard: React.FC<{ icon: React.ElementType; label: string; value: string; color: string }> = ({ icon: Icon, label, value, color }) => (
-  <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
+const MetricCard: React.FC<{ icon: React.ElementType; label: string; value: string; }> = ({ icon: Icon, label, value }) => (
+  <div className="bg-[#0d0d1a] border border-[#1a1a35] rounded-xl p-5 transition-all duration-300 hover:border-[#0088ff]/30 hover:shadow-[0_0_20px_rgba(0,136,255,0.04)]">
     <div className="flex items-center justify-between mb-3">
-      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{label}</span>
-      <div className={`w-9 h-9 rounded-lg ${color} flex items-center justify-center`}>
+      <span className="text-xs font-semibold text-[#8888aa] uppercase tracking-wider">{label}</span>
+      <div className="w-9 h-9 rounded-lg bg-[#0088ff] flex items-center justify-center shadow-[0_0_12px_rgba(0,136,255,0.15)]">
         <Icon className="w-4 h-4 text-white" />
       </div>
     </div>
@@ -36,20 +35,19 @@ const MetricCard: React.FC<{ icon: React.ElementType; label: string; value: stri
 
 const TierCard: React.FC<{ name: string; price: number; count: number; mrr: number }> = ({ name, price, count, mrr: tierMrr }) => {
   const Icon = tierIcons[name] || Building2;
-  const color = tierColors[name] || "bg-slate-500/20 text-slate-400";
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+    <div className="bg-[#0d0d1a] border border-[#1a1a35] rounded-xl p-6 transition-all duration-300 hover:border-[#0088ff]/30 hover:shadow-[0_0_20px_rgba(0,136,255,0.04)]">
       <div className="flex items-center justify-between mb-4">
-        <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center`}>
-          <Icon className="w-5 h-5" />
+        <div className="w-10 h-10 rounded-xl bg-[#0088ff]/10 flex items-center justify-center">
+          <Icon className="w-5 h-5 text-[#0088ff]" />
         </div>
-        <span className="text-lg font-bold text-white">{CURRENCY}{price.toLocaleString()}<span className="text-xs font-normal text-slate-400">/mo</span></span>
+        <span className="text-lg font-bold text-white">{CURRENCY}{price.toLocaleString()}<span className="text-xs font-normal text-[#8888aa]">/mo</span></span>
       </div>
       <h3 className="text-base font-bold text-white mb-1">{name}</h3>
-      <div className="flex items-center gap-4 text-sm text-slate-400">
+      <div className="flex items-center gap-4 text-sm text-[#8888aa]">
         <span>{count} tenant{count !== 1 ? "s" : ""}</span>
-        <span className="w-1 h-1 rounded-full bg-slate-600" />
-        <span className="text-emerald-400 font-semibold">{CURRENCY}{tierMrr.toLocaleString()}/mo</span>
+        <span className="w-1 h-1 rounded-full bg-[#1a1a35]" />
+        <span className="text-[#00b4ff] font-semibold">{CURRENCY}{tierMrr.toLocaleString()}/mo</span>
       </div>
     </div>
   );
@@ -121,19 +119,19 @@ const PlatformOverview: React.FC = () => {
       {/* Header */}
       <div>
         <h1 className="text-xl font-bold text-white">Platform Overview</h1>
-        <p className="text-xs text-slate-400 mt-1">Real-time snapshot of your SaaS platform</p>
+        <p className="text-xs text-[#8888aa] mt-1">Real-time snapshot of your SaaS platform</p>
       </div>
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard icon={Building2} label="Total Tenants" value={String(m.totalTenants)} color="bg-blue-600" />
-        <MetricCard icon={CreditCard} label="Active Subscriptions" value={String(m.activeSubscriptions)} color="bg-emerald-600" />
-        <MetricCard icon={TrendingUp} label="Monthly Revenue (MRR)" value={`${CURRENCY}${m.mrr.toLocaleString()}`} color="bg-violet-600" />
-        <MetricCard icon={DollarSign} label="Total Revenue (ARR)" value={`${CURRENCY}${m.totalRevenue.toLocaleString()}`} color="bg-green-600" />
-        <MetricCard icon={Stethoscope} label="Doctors" value={String(m.doctors)} color="bg-sky-600" />
-        <MetricCard icon={Users} label="System Users" value={String(m.systemUsers)} color="bg-indigo-600" />
-        <MetricCard icon={UserRound} label="Patients" value={String(m.patients)} color="bg-amber-600" />
-        <MetricCard icon={BedDouble} label="Beds (Capacity)" value={String(m.beds)} color="bg-rose-600" />
+        <MetricCard icon={Building2} label="Total Tenants" value={String(m.totalTenants)} />
+        <MetricCard icon={CreditCard} label="Active Subscriptions" value={String(m.activeSubscriptions)} />
+        <MetricCard icon={TrendingUp} label="Monthly Revenue (MRR)" value={`${CURRENCY}${m.mrr.toLocaleString()}`} />
+        <MetricCard icon={DollarSign} label="Total Revenue (ARR)" value={`${CURRENCY}${m.totalRevenue.toLocaleString()}`} />
+        <MetricCard icon={Stethoscope} label="Doctors" value={String(m.doctors)} />
+        <MetricCard icon={Users} label="System Users" value={String(m.systemUsers)} />
+        <MetricCard icon={UserRound} label="Patients" value={String(m.patients)} />
+        <MetricCard icon={BedDouble} label="Beds (Capacity)" value={String(m.beds)} />
       </div>
 
       {/* Subscription Breakdown */}

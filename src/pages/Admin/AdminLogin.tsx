@@ -30,19 +30,19 @@ const AdminLogin: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-900 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#07070d] px-4">
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-3 justify-center mb-10">
-          <div className="w-10 h-10 bg-sky-500 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-sky-500/20">
+          <div className="w-10 h-10 bg-[#0088ff] rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-[0_0_24px_rgba(0,136,255,0.25)]">
             <Shield className="w-5 h-5" />
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">iCare SaaS</h1>
         </div>
 
-        <Card className="bg-slate-800 border-slate-700 shadow-xl">
+        <Card className="bg-[#0d0d1a] border-[#1a1a35] shadow-xl ring-1 ring-[#0088ff]/10">
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-lg font-bold text-white">Admin Access</CardTitle>
-            <CardDescription className="text-slate-400 text-xs">
+            <CardDescription className="text-[#8888aa] text-xs">
               Sign in to the platform control center
             </CardDescription>
           </CardHeader>
@@ -55,7 +55,7 @@ const AdminLogin: React.FC = () => {
                 </div>
               )}
               <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Email</Label>
+                <Label htmlFor="email" className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -63,23 +63,23 @@ const AdminLogin: React.FC = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="h-10 bg-slate-900/50 border-slate-600 text-slate-100 focus:ring-sky-500 placeholder:text-slate-600"
+                  className="h-10 bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25 placeholder:text-[#4a4a6a]"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Password</Label>
+                <Label htmlFor="password" className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Password</Label>
                 <Input
                   id="password"
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-10 bg-slate-900/50 border-slate-600 text-slate-100 focus:ring-sky-500"
+                  className="h-10 bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25"
                 />
               </div>
             </CardContent>
             <CardFooter className="pt-2">
-              <Button type="submit" className="w-full h-10 text-sm font-bold bg-sky-600 hover:bg-sky-700" disabled={loading}>
+              <Button type="submit" className="w-full h-10 text-sm font-bold bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_16px_rgba(0,136,255,0.2)]" disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign In"}
               </Button>
             </CardFooter>

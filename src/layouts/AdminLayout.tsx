@@ -35,12 +35,12 @@ const AdminLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-slate-900 text-slate-100 overflow-hidden">
+    <div className="flex h-screen bg-[#07070d] text-[#e8e8f0] overflow-hidden">
       {/* Desktop Sidebar */}
-      <aside className="w-64 bg-slate-800 border-r border-slate-700 flex flex-col hidden md:flex">
-        <div className="p-6 border-b border-slate-700">
-          <h1 className="text-lg font-bold tracking-tight">iCare SaaS</h1>
-          <p className="text-[10px] text-slate-500 uppercase tracking-wider mt-1">Control Center</p>
+      <aside className="w-64 bg-[#0d0d1a] border-r border-[#1a1a35] flex flex-col hidden md:flex">
+        <div className="p-6 border-b border-[#1a1a35]">
+          <h1 className="text-lg font-bold tracking-tight text-white">iCare SaaS</h1>
+          <p className="text-[10px] text-[#8888aa] uppercase tracking-wider mt-1">Control Center</p>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
@@ -49,10 +49,10 @@ const AdminLayout: React.FC = () => {
               key={item.href}
               onClick={() => handleNav(item.href)}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left",
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 text-left",
                 isActive(item.href)
-                  ? "bg-sky-600/20 text-sky-400 border border-sky-500/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
+                  ? "bg-[#0088ff]/10 text-[#0088ff] border-l-2 border-[#0088ff] rounded-l-none"
+                  : "text-[#8888aa] hover:text-white hover:bg-white/[0.03]"
               )}
             >
               <item.icon className="w-5 h-5" strokeWidth={2} />
@@ -61,14 +61,14 @@ const AdminLayout: React.FC = () => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-slate-700">
+        <div className="p-4 border-t border-[#1a1a35]">
           <div className="flex items-center gap-3 px-3 py-2">
-            <div className="w-8 h-8 rounded-full bg-sky-600 flex items-center justify-center text-xs font-bold">
+            <div className="w-8 h-8 rounded-full bg-[#0088ff] shadow-[0_0_12px_rgba(0,136,255,0.3)] flex items-center justify-center text-xs font-bold text-white">
               {admin?.name?.charAt(0) || "A"}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold truncate">{admin?.name || "Admin"}</p>
-              <p className="text-[10px] text-slate-500 uppercase">{admin?.role}</p>
+              <p className="text-xs font-semibold truncate text-white">{admin?.name || "Admin"}</p>
+              <p className="text-[10px] text-[#8888aa] uppercase">{admin?.role}</p>
             </div>
           </div>
           <Button
@@ -85,28 +85,28 @@ const AdminLayout: React.FC = () => {
 
       {/* Mobile Header */}
       <div className="flex flex-col flex-1 min-w-0">
-        <header className="md:hidden flex items-center justify-between px-4 py-3 bg-slate-800 border-b border-slate-700">
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="text-slate-400">
+        <header className="md:hidden flex items-center justify-between px-4 py-3 bg-[#0d0d1a] border-b border-[#1a1a35]">
+          <button onClick={() => setMobileOpen(!mobileOpen)} className="text-[#8888aa]">
             {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
-          <h1 className="text-sm font-bold">iCare SaaS</h1>
+          <h1 className="text-sm font-bold text-white">iCare SaaS</h1>
           <div className="w-6" />
         </header>
 
         {/* Mobile Drawer */}
         {mobileOpen && (
           <div className="md:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setMobileOpen(false)}>
-            <div className="w-64 h-full bg-slate-800 p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="w-64 h-full bg-[#0d0d1a] p-4" onClick={(e) => e.stopPropagation()}>
               <nav className="space-y-1 mt-8">
                 {navItems.map((item) => (
                   <button
                     key={item.href}
                     onClick={() => handleNav(item.href)}
                     className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left",
+                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 text-left",
                       isActive(item.href)
-                        ? "bg-sky-600/20 text-sky-400"
-                        : "text-slate-400 hover:text-slate-200"
+                        ? "bg-[#0088ff]/10 text-[#0088ff]"
+                        : "text-[#8888aa] hover:text-white"
                     )}
                   >
                     <item.icon className="w-5 h-5" />
@@ -119,7 +119,7 @@ const AdminLayout: React.FC = () => {
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto bg-slate-900">
+        <div className="flex-1 overflow-y-auto bg-[#07070d]">
           <div className="max-w-7xl mx-auto p-6">
             <Outlet />
           </div>

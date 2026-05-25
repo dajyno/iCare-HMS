@@ -161,7 +161,7 @@ const TenantsDirectory: React.FC = () => {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold text-white">Hospital Accounts</h1>
-        <Button onClick={() => setModalOpen(true)} className="bg-sky-600 hover:bg-sky-700 text-sm">
+        <Button onClick={() => setModalOpen(true)} className="bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_12px_rgba(0,136,255,0.15)] text-sm">
           <Plus className="w-4 h-4 mr-1.5" />
           Provision New Hospital
         </Button>
@@ -169,50 +169,50 @@ const TenantsDirectory: React.FC = () => {
 
       {/* Search */}
       <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666688]" />
         <Input
           placeholder="Search by name or slug..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-9 bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500 h-10"
+          className="pl-9 bg-[#0d0d1a] border-[#1a1a35] text-[#e8e8f0] placeholder:text-[#4a4a6a] h-10 focus:border-[#0088ff] focus:ring-[#0088ff]/25"
         />
       </div>
 
       {/* Table */}
-      <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+      <div className="bg-[#0d0d1a] border border-[#1a1a35] rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-700 bg-slate-800/50">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Hospital Name</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">URL Slug</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Created</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
+              <tr className="border-b border-[#1a1a35] bg-[#0d0d1a]/80">
+                <th className="text-left px-4 py-3 text-xs font-semibold text-[#8888aa] uppercase tracking-wider">Hospital Name</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-[#8888aa] uppercase tracking-wider">URL Slug</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-[#8888aa] uppercase tracking-wider">Created</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-[#8888aa] uppercase tracking-wider">Status</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-[#8888aa] uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-12 text-slate-500">
+                  <td colSpan={5} className="text-center py-12 text-[#666688]">
                     <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
                     Loading...
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-12 text-slate-500">No hospitals found</td>
+                  <td colSpan={5} className="text-center py-12 text-[#666688]">No hospitals found</td>
                 </tr>
               ) : (
                 filtered.map((t) => (
                   <tr
                     key={t.tenantId}
-                    className="border-b border-slate-700/50 hover:bg-slate-700/30 cursor-pointer"
+                    className="border-b border-[#1a1a35]/50 hover:bg-[#0088ff]/[0.02] cursor-pointer transition-colors duration-200"
                     onClick={() => navigate(`/admin/tenants/${t.tenantId}`)}
                   >
-                    <td className="px-4 py-3 font-medium text-slate-200">{t.hospitalName}</td>
-                    <td className="px-4 py-3 text-slate-400 font-mono text-xs">{t.urlSlug}</td>
-                    <td className="px-4 py-3 text-slate-400 text-xs">{new Date(t.createdAt).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 font-medium text-[#d0d0e0]">{t.hospitalName}</td>
+                    <td className="px-4 py-3 text-[#8888aa] font-mono text-xs">{t.urlSlug}</td>
+                    <td className="px-4 py-3 text-[#8888aa] text-xs">{new Date(t.createdAt).toLocaleDateString()}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${statusBadge(t.status)}`}>
                         {t.status}
@@ -221,16 +221,16 @@ const TenantsDirectory: React.FC = () => {
                     <td className="px-4 py-3 text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-white">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-[#8888aa] hover:text-white">
                             <MoreHorizontal className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="bg-slate-800 border-slate-700 text-slate-200">
-                          <DropdownMenuItem onClick={() => navigate(`/admin/tenants/${t.tenantId}`)} className="text-sky-400 focus:text-sky-300 focus:bg-sky-900/30">
+                        <DropdownMenuContent className="bg-[#0d0d1a] border-[#1a1a35] text-[#b0b0cc]">
+                          <DropdownMenuItem onClick={() => navigate(`/admin/tenants/${t.tenantId}`)} className="text-[#0088ff] focus:text-[#00b4ff] focus:bg-[#0088ff]/10">
                             <ExternalLink className="w-3.5 h-3.5 mr-2" />
                             View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => openEditLimits(t)} className="text-sky-400 focus:text-sky-300 focus:bg-sky-900/30">
+                          <DropdownMenuItem onClick={() => openEditLimits(t)} className="text-[#0088ff] focus:text-[#00b4ff] focus:bg-[#0088ff]/10">
                             Edit Limits
                           </DropdownMenuItem>
                           {t.status !== "Suspended" ? (
@@ -258,10 +258,10 @@ const TenantsDirectory: React.FC = () => {
 
       {/* Edit Limits Modal */}
       <Dialog open={!!editingTenant} onOpenChange={(o) => !o && setEditingTenant(null)}>
-        <DialogContent className="bg-slate-800 border-slate-700 text-slate-100 sm:max-w-md">
+        <DialogContent className="bg-[#0d0d1a] border-[#1a1a35] text-[#e8e8f0] sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold">Edit Limits — {editingTenant?.hospitalName}</DialogTitle>
-            <DialogDescription className="text-slate-400 text-xs">
+            <DialogTitle className="text-lg font-bold text-white">Edit Limits — {editingTenant?.hospitalName}</DialogTitle>
+            <DialogDescription className="text-[#8888aa] text-xs">
               Override subscription limits for this tenant.
             </DialogDescription>
           </DialogHeader>
@@ -273,31 +273,31 @@ const TenantsDirectory: React.FC = () => {
               </div>
             )}
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Max Staff Seats</Label>
+              <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Max Staff Seats</Label>
               <Input
                 type="number"
                 min={0}
                 value={editStaffSeats}
                 onChange={(e) => setEditStaffSeats(parseInt(e.target.value) || 0)}
-                className="bg-slate-900/50 border-slate-600 text-slate-100"
+                className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Max Bed Capacity</Label>
+              <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Max Bed Capacity</Label>
               <Input
                 type="number"
                 min={0}
                 value={editBedCapacity}
                 onChange={(e) => setEditBedCapacity(parseInt(e.target.value) || 0)}
-                className="bg-slate-900/50 border-slate-600 text-slate-100"
+                className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25"
               />
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Module Override</Label>
+                <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Module Override</Label>
                 <button
                   onClick={() => setEditModuleOverride(!editModuleOverride)}
-                  className={`relative w-10 h-5 rounded-full transition-colors ${editModuleOverride ? "bg-sky-600" : "bg-slate-600"}`}
+                  className={`relative w-10 h-5 rounded-full transition-colors ${editModuleOverride ? "bg-[#0088ff]" : "bg-[#1a1a35]"}`}
                 >
                   <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${editModuleOverride ? "translate-x-5" : ""}`} />
                 </button>
@@ -305,7 +305,7 @@ const TenantsDirectory: React.FC = () => {
               {editModuleOverride && (
                 <div className="grid grid-cols-2 gap-2 pt-2">
                   {ALL_MODULES.map((mod) => (
-                    <label key={mod} className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                    <label key={mod} className="flex items-center gap-2 text-xs text-[#b0b0cc] cursor-pointer">
                       <input
                         type="checkbox"
                         checked={editModules.includes(mod)}
@@ -316,7 +316,7 @@ const TenantsDirectory: React.FC = () => {
                             setEditModules(editModules.filter((m) => m !== mod));
                           }
                         }}
-                        className="rounded bg-slate-700 border-slate-500"
+                        className="rounded bg-[#0d0d1a] border-[#1a1a35]"
                       />
                       {mod.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
                     </label>
@@ -324,15 +324,15 @@ const TenantsDirectory: React.FC = () => {
                 </div>
               )}
               {!editModuleOverride && (
-                <p className="text-[10px] text-slate-500">Using tier defaults. Toggle override to customize.</p>
+                <p className="text-[10px] text-[#666688]">Using tier defaults. Toggle override to customize.</p>
               )}
             </div>
           </div>
           <DialogFooter className="pt-4">
-            <Button type="button" variant="ghost" onClick={() => setEditingTenant(null)} className="text-slate-400">
+            <Button type="button" variant="ghost" onClick={() => setEditingTenant(null)} className="text-[#8888aa]">
               Cancel
             </Button>
-            <Button onClick={handleSaveLimits} disabled={savingLimits} className="bg-sky-600 hover:bg-sky-700">
+            <Button onClick={handleSaveLimits} disabled={savingLimits} className="bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_12px_rgba(0,136,255,0.15)]">
               {savingLimits ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
               Save Limits
             </Button>
@@ -342,10 +342,10 @@ const TenantsDirectory: React.FC = () => {
 
       {/* Provision Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="bg-slate-800 border-slate-700 text-slate-100 sm:max-w-md">
+        <DialogContent className="bg-[#0d0d1a] border-[#1a1a35] text-[#e8e8f0] sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold">Provision New Hospital</DialogTitle>
-            <DialogDescription className="text-slate-400 text-xs">
+            <DialogTitle className="text-lg font-bold text-white">Provision New Hospital</DialogTitle>
+            <DialogDescription className="text-[#8888aa] text-xs">
               Create a new tenant workspace on the platform.
             </DialogDescription>
           </DialogHeader>
@@ -358,44 +358,44 @@ const TenantsDirectory: React.FC = () => {
                 </div>
               )}
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Hospital Name</Label>
+                <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Hospital Name</Label>
                 <Input
                   required
                   value={form.hospitalName}
                   onChange={(e) => setForm({ ...form, hospitalName: e.target.value })}
-                  className="bg-slate-900/50 border-slate-600 text-slate-100"
+                  className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25"
                   placeholder="e.g., City Health Medical Center"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">URL Slug</Label>
+                <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">URL Slug</Label>
                 <Input
                   required
                   value={form.urlSlug}
                   onChange={(e) => setForm({ ...form, urlSlug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
-                  className="bg-slate-900/50 border-slate-600 text-slate-100 font-mono"
+                  className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] font-mono focus:border-[#0088ff] focus:ring-[#0088ff]/25"
                   placeholder="e.g., cityhealth"
                 />
-                <p className="text-[10px] text-slate-500">URL: icare.ng/<strong className="text-sky-400">{form.urlSlug || "slug"}</strong>/login</p>
+                <p className="text-[10px] text-[#666688]">URL: icare.ng/<strong className="text-[#0088ff]">{form.urlSlug || "slug"}</strong>/login</p>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Admin Email</Label>
+                <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Admin Email</Label>
                 <Input
                   type="email"
                   required
                   value={form.adminEmail}
                   onChange={(e) => setForm({ ...form, adminEmail: e.target.value })}
-                  className="bg-slate-900/50 border-slate-600 text-slate-100"
+                  className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25"
                   placeholder="admin@hospital.com"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Plan Tier</Label>
+                <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Plan Tier</Label>
                 <Select value={form.tier} onValueChange={(v) => setForm({ ...form, tier: v })}>
-                  <SelectTrigger className="bg-slate-900/50 border-slate-600 text-slate-100">
+                  <SelectTrigger className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
+                  <SelectContent className="bg-[#0d0d1a] border-[#1a1a35] text-[#b0b0cc]">
                     <SelectItem value="Standard">Standard — {'\u20A6'}199,000/mo (10 seats, 0 beds)</SelectItem>
                     <SelectItem value="Premium">Premium — {'\u20A6'}499,000/mo (50 seats, 40 beds)</SelectItem>
                     <SelectItem value="Enterprise">Enterprise — {'\u20A6'}999,000/mo (unlimited)</SelectItem>
@@ -404,10 +404,10 @@ const TenantsDirectory: React.FC = () => {
               </div>
             </div>
             <DialogFooter className="pt-4">
-              <Button type="button" variant="ghost" onClick={() => setModalOpen(false)} className="text-slate-400">
+              <Button type="button" variant="ghost" onClick={() => setModalOpen(false)} className="text-[#8888aa]">
                 Cancel
               </Button>
-              <Button type="submit" disabled={submitting} className="bg-sky-600 hover:bg-sky-700">
+              <Button type="submit" disabled={submitting} className="bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_12px_rgba(0,136,255,0.15)]">
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
                 Provision
               </Button>

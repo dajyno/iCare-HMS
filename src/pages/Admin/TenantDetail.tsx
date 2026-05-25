@@ -22,11 +22,11 @@ const statusBadge = (status: string) => {
   return colors[status] || "bg-slate-500/20 text-slate-400";
 };
 
-const MetricCard: React.FC<{ icon: React.ElementType; label: string; value: string; color: string }> = ({ icon: Icon, label, value, color }) => (
-  <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
+const MetricCard: React.FC<{ icon: React.ElementType; label: string; value: string }> = ({ icon: Icon, label, value }) => (
+  <div className="bg-[#0d0d1a] border border-[#1a1a35] rounded-xl p-5 transition-all duration-300 hover:border-[#0088ff]/30 hover:shadow-[0_0_20px_rgba(0,136,255,0.04)]">
     <div className="flex items-center justify-between mb-3">
-      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{label}</span>
-      <div className={`w-9 h-9 rounded-lg ${color} flex items-center justify-center`}>
+      <span className="text-xs font-semibold text-[#8888aa] uppercase tracking-wider">{label}</span>
+      <div className="w-9 h-9 rounded-lg bg-[#0088ff] flex items-center justify-center shadow-[0_0_12px_rgba(0,136,255,0.15)]">
         <Icon className="w-4 h-4 text-white" />
       </div>
     </div>
@@ -161,7 +161,7 @@ const TenantDetail: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+        <Loader2 className="w-6 h-6 animate-spin text-[#8888aa]" />
       </div>
     );
   }
@@ -171,8 +171,8 @@ const TenantDetail: React.FC = () => {
       <div className="text-center py-20">
         <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-4" />
         <h2 className="text-lg font-bold text-white mb-1">Hospital Not Found</h2>
-        <p className="text-sm text-slate-400">No tenant found with ID "{tenantId}"</p>
-        <Button onClick={() => navigate("/admin/tenants")} className="mt-4 bg-sky-600 hover:bg-sky-700">
+        <p className="text-sm text-[#8888aa]">No tenant found with ID "{tenantId}"</p>
+        <Button onClick={() => navigate("/admin/tenants")} className="mt-4 bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_12px_rgba(0,136,255,0.15)]">
           Back to Hospital Accounts
         </Button>
       </div>
@@ -185,7 +185,7 @@ const TenantDetail: React.FC = () => {
     <div className="space-y-6">
       {/* Back + Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/admin/tenants")} className="text-slate-400 hover:text-white">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/admin/tenants")} className="text-[#8888aa] hover:text-white">
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1">
@@ -194,11 +194,11 @@ const TenantDetail: React.FC = () => {
             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${statusBadge(tenant.status)}`}>
               {tenant.status}
             </span>
-            <Badge variant="outline" className="text-sky-400 border-sky-500/30 bg-sky-500/10">
+            <Badge variant="outline" className="text-[#0088ff] border-[#0088ff]/30 bg-[#0088ff]/10">
               {tenant.tier}
             </Badge>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-[#8888aa] mt-1">
             <span className="font-mono">{tenant.urlSlug}</span>
             <span className="mx-2">·</span>
             ID: {tenant.tenantId}
@@ -213,7 +213,7 @@ const TenantDetail: React.FC = () => {
         <Button
           variant="ghost"
           size="sm"
-          className="text-xs text-sky-400 hover:text-sky-300"
+          className="text-xs text-[#0088ff] hover:text-[#00b4ff]"
           onClick={() => window.open(`/${tenant.urlSlug}/dashboard`, "_blank")}
         >
           <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
@@ -222,28 +222,28 @@ const TenantDetail: React.FC = () => {
       </div>
 
       {/* Admin Management */}
-      <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
+      <div className="bg-[#0d0d1a] border border-[#1a1a35] rounded-xl p-5">
         <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-          <Mail className="w-4 h-4 text-sky-400" />
+          <Mail className="w-4 h-4 text-[#0088ff]" />
           Admin Management
         </h2>
         <div className="flex items-end gap-3">
           <div className="flex-1 space-y-1.5">
-            <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Admin Email</Label>
+            <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Admin Email</Label>
             <Input
               type="email"
               value={adminEmail}
               onChange={(e) => { setAdminEmail(e.target.value); setEmailSaved(false); }}
               placeholder="admin@hospital.com"
-              className="bg-slate-900/50 border-slate-600 text-slate-100"
+              className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25"
             />
             {emailError && <p className="text-[10px] text-red-400">{emailError}</p>}
           </div>
-          <Button onClick={handleSaveAdminEmail} disabled={savingEmail} className="bg-sky-600 hover:bg-sky-700 text-sm h-10">
+          <Button onClick={handleSaveAdminEmail} disabled={savingEmail} className="bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_12px_rgba(0,136,255,0.15)] text-sm h-10">
             {savingEmail ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
             {emailSaved ? "Saved" : "Save"}
           </Button>
-          <Button onClick={() => setShowResetModal(true)} variant="outline" className="border-slate-600 text-slate-300 hover:text-white text-sm h-10">
+          <Button onClick={() => setShowResetModal(true)} variant="outline" className="border-[#1a1a35] text-[#b0b0cc] hover:text-white text-sm h-10">
             <Key className="w-3.5 h-3.5 mr-1.5" />
             Reset Password
           </Button>
@@ -252,10 +252,10 @@ const TenantDetail: React.FC = () => {
 
       {/* Password Reset Modal */}
       <Dialog open={showResetModal} onOpenChange={(o) => { if (!o) { setShowResetModal(false); setPasswordError(""); setPasswordSuccess(""); setNewPassword(""); setConfirmPassword(""); }}}>
-        <DialogContent className="bg-slate-800 border-slate-700 text-slate-100 sm:max-w-sm">
+        <DialogContent className="bg-[#0d0d1a] border-[#1a1a35] text-[#e8e8f0] sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold">Reset Password</DialogTitle>
-            <DialogDescription className="text-slate-400 text-xs">
+            <DialogTitle className="text-lg font-bold text-white">Reset Password</DialogTitle>
+            <DialogDescription className="text-[#8888aa] text-xs">
               Set a new password for {tenant.hospitalName}'s admin account.
             </DialogDescription>
           </DialogHeader>
@@ -273,31 +273,31 @@ const TenantDetail: React.FC = () => {
               </div>
             )}
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">New Password</Label>
+              <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">New Password</Label>
               <Input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="bg-slate-900/50 border-slate-600 text-slate-100"
+                className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25"
                 placeholder="Min 6 characters"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Confirm Password</Label>
+              <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Confirm Password</Label>
               <Input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="bg-slate-900/50 border-slate-600 text-slate-100"
+                className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25"
                 placeholder="Re-enter new password"
               />
             </div>
           </div>
           <DialogFooter className="pt-4">
-            <Button type="button" variant="ghost" onClick={() => { setShowResetModal(false); setPasswordError(""); setPasswordSuccess(""); setNewPassword(""); setConfirmPassword(""); }} className="text-slate-400">
+            <Button type="button" variant="ghost" onClick={() => { setShowResetModal(false); setPasswordError(""); setPasswordSuccess(""); setNewPassword(""); setConfirmPassword(""); }} className="text-[#8888aa]">
               Cancel
             </Button>
-            <Button onClick={handleResetPassword} disabled={resettingPassword} className="bg-sky-600 hover:bg-sky-700">
+            <Button onClick={handleResetPassword} disabled={resettingPassword} className="bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_12px_rgba(0,136,255,0.15)]">
               {resettingPassword ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
               Update Password
             </Button>
@@ -308,16 +308,16 @@ const TenantDetail: React.FC = () => {
       {/* Hospital Metrics */}
       <div>
         <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-sky-400" />
+          <TrendingUp className="w-4 h-4 text-[#0088ff]" />
           Hospital Metrics
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard icon={Users} label="System Users" value={String(usersCount)} color="bg-indigo-600" />
-          <MetricCard icon={Stethoscope} label="Doctors" value={String(doctorsCount)} color="bg-sky-600" />
-          <MetricCard icon={UserRound} label="Patients" value={String(patientsCount)} color="bg-amber-600" />
-          <MetricCard icon={BedDouble} label="Beds (Capacity)" value={String(bedsCount)} color="bg-rose-600" />
-          <MetricCard icon={TrendingUp} label="Monthly Contribution" value={`${CURRENCY}${mrr.toLocaleString()}`} color="bg-violet-600" />
-          <MetricCard icon={DollarSign} label="Annual Contribution" value={`${CURRENCY}${(mrr * 12).toLocaleString()}`} color="bg-green-600" />
+          <MetricCard icon={Users} label="System Users" value={String(usersCount)} />
+          <MetricCard icon={Stethoscope} label="Doctors" value={String(doctorsCount)} />
+          <MetricCard icon={UserRound} label="Patients" value={String(patientsCount)} />
+          <MetricCard icon={BedDouble} label="Beds (Capacity)" value={String(bedsCount)} />
+          <MetricCard icon={TrendingUp} label="Monthly Contribution" value={`${CURRENCY}${mrr.toLocaleString()}`} />
+          <MetricCard icon={DollarSign} label="Annual Contribution" value={`${CURRENCY}${(mrr * 12).toLocaleString()}`} />
         </div>
       </div>
     </div>
