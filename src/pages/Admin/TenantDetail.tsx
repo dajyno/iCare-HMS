@@ -11,7 +11,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import type { Tenant } from "../../types/tenant";
 
 const CURRENCY = "\u20A6";
-const tierPrices: Record<string, number> = { Standard: 199_000, Premium: 499_000, Enterprise: 999_000 };
 
 const statusBadge = (status: string) => {
   const colors: Record<string, string> = {
@@ -46,6 +45,7 @@ const TenantDetail: React.FC = () => {
   const [doctorsCount, setDoctorsCount] = useState(0);
   const [patientsCount, setPatientsCount] = useState(0);
   const [bedsCount, setBedsCount] = useState(0);
+  const [tierMonthlyPrice, setTierMonthlyPrice] = useState(0);
 
   const [adminEmail, setAdminEmail] = useState("");
   const [savingEmail, setSavingEmail] = useState(false);
@@ -95,6 +95,14 @@ const TenantDetail: React.FC = () => {
       setDoctorsCount(dCount || 0);
       setPatientsCount(pCount || 0);
       setBedsCount((wards || []).reduce((sum: number, w: any) => sum + (w.beds_count || 0), 0));
+
+      const { data: tierRow } = await adminSupabase
+        .from("subscription_tiers")
+        .select("monthly_price")
+        .eq("name", t.tier)
+        .maybeSingle();
+      setTierMonthlyPrice((tierRow as any)?.monthly_price || 0);
+
       setLoading(false);
     }
 
@@ -179,7 +187,7 @@ const TenantDetail: React.FC = () => {
     );
   }
 
-  const mrr = tierPrices[tenant.tier] || 0;
+  const mrr = tierMonthlyPrice;
 
   return (
     <div className="space-y-6">

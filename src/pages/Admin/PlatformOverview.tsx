@@ -6,7 +6,6 @@ import {
 import { adminSupabase } from "../../lib/adminSupabase";
 
 const CURRENCY = "\u20A6";
-const tierPrices: Record<string, number> = { Standard: 199_000, Premium: 499_000, Enterprise: 999_000 };
 const tierIcons: Record<string, React.ElementType> = { Standard: Building2, Premium: TrendingUp, Enterprise: DollarSign };
 
 interface Metrics {
@@ -65,6 +64,7 @@ const PlatformOverview: React.FC = () => {
     beds: 0,
     byTier: {},
   });
+  const [tierPrices, setTierPrices] = useState<Record<string, number>>({});
 
   useEffect(() => {
     async function fetchMetrics() {
@@ -76,6 +76,7 @@ const PlatformOverview: React.FC = () => {
         { count: doctors },
         { count: patients },
         { data: wards },
+        { data: tiers },
       ] = await Promise.all([
         adminSupabase.from("tenants").select("*", { count: "exact", head: true }),
         adminSupabase.from("tenants").select("*", { count: "exact", head: true }).eq("status", "Active"),
@@ -84,15 +85,20 @@ const PlatformOverview: React.FC = () => {
         adminSupabase.from("users").select("*", { count: "exact", head: true }).eq("role", "Doctor"),
         adminSupabase.from("patients").select("*", { count: "exact", head: true }),
         adminSupabase.from("wards").select("beds_count"),
+        adminSupabase.from("subscription_tiers").select("name,monthly_price"),
       ]);
 
-      const mrr = (tenants || []).reduce((sum, t) => sum + (tierPrices[t.tier as string] || 0), 0);
+      const prices: Record<string, number> = {};
+      (tiers || []).forEach((t: any) => { prices[t.name] = t.monthly_price; });
+      setTierPrices(prices);
+
+      const mrr = (tenants || []).reduce((sum, t) => sum + (prices[t.tier as string] || 0), 0);
       const byTier: Record<string, { count: number; mrr: number }> = {};
       (tenants || []).forEach((t) => {
         const tier = (t.tier as string) || "Standard";
         if (!byTier[tier]) byTier[tier] = { count: 0, mrr: 0 };
         byTier[tier].count++;
-        byTier[tier].mrr += tierPrices[tier] || 0;
+        byTier[tier].mrr += prices[tier] || 0;
       });
 
       const beds = (wards || []).reduce((sum: number, w: any) => sum + (w.beds_count || 0), 0);
