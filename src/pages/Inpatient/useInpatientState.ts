@@ -155,6 +155,19 @@ export function useInpatientState() {
               if (u.full_name) doctorMap.set(u.id, u.full_name);
             }
           }
+          // Fallback: try staff table for IDs not found in users
+          const unmatched = doctorIds.filter((id: string) => !doctorMap.has(id));
+          if (unmatched.length > 0) {
+            const { data: staff } = await (supabase as any)
+              .from("staff")
+              .select("staff_id, name")
+              .in("staff_id", unmatched);
+            if (staff) {
+              for (const s of staff) {
+                if (s.name) doctorMap.set(s.staff_id, s.name);
+              }
+            }
+          }
         }
 
         return (data).map((a: any) => ({

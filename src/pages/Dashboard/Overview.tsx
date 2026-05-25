@@ -266,10 +266,15 @@ const Overview = () => {
     if (bedData.status === "Occupied") { alert("This bed is already occupied."); return false; }
 
     let doctorId: string | null = null;
-    const { data: userData } = await s.from("users").select("id").ilike("full_name", `%${payload.attendingPhysician.replace(/^Dr\.\s*/i, "")}%`).maybeSingle();
+    const searchName = payload.attendingPhysician.replace(/^Dr\.\s*/i, "");
+    const { data: userData } = await s.from("users").select("id").ilike("full_name", `%${searchName}%`).maybeSingle();
     if (userData) {
       doctorId = userData.id;
     } else {
+      const { data: staffData } = await (adminSupabase as any).from("staff").select("staff_id").ilike("name", `%${searchName}%`).maybeSingle();
+      doctorId = staffData?.staff_id ?? null;
+    }
+    if (!doctorId) {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) doctorId = user.id;
     }
