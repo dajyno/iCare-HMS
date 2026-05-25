@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Building2, Users, UserRound, Stethoscope, BedDouble, TrendingUp, DollarSign, Mail, Key, Loader2, AlertCircle, ExternalLink, CheckCircle2, Settings } from "lucide-react";
+import { ArrowLeft, Building2, Users, UserRound, Stethoscope, BedDouble, TrendingUp, DollarSign, Mail, Key, Loader2, AlertCircle, ExternalLink, CheckCircle2, Settings, Save } from "lucide-react";
 import { adminSupabase } from "../../lib/adminSupabase";
 import { toCamel } from "../../lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -305,11 +305,11 @@ const TenantDetail: React.FC = () => {
             />
             {emailError && <p className="text-[10px] text-red-400">{emailError}</p>}
           </div>
-          <Button onClick={handleSaveAdminEmail} disabled={savingEmail} className="bg-emerald-600 hover:bg-emerald-700 shadow-[0_0_12px_rgba(16,185,129,0.2)] text-sm font-bold px-6 h-11">
-            {savingEmail ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+          <Button onClick={handleSaveAdminEmail} disabled={savingEmail} className="bg-emerald-600 hover:bg-emerald-700 shadow-[0_0_12px_rgba(16,185,129,0.2)] text-sm h-10">
+            {savingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {emailSaved ? "Saved" : "Save"}
           </Button>
-          <Button onClick={() => setShowResetModal(true)} variant="outline" className="border-[#3a3a5a] text-[#ccccdd] hover:text-white text-sm h-10">
+          <Button onClick={() => setShowResetModal(true)} variant="outline" className="border-[#0088ff]/30 text-[#0088ff] hover:text-[#00b4ff] text-sm h-10">
             <Key className="w-3.5 h-3.5 mr-1.5" />
             Reset Password
           </Button>
