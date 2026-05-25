@@ -574,6 +574,12 @@ create policy "Authenticated users can insert patients"
   to authenticated
   with check (true);
 
+drop policy if exists "Authenticated users can update patients" on public.patients;
+create policy "Authenticated users can update patients"
+  on public.patients for update
+  to authenticated
+  using (true);
+
 drop policy if exists "Authenticated users can insert appointments" on public.appointments;
 create policy "Authenticated users can insert appointments"
   on public.appointments for insert
