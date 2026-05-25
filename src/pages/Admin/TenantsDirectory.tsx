@@ -37,6 +37,7 @@ const TenantsDirectory: React.FC = () => {
   const [form, setForm] = useState({ hospitalName: "", urlSlug: "", adminEmail: "", tier: "Standard" });
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+  const [formSuccess, setFormSuccess] = useState("");
 
   const fetchTenants = async () => {
     setLoading(true);
@@ -56,6 +57,7 @@ const TenantsDirectory: React.FC = () => {
     e.preventDefault();
     setSubmitting(true);
     setFormError("");
+    setFormSuccess("");
 
     const slug = form.urlSlug.toLowerCase().replace(/[^a-z0-9-]/g, "");
     if (!slug) { setFormError("Invalid slug"); setSubmitting(false); return; }
@@ -99,6 +101,45 @@ const TenantsDirectory: React.FC = () => {
         });
 
         if (createError) {
+          // If user already exists in Auth, look them up and still link
+          if (createError.message?.toLowerCase().includes("already registered") || createError.message?.toLowerCase().includes("already exists")) {
+            const { data: authUsers } = await (adminSupabase as any).auth.admin.listUsers();
+            const existingUser = (authUsers as any)?.users?.find((u: any) => u.email === form.adminEmail);
+            if (existingUser?.id) {
+              // UPSERT: update existing profile or insert one
+              const { data: existingProfile } = await (adminSupabase as any)
+                .from("users")
+                .select("id")
+                .eq("id", existingUser.id)
+                .maybeSingle();
+
+              if (existingProfile) {
+                await (adminSupabase as any)
+                  .from("users")
+                  .update({ tenant_id: tenantId, updated_at: new Date().toISOString() })
+                  .eq("id", existingUser.id);
+              } else {
+                await (adminSupabase as any).from("users").insert({
+                  id: existingUser.id,
+                  email: form.adminEmail,
+                  tenant_id: tenantId,
+                  full_name: `${form.hospitalName} Admin`,
+                  role: "HospitalAdmin",
+                  status: "active",
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                });
+              }
+
+              setFormSuccess("Tenant created and linked to existing admin user.");
+              setTimeout(() => setFormSuccess(""), 3000);
+              setSubmitting(false);
+              setModalOpen(false);
+              setForm({ hospitalName: "", urlSlug: "", adminEmail: "", tier: "Standard" });
+              fetchTenants();
+              return;
+            }
+          }
           setFormError(`Tenant created, but admin user creation failed: ${createError.message}. Set their password manually from the tenant details page.`);
           setSubmitting(false);
           setModalOpen(false);
@@ -108,21 +149,43 @@ const TenantsDirectory: React.FC = () => {
         }
 
         if (authData?.user?.id) {
-          const { error: insertError } = await adminSupabase.from("users").insert({
-            id: authData.user.id,
-            email: form.adminEmail,
-            tenant_id: tenantId,
-            full_name: `${form.hospitalName} Admin`,
-            role: "HospitalAdmin",
-            status: "active",
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
+          // Check if a users-table record already exists for this auth ID
+          const { data: existingProfile } = await (adminSupabase as any)
+            .from("users")
+            .select("id")
+            .eq("id", authData.user.id)
+            .maybeSingle();
 
-          if (insertError) {
-            setFormError(`Tenant and auth user created, but profile insert failed: ${insertError.message}. You can retry by resetting the password from the tenant details page.`);
-            setSubmitting(false);
-            return;
+          if (existingProfile) {
+            // Record exists — update tenant_id
+            const { error: updateErr } = await (adminSupabase as any)
+              .from("users")
+              .update({ tenant_id: tenantId, updated_at: new Date().toISOString() })
+              .eq("id", authData.user.id);
+
+            if (updateErr) {
+              setFormError(`Tenant and auth user created, but tenant_id assignment failed: ${updateErr.message}.`);
+              setSubmitting(false);
+              return;
+            }
+          } else {
+            // No record — insert one
+            const { error: insertError } = await (adminSupabase as any).from("users").insert({
+              id: authData.user.id,
+              email: form.adminEmail,
+              tenant_id: tenantId,
+              full_name: `${form.hospitalName} Admin`,
+              role: "HospitalAdmin",
+              status: "active",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            });
+
+            if (insertError) {
+              setFormError(`Tenant and auth user created, but profile insert failed: ${insertError.message}. You can retry by resetting the password from the tenant details page.`);
+              setSubmitting(false);
+              return;
+            }
           }
         }
       } catch (err: any) {
@@ -224,6 +287,12 @@ const TenantsDirectory: React.FC = () => {
                 <div className="bg-red-900/30 border border-red-800/50 text-red-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
                   <AlertCircle className="w-3.5 h-3.5" />
                   {formError}
+                </div>
+              )}
+              {formSuccess && (
+                <div className="bg-emerald-900/30 border border-emerald-800/50 text-emerald-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  {formSuccess}
                 </div>
               )}
               <div className="space-y-1.5">

@@ -189,21 +189,43 @@ const TenantDetail: React.FC = () => {
       const authUser = (authUsers as any)?.users?.find((u: any) => u.email === adminEmail);
 
       if (authUser) {
-        const { error: insertErr } = await (adminSupabase as any).from("users").insert({
-          id: authUser.id,
-          email: adminEmail,
-          tenant_id: tenantId,
-          full_name: (tData as any)?.hospital_name ? `${(tData as any).hospital_name} Admin` : adminEmail,
-          role: "HospitalAdmin",
-          status: "active",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
+        // Check if a users-table record already exists for this auth user
+        const { data: profile } = await (adminSupabase as any)
+          .from("users")
+          .select("id")
+          .eq("id", authUser.id)
+          .maybeSingle();
 
-        if (insertErr) {
-          setPasswordError(`Could not link auth user to tenant: ${insertErr.message}`);
-          setResettingPassword(false);
-          return;
+        if (profile) {
+          // Record exists — just update tenant_id
+          const { error: updateErr } = await (adminSupabase as any)
+            .from("users")
+            .update({ tenant_id: tenantId, updated_at: new Date().toISOString() })
+            .eq("id", authUser.id);
+
+          if (updateErr) {
+            setPasswordError(`Could not link auth user to tenant: ${updateErr.message}`);
+            setResettingPassword(false);
+            return;
+          }
+        } else {
+          // No record — insert one
+          const { error: insertErr } = await (adminSupabase as any).from("users").insert({
+            id: authUser.id,
+            email: adminEmail,
+            tenant_id: tenantId,
+            full_name: (tData as any)?.hospital_name ? `${(tData as any).hospital_name} Admin` : adminEmail,
+            role: "HospitalAdmin",
+            status: "active",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+
+          if (insertErr) {
+            setPasswordError(`Could not link auth user to tenant: ${insertErr.message}`);
+            setResettingPassword(false);
+            return;
+          }
         }
 
         await adminSupabase.auth.admin.updateUserById(authUser.id, { password: newPassword });
