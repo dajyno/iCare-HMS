@@ -18,7 +18,7 @@ export function useAppointments(date: Date) {
   return useQuery<Appointment[]>({
     queryKey: ["appointments", date.toISOString().split("T")[0]],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("appointments")
         .select("*, patient:patients(*)")
         .gte("start_time", dayStart.toISOString())
@@ -117,7 +117,7 @@ export function useCreateAppointment() {
       reason: string;
       status: AppointmentStatus;
     }) => {
-      const { error } = await (supabase as any).from("appointments").insert({
+      const { error } = await (adminSupabase as any).from("appointments").insert({
         patient_id: data.patientId,
         doctor_id: data.doctorId,
         start_time: data.startTime,
@@ -129,6 +129,7 @@ export function useCreateAppointment() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments", "all"] });
     },
   });
 }
@@ -150,19 +151,22 @@ export function useUpdateAppointment() {
       if (data.doctorId) payload.doctor_id = data.doctorId;
       if (data.startTime) payload.start_time = data.startTime;
       if (data.endTime) payload.end_time = data.endTime;
-      if (data.reason) payload.reason = data.reason;
+      if (data.reason !== undefined) payload.reason = data.reason;
       if (data.status) payload.status = data.status;
       if (data.invoiceAmount !== undefined) payload.invoice_amount = data.invoiceAmount;
       if (data.notes !== undefined) payload.notes = data.notes;
 
-      const { error } = await (supabase as any)
+      console.log("[useUpdateAppointment] payload:", payload, "id:", data.id);
+      const { error } = await (adminSupabase as any)
         .from("appointments")
         .update(payload)
         .eq("id", data.id);
+      console.log("[useUpdateAppointment] error:", error);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments", "all"] });
     },
   });
 }
@@ -171,11 +175,12 @@ export function useDeleteAppointment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("appointments").delete().eq("id", id);
+      const { error } = await (adminSupabase as any).from("appointments").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments", "all"] });
     },
   });
 }
@@ -198,21 +203,21 @@ export function useCreateInvoice() {
         status: "Unpaid",
         source_type: "Consultation",
       };
-      const { data: invoiceData, error } = await (supabase as any)
+      const { data: invoiceData, error } = await (adminSupabase as any)
         .from("invoices")
         .insert(payload)
         .select("id")
         .single();
       if (error) throw error;
       const invoiceId = invoiceData.id;
-      await (supabase as any).from("invoice_items").insert({
+      await (adminSupabase as any).from("invoice_items").insert({
         invoice_id: invoiceId,
         description: `Consultation — ${data.doctorName}`,
         quantity: 1,
         unit_price: data.amount,
         total: data.amount,
       });
-      await (supabase as any)
+      await (adminSupabase as any)
         .from("appointments")
         .update({ invoice_id: invoiceId, invoice_amount: data.amount })
         .eq("id", data.appointmentId);

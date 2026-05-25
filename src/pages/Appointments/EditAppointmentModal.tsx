@@ -35,6 +35,7 @@ export default function EditAppointmentModal({
   const [error, setError] = useState("");
   const [conflicts, setConflicts] = useState<Appointment[]>([]);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const dateStr = startTime ? startTime.split("T")[0] : new Date().toISOString().split("T")[0];
 
@@ -42,6 +43,7 @@ export default function EditAppointmentModal({
     setError("");
     setShowConfirmDelete(false);
     setConflicts([]);
+    setSaved(false);
     onClose();
   }, [onClose]);
 
@@ -56,10 +58,12 @@ export default function EditAppointmentModal({
   };
 
   const handleSave = () => {
+    console.log("[EditModal handleSave] appointment.id:", appointment?.id, "doctorId:", doctorId, "status:", status, "startTime:", startTime, "endTime:", endTime);
     if (!appointment) return;
     setError("");
 
     const existing = findConflicts(appointments, doctorId, startTime, endTime, appointment.id);
+    console.log("[EditModal handleSave] conflicts found:", existing.length, existing.map(c => c.id));
     if (existing.length > 0) {
       setConflicts(existing);
       return;
@@ -75,12 +79,25 @@ export default function EditAppointmentModal({
 
   const doSave = () => {
     if (!appointment) return;
+    if (!startTime || !endTime) {
+      setError("Start and end times are required");
+      return;
+    }
+    let startISO: string, endISO: string;
+    try {
+      startISO = new Date(startTime).toISOString();
+      endISO = new Date(endTime).toISOString();
+    } catch {
+      setError("Invalid date/time values");
+      return;
+    }
+    console.log("[EditModal doSave] calling updateAppt.mutate with status:", status);
     updateAppt.mutate(
       {
         id: appointment.id,
         doctorId,
-        startTime: new Date(startTime).toISOString(),
-        endTime: new Date(endTime).toISOString(),
+        startTime: startISO,
+        endTime: endISO,
         reason,
         status,
         invoiceAmount: invoiceAmount ? parseFloat(invoiceAmount) : undefined,
@@ -88,6 +105,8 @@ export default function EditAppointmentModal({
       },
       {
         onSuccess: () => {
+          console.log("[EditModal doSave] update succeeded, status:", status);
+          setSaved(true);
           if (status === "Completed" && invoiceAmount && parseFloat(invoiceAmount) > 0 && appointment.patient) {
             const doctor = doctors.find((d) => d.id === doctorId);
             createInvoice.mutate({
@@ -97,9 +116,12 @@ export default function EditAppointmentModal({
               appointmentId: appointment.id,
             });
           }
-          handleClose();
+          setTimeout(() => handleClose(), 400);
         },
-        onError: (err: any) => setError(err.message || "Failed to update appointment"),
+        onError: (err: any) => {
+          console.error("[EditModal doSave] update failed:", err);
+          setError(err.message || "Failed to update appointment");
+        },
       }
     );
   };
@@ -428,13 +450,13 @@ export default function EditAppointmentModal({
             </button>
             <button
               onClick={handleSave}
-              disabled={updateAppt.isPending}
+              disabled={updateAppt.isPending || saved}
               className="px-5 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
             >
               {updateAppt.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : null}
-              {updateAppt.isPending ? "Saving..." : "Save Changes"}
+              {updateAppt.isPending ? "Saving..." : saved ? "Saved!" : "Save Changes"}
             </button>
           </div>
         </div>
