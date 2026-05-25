@@ -69,7 +69,7 @@ const TenantsDirectory: React.FC = () => {
     };
     const limits = tierLimits[form.tier] || tierLimits.Standard;
 
-    const { error } = await adminSupabase.from("tenants").insert({
+    const { error: tenantError } = await adminSupabase.from("tenants").insert({
       tenant_id: tenantId,
       hospital_name: form.hospitalName,
       url_slug: slug,
@@ -80,11 +80,57 @@ const TenantsDirectory: React.FC = () => {
       max_bed_capacity: limits.beds,
     });
 
-    if (error) {
-      if (error.message.includes("url_slug")) setFormError("This URL slug is already taken");
-      else setFormError(error.message);
+    if (tenantError) {
+      if (tenantError.message.includes("url_slug")) setFormError("This URL slug is already taken");
+      else setFormError(tenantError.message);
       setSubmitting(false);
       return;
+    }
+
+    // Create the admin auth user
+    if (form.adminEmail) {
+      try {
+        const tempPassword = Math.random().toString(36).slice(2, 10) + "A1!";
+        const { data: authData, error: createError } = await adminSupabase.auth.admin.createUser({
+          email: form.adminEmail,
+          password: tempPassword,
+          email_confirm: true,
+          user_metadata: { full_name: `${form.hospitalName} Admin`, role: "HospitalAdmin" },
+        });
+
+        if (createError) {
+          setFormError(`Tenant created, but admin user creation failed: ${createError.message}. Set their password manually from the tenant details page.`);
+          setSubmitting(false);
+          setModalOpen(false);
+          setForm({ hospitalName: "", urlSlug: "", adminEmail: "", tier: "Standard" });
+          fetchTenants();
+          return;
+        }
+
+        if (authData?.user?.id) {
+          const { error: insertError } = await adminSupabase.from("users").insert({
+            id: authData.user.id,
+            email: form.adminEmail,
+            tenant_id: tenantId,
+            full_name: `${form.hospitalName} Admin`,
+            role: "HospitalAdmin",
+            status: "active",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+
+          if (insertError) {
+            setFormError(`Tenant and auth user created, but profile insert failed: ${insertError.message}.`);
+          }
+        }
+      } catch (err: any) {
+        setFormError(`Tenant created, but admin setup failed: ${err.message || "Unknown error"}.`);
+        setSubmitting(false);
+        setModalOpen(false);
+        setForm({ hospitalName: "", urlSlug: "", adminEmail: "", tier: "Standard" });
+        fetchTenants();
+        return;
+      }
     }
 
     setSubmitting(false);
