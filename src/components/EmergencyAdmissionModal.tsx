@@ -72,7 +72,7 @@ const EmergencyAdmissionModal = ({ open, onClose }: EmergencyAdmissionModalProps
     (async () => {
       const [{ data: wardData }, { data: doctorData }] = await Promise.all([
         (supabase as any).from("wards").select("id, name, type, beds_count, department_id, departments(name)"),
-        (supabase as any).from("users").select("full_name").eq("role", "Doctor").eq("status", "active"),
+        (supabase as any).from("users").select("full_name").eq("role", "Doctor"),
       ]);
       if (wardData) {
         const grouped: WardConfig[] = wardData.map((w: any) => ({
@@ -194,7 +194,7 @@ const EmergencyAdmissionModal = ({ open, onClose }: EmergencyAdmissionModalProps
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="sm:max-w-[600px] p-0 gap-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[600px] p-0 gap-0 overflow-hidden" showCloseButton={false}>
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <div>
             <h2 className="text-lg font-bold text-slate-900">+ Emergency Admission</h2>

@@ -17,7 +17,6 @@ import {
   Calendar,
   Clock,
   ArrowRight,
-  ChevronRight,
   Loader2,
   AlertCircle,
   MapPin,
@@ -28,8 +27,8 @@ interface DashboardStats {
   totalPatients: number;
   consultationsToday: number;
   pendingLabs: number;
-  completedScans: number;
-  activePrescriptions: number;
+  pendingScans: number;
+  pendingRx: number;
   bedOccupancy: number;
   dailyRevenue: number;
   outstandingClaims: number;
@@ -53,8 +52,8 @@ async function fetchStats(): Promise<DashboardStats> {
     { count: totalPatients },
     { count: consultationsToday },
     { count: pendingLabs },
-    { count: completedScans },
-    { count: activePrescriptions },
+    { count: pendingScans },
+    { count: pendingRx },
     { data: beds },
     { data: payments },
     { count: unpaidInvoices },
@@ -66,16 +65,15 @@ async function fetchStats(): Promise<DashboardStats> {
     supabase.from("lab_requests").select("*", { count: "exact", head: true })
       .neq("status", "Completed"),
     supabase.from("radiology_requests").select("*", { count: "exact", head: true })
-      .eq("status", "Completed"),
+      .neq("status", "Completed"),
     supabase.from("prescriptions").select("*", { count: "exact", head: true })
-      .in("status", ["Pending", "Unpaid"]),
+      .eq("status", "Pending"),
     supabase.from("beds").select("status"),
     supabase.from("payments").select("amount")
       .gte("date", today.toISOString()).lt("date", tomorrow.toISOString()),
     supabase.from("invoices").select("*", { count: "exact", head: true })
       .neq("status", "Paid"),
-    supabase.from("users").select("*", { count: "exact", head: true })
-      .eq("status", "active"),
+    supabase.from("staff_profiles").select("*", { count: "exact", head: true }),
   ]);
 
   const occupiedBeds = (beds || []).filter((b: any) => b.status === "Occupied").length;
@@ -85,8 +83,8 @@ async function fetchStats(): Promise<DashboardStats> {
     totalPatients: totalPatients || 0,
     consultationsToday: consultationsToday || 0,
     pendingLabs: pendingLabs || 0,
-    completedScans: completedScans || 0,
-    activePrescriptions: activePrescriptions || 0,
+    pendingScans: pendingScans || 0,
+    pendingRx: pendingRx || 0,
     bedOccupancy: Math.round((occupiedBeds / totalBeds) * 100),
     dailyRevenue: (payments || []).reduce((sum: number, p: any) => sum + (p.amount || 0), 0) || 0,
     outstandingClaims: unpaidInvoices || 0,
@@ -135,7 +133,7 @@ const ModuleCard = ({
 }) => (
   <button
     onClick={() => onClick(href)}
-    className="group relative flex flex-col items-start gap-3 rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition-all hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5"
+    className="group relative flex flex-col items-start gap-3 rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition-all hover:border-blue-300 hover:shadow-lg hover:-translate-y-1 hover:bg-blue-50/30"
   >
     <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${bg} ${color}`}>
       <Icon className="h-5 w-5" strokeWidth={2} />
@@ -144,7 +142,6 @@ const ModuleCard = ({
       <span className="text-sm font-semibold text-slate-800">{label}</span>
       <span className="text-xs text-slate-500">{metric}</span>
     </div>
-    <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 transition-all group-hover:text-slate-500 group-hover:translate-x-0.5" />
   </button>
 );
 
@@ -209,8 +206,8 @@ const Overview = () => {
     { icon: Users, label: "Patients", metric: `${stats?.totalPatients.toLocaleString()} registered`, href: "/patients", color: "text-emerald-600", bg: "bg-emerald-50" },
     { icon: ClipboardList, label: "Consultations", metric: `${stats?.consultationsToday} new today`, href: "/consultations", color: "text-blue-600", bg: "bg-blue-50" },
     { icon: FlaskConical, label: "Laboratory", metric: `${stats?.pendingLabs} pending`, href: "/laboratory", color: "text-amber-600", bg: "bg-amber-50" },
-    { icon: Scan, label: "Radiology", metric: `${stats?.completedScans} completed`, href: "/radiology", color: "text-purple-600", bg: "bg-purple-50" },
-    { icon: Pill, label: "Pharmacy", metric: `${stats?.activePrescriptions} active`, href: "/pharmacy/prescriptions", color: "text-rose-600", bg: "bg-rose-50" },
+    { icon: Scan, label: "Radiology", metric: `${stats?.pendingScans} pending`, href: "/radiology", color: "text-purple-600", bg: "bg-purple-50" },
+    { icon: Pill, label: "Pharmacy", metric: `${stats?.pendingRx} pending`, href: "/pharmacy/prescriptions", color: "text-rose-600", bg: "bg-rose-50" },
     { icon: Bed, label: "Inpatient", metric: `${stats?.bedOccupancy}% occupied`, href: "/inpatient", color: "text-cyan-600", bg: "bg-cyan-50" },
     { icon: CreditCard, label: "Billing", metric: `₦${(stats?.dailyRevenue ?? 0).toLocaleString()} today`, href: "/billing", color: "text-indigo-600", bg: "bg-indigo-50" },
     { icon: Calculator, label: "Accounting", metric: `${stats?.outstandingClaims} claims`, href: "/accounting", color: "text-teal-600", bg: "bg-teal-50" },
