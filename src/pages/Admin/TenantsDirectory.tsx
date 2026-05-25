@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { adminSupabase } from "../../lib/adminSupabase";
 import { toCamel } from "../../lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,15 +14,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, AlertCircle, Loader2, MoreHorizontal, ExternalLink } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Plus, Search, AlertCircle, Loader2 } from "lucide-react";
 import type { Tenant } from "../../types/tenant";
-import { ALL_MODULES } from "../../lib/moduleAccess";
 
 const statusBadge = (status: string) => {
   const colors: Record<string, string> = {
@@ -45,15 +37,6 @@ const TenantsDirectory: React.FC = () => {
   const [form, setForm] = useState({ hospitalName: "", urlSlug: "", adminEmail: "", tier: "Standard" });
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
-
-  // Edit limits state
-  const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
-  const [editStaffSeats, setEditStaffSeats] = useState(0);
-  const [editBedCapacity, setEditBedCapacity] = useState(0);
-  const [editModules, setEditModules] = useState<string[]>([]);
-  const [editModuleOverride, setEditModuleOverride] = useState(false);
-  const [savingLimits, setSavingLimits] = useState(false);
-  const [limitsError, setLimitsError] = useState("");
 
   const fetchTenants = async () => {
     setLoading(true);
@@ -110,53 +93,6 @@ const TenantsDirectory: React.FC = () => {
     fetchTenants();
   };
 
-  const openEditLimits = (tenant: Tenant) => {
-    setEditingTenant(tenant);
-    setEditStaffSeats(tenant.maxStaffSeats);
-    setEditBedCapacity(tenant.maxBedCapacity);
-    const overrideRaw = tenant.allowedModulesOverride;
-    const overrideParsed: string[] = typeof overrideRaw === "string" ? JSON.parse(overrideRaw || "[]") : (overrideRaw ?? []);
-    setEditModules(overrideParsed);
-    setEditModuleOverride(overrideParsed.length > 0);
-    setLimitsError("");
-  };
-
-  const handleSaveLimits = async () => {
-    if (!editingTenant) return;
-    setSavingLimits(true);
-    setLimitsError("");
-
-    const updates: Record<string, any> = {
-      max_staff_seats: editStaffSeats,
-      max_bed_capacity: editBedCapacity,
-    };
-    if (editModuleOverride) {
-      updates.allowed_modules_override = JSON.stringify(editModules);
-    } else {
-      updates.allowed_modules_override = null;
-    }
-
-    const { error } = await adminSupabase
-      .from("tenants")
-      .update(updates)
-      .eq("tenant_id", editingTenant.tenantId);
-
-    if (error) {
-      setLimitsError(error.message);
-      setSavingLimits(false);
-      return;
-    }
-
-    setSavingLimits(false);
-    setEditingTenant(null);
-    fetchTenants();
-  };
-
-  const handleStatusAction = async (tenantId: string, newStatus: string) => {
-    await adminSupabase.from("tenants").update({ status: newStatus }).eq("tenant_id", tenantId);
-    fetchTenants();
-  };
-
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -188,20 +124,19 @@ const TenantsDirectory: React.FC = () => {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-[#8888aa] uppercase tracking-wider">URL Slug</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-[#8888aa] uppercase tracking-wider">Created</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-[#8888aa] uppercase tracking-wider">Status</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-[#8888aa] uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-12 text-[#666688]">
+                  <td colSpan={4} className="text-center py-12 text-[#666688]">
                     <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
                     Loading...
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-12 text-[#666688]">No hospitals found</td>
+                  <td colSpan={4} className="text-center py-12 text-[#666688]">No hospitals found</td>
                 </tr>
               ) : (
                 filtered.map((t) => (
@@ -218,36 +153,6 @@ const TenantsDirectory: React.FC = () => {
                         {t.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-[#8888aa] hover:text-white">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="bg-[#0d0d1a] border-[#1a1a35] text-[#b0b0cc]">
-                          <DropdownMenuItem onClick={() => navigate(`/admin/tenants/${t.tenantId}`)} className="text-[#0088ff] focus:text-[#00b4ff] focus:bg-[#0088ff]/10">
-                            <ExternalLink className="w-3.5 h-3.5 mr-2" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => openEditLimits(t)} className="text-[#0088ff] focus:text-[#00b4ff] focus:bg-[#0088ff]/10">
-                            Edit Limits
-                          </DropdownMenuItem>
-                          {t.status !== "Suspended" ? (
-                            <DropdownMenuItem onClick={() => handleStatusAction(t.tenantId, "Suspended")} className="text-red-400 focus:text-red-300 focus:bg-red-900/30">
-                              Suspend
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem onClick={() => handleStatusAction(t.tenantId, "Active")} className="text-emerald-400 focus:text-emerald-300 focus:bg-emerald-900/30">
-                              Reactivate
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem onClick={() => handleStatusAction(t.tenantId, "Trial")} className="text-amber-400 focus:text-amber-300 focus:bg-amber-900/30">
-                            Set to Trial
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
                   </tr>
                 ))
               )}
@@ -255,90 +160,6 @@ const TenantsDirectory: React.FC = () => {
           </table>
         </div>
       </div>
-
-      {/* Edit Limits Modal */}
-      <Dialog open={!!editingTenant} onOpenChange={(o) => !o && setEditingTenant(null)}>
-        <DialogContent className="bg-[#0d0d1a] border-[#1a1a35] text-[#e8e8f0] sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-white">Edit Limits — {editingTenant?.hospitalName}</DialogTitle>
-            <DialogDescription className="text-[#8888aa] text-xs">
-              Override subscription limits for this tenant.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            {limitsError && (
-              <div className="bg-red-900/30 border border-red-800/50 text-red-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
-                <AlertCircle className="w-3.5 h-3.5" />
-                {limitsError}
-              </div>
-            )}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Max Staff Seats</Label>
-              <Input
-                type="number"
-                min={0}
-                value={editStaffSeats}
-                onChange={(e) => setEditStaffSeats(parseInt(e.target.value) || 0)}
-                className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Max Bed Capacity</Label>
-              <Input
-                type="number"
-                min={0}
-                value={editBedCapacity}
-                onChange={(e) => setEditBedCapacity(parseInt(e.target.value) || 0)}
-                className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Module Override</Label>
-                <button
-                  onClick={() => setEditModuleOverride(!editModuleOverride)}
-                  className={`relative w-10 h-5 rounded-full transition-colors ${editModuleOverride ? "bg-[#0088ff]" : "bg-[#1a1a35]"}`}
-                >
-                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${editModuleOverride ? "translate-x-5" : ""}`} />
-                </button>
-              </div>
-              {editModuleOverride && (
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  {ALL_MODULES.map((mod) => (
-                    <label key={mod} className="flex items-center gap-2 text-xs text-[#b0b0cc] cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={editModules.includes(mod)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setEditModules([...editModules, mod]);
-                          } else {
-                            setEditModules(editModules.filter((m) => m !== mod));
-                          }
-                        }}
-                        className="rounded bg-[#0d0d1a] border-[#1a1a35]"
-                      />
-                      {mod.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-                    </label>
-                  ))}
-                </div>
-              )}
-              {!editModuleOverride && (
-                <p className="text-[10px] text-[#666688]">Using tier defaults. Toggle override to customize.</p>
-              )}
-            </div>
-          </div>
-          <DialogFooter className="pt-4">
-            <Button type="button" variant="ghost" onClick={() => setEditingTenant(null)} className="text-[#8888aa]">
-              Cancel
-            </Button>
-            <Button onClick={handleSaveLimits} disabled={savingLimits} className="bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_12px_rgba(0,136,255,0.15)]">
-              {savingLimits ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
-              Save Limits
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Provision Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>

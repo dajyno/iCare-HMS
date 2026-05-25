@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Building2, Users, UserRound, Stethoscope, BedDouble, TrendingUp, DollarSign, Mail, Key, Loader2, AlertCircle, ExternalLink, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Building2, Users, UserRound, Stethoscope, BedDouble, TrendingUp, DollarSign, Mail, Key, Loader2, AlertCircle, ExternalLink, CheckCircle2, Settings } from "lucide-react";
 import { adminSupabase } from "../../lib/adminSupabase";
 import { toCamel } from "../../lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import type { Tenant } from "../../types/tenant";
+import { ALL_MODULES } from "../../lib/moduleAccess";
 
 const CURRENCY = "\u20A6";
 
@@ -51,6 +52,14 @@ const TenantDetail: React.FC = () => {
   const [savingEmail, setSavingEmail] = useState(false);
   const [emailSaved, setEmailSaved] = useState(false);
   const [emailError, setEmailError] = useState("");
+
+  const [showLimitsModal, setShowLimitsModal] = useState(false);
+  const [editStaffSeats, setEditStaffSeats] = useState(0);
+  const [editBedCapacity, setEditBedCapacity] = useState(0);
+  const [editModules, setEditModules] = useState<string[]>([]);
+  const [editModuleOverride, setEditModuleOverride] = useState(false);
+  const [savingLimits, setSavingLimits] = useState(false);
+  const [limitsError, setLimitsError] = useState("");
 
   const [resettingPassword, setResettingPassword] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
@@ -164,6 +173,55 @@ const TenantDetail: React.FC = () => {
       setPasswordError(err.message || "Password reset failed");
     }
     setResettingPassword(false);
+  };
+
+  const handleStatusAction = async (newStatus: string) => {
+    if (!tenantId) return;
+    await adminSupabase.from("tenants").update({ status: newStatus }).eq("tenant_id", tenantId);
+    const { data: refreshed } = await adminSupabase.from("tenants").select("*").eq("tenant_id", tenantId).maybeSingle();
+    if (refreshed) setTenant(toCamel(refreshed) as Tenant);
+  };
+
+  const openEditLimits = () => {
+    if (!tenant) return;
+    setEditStaffSeats(tenant.maxStaffSeats);
+    setEditBedCapacity(tenant.maxBedCapacity);
+    const overrideRaw = (tenant as any).allowedModulesOverride;
+    const overrideParsed: string[] = typeof overrideRaw === "string" ? JSON.parse(overrideRaw || "[]") : (overrideRaw ?? []);
+    setEditModules(overrideParsed);
+    setEditModuleOverride(overrideParsed.length > 0);
+    setLimitsError("");
+    setShowLimitsModal(true);
+  };
+
+  const handleSaveLimits = async () => {
+    if (!tenantId) return;
+    setSavingLimits(true);
+    setLimitsError("");
+
+    const updates: Record<string, any> = {
+      max_staff_seats: editStaffSeats,
+      max_bed_capacity: editBedCapacity,
+    };
+    if (editModuleOverride) {
+      updates.allowed_modules_override = JSON.stringify(editModules);
+    } else {
+      updates.allowed_modules_override = null;
+    }
+
+    const { error } = await adminSupabase.from("tenants").update(updates).eq("tenant_id", tenantId);
+
+    if (error) {
+      setLimitsError(error.message);
+      setSavingLimits(false);
+      return;
+    }
+
+    setSavingLimits(false);
+    setShowLimitsModal(false);
+
+    const { data: refreshed } = await adminSupabase.from("tenants").select("*").eq("tenant_id", tenantId).maybeSingle();
+    if (refreshed) setTenant(toCamel(refreshed) as Tenant);
   };
 
   if (loading) {
@@ -308,6 +366,110 @@ const TenantDetail: React.FC = () => {
             <Button onClick={handleResetPassword} disabled={resettingPassword} className="bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_12px_rgba(0,136,255,0.15)]">
               {resettingPassword ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
               Update Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hospital Controls */}
+      <div className="bg-[#0d0d1a] border border-[#1a1a35] rounded-xl p-5">
+        <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+          <Settings className="w-4 h-4 text-[#0088ff]" />
+          Hospital Controls
+        </h2>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button onClick={openEditLimits} className="bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_12px_rgba(0,136,255,0.15)] text-sm">
+            Edit Limits
+          </Button>
+          {tenant.status !== "Suspended" ? (
+            <Button onClick={() => handleStatusAction("Suspended")} variant="outline" className="border-red-800/50 text-red-400 hover:bg-red-900/30 text-sm">
+              Suspend Account
+            </Button>
+          ) : (
+            <Button onClick={() => handleStatusAction("Active")} variant="outline" className="border-emerald-800/50 text-emerald-400 hover:bg-emerald-900/30 text-sm">
+              Reactivate Account
+            </Button>
+          )}
+          <Button onClick={() => handleStatusAction("Trial")} variant="outline" className="border-amber-800/50 text-amber-400 hover:bg-amber-900/30 text-sm">
+            Set to Trial
+          </Button>
+        </div>
+      </div>
+
+      {/* Edit Limits Modal */}
+      <Dialog open={showLimitsModal} onOpenChange={(o) => { if (!o) { setShowLimitsModal(false); setLimitsError(""); }}}>
+        <DialogContent className="bg-[#0d0d1a] border-[#1a1a35] text-[#e8e8f0] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-white">Edit Limits — {tenant.hospitalName}</DialogTitle>
+            <DialogDescription className="text-[#8888aa] text-xs">
+              Override subscription limits for this hospital.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {limitsError && (
+              <div className="bg-red-900/30 border border-red-800/50 text-red-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+                <AlertCircle className="w-3.5 h-3.5" />
+                {limitsError}
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Max Staff Seats</Label>
+              <Input
+                type="number" min={0}
+                value={editStaffSeats}
+                onChange={(e) => setEditStaffSeats(parseInt(e.target.value) || 0)}
+                className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Max Bed Capacity</Label>
+              <Input
+                type="number" min={0}
+                value={editBedCapacity}
+                onChange={(e) => setEditBedCapacity(parseInt(e.target.value) || 0)}
+                className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Module Override</Label>
+                <button
+                  onClick={() => setEditModuleOverride(!editModuleOverride)}
+                  className={`relative w-10 h-5 rounded-full transition-colors ${editModuleOverride ? "bg-[#0088ff]" : "bg-[#1a1a35]"}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${editModuleOverride ? "translate-x-5" : ""}`} />
+                </button>
+              </div>
+              {editModuleOverride && (
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  {ALL_MODULES.map((mod) => (
+                    <label key={mod} className="flex items-center gap-2 text-xs text-[#b0b0cc] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editModules.includes(mod)}
+                        onChange={(e) => {
+                          if (e.target.checked) setEditModules([...editModules, mod]);
+                          else setEditModules(editModules.filter((m) => m !== mod));
+                        }}
+                        className="rounded bg-[#0d0d1a] border-[#1a1a35]"
+                      />
+                      {mod.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                    </label>
+                  ))}
+                </div>
+              )}
+              {!editModuleOverride && (
+                <p className="text-[10px] text-[#666688]">Using tier defaults. Toggle override to customize.</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="ghost" onClick={() => { setShowLimitsModal(false); setLimitsError(""); }} className="text-[#8888aa]">
+              Cancel
+            </Button>
+            <Button onClick={handleSaveLimits} disabled={savingLimits} className="bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_12px_rgba(0,136,255,0.15)]">
+              {savingLimits ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+              Save Limits
             </Button>
           </DialogFooter>
         </DialogContent>
