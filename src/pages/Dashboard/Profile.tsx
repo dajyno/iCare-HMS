@@ -18,6 +18,14 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { DEPARTMENT_OPTIONS } from "@/src/pages/Staff/data";
 import { Mail, Phone, MapPin, Briefcase, Calendar, Camera, Pencil, Loader2 } from "lucide-react";
 
 interface AuditLog {
@@ -76,7 +84,16 @@ const Profile = () => {
       return data as Record<string, any> | null;
     },
     enabled: !!user?.id,
+    refetchOnWindowFocus: true,
   });
+
+  const profileRole = staffRecord?.position
+    ? (staffRecord.position === "Medical Doctors" ? "Doctor" :
+       staffRecord.position === "Nursing" ? "Nurse" :
+       staffRecord.position === "Pharmacy" ? "Pharmacist" :
+       staffRecord.position === "Laboratory" ? "LabTechnician" :
+       "HospitalAdmin")
+    : user?.role;
 
   const { data: auditLogs = [] } = useQuery({
     queryKey: ["profile-audit-logs", user?.id],
@@ -201,7 +218,7 @@ const Profile = () => {
           <h1 className="text-3xl font-bold text-slate-900">{user?.fullName}</h1>
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
             <Badge className="bg-sky-100 text-sky-700 hover:bg-sky-100 border-none font-bold uppercase tracking-wider px-3">
-              {user?.role}
+              {profileRole}
             </Badge>
             <span className="text-slate-400">•</span>
             <span className="text-slate-500 text-sm font-medium">Healthcare Professional</span>
@@ -387,7 +404,18 @@ const Profile = () => {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-600">Department</Label>
-                <Input value={editDepartment} onChange={(e) => setEditDepartment(e.target.value)} className="h-9 text-sm" />
+                <Select value={editDepartment} onValueChange={setEditDepartment}>
+                  <SelectTrigger className="w-full h-9 text-sm">
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEPARTMENT_OPTIONS.map((dep) => (
+                      <SelectItem key={dep} value={dep}>
+                        {dep}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">

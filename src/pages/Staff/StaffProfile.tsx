@@ -38,6 +38,7 @@ import { useCheckSeatLimit } from "@/src/hooks/useSeatLimit";
 import UpgradeSubscriptionModal from "@/src/components/UpgradeSubscriptionModal";
 import { useStaff } from "./StaffContext";
 import type { StaffPosition } from "./types";
+import { DEPARTMENT_OPTIONS } from "./data";
 
 const STATUS_STYLES: Record<string, string> = {
   Active: "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -150,6 +151,21 @@ export default function StaffProfile() {
       profilePicture,
       is_clinician: position === "Medical Doctors",
     });
+
+    if (staff.authUserId) {
+      const { data: existingUser } = await (adminSupabase as any)
+        .from("users")
+        .select("id")
+        .eq("id", staff.authUserId)
+        .maybeSingle();
+      if (existingUser) {
+        await (adminSupabase as any)
+          .from("users")
+          .update({ role: staffRole })
+          .eq("id", staff.authUserId);
+      }
+    }
+
     if (profilePicture && isOwnProfile) {
       localStorage.setItem("staff_profile_picture", profilePicture);
       window.dispatchEvent(
@@ -362,11 +378,18 @@ export default function StaffProfile() {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="edDept">Department</Label>
-                    <Input
-                      id="edDept"
-                      value={department}
-                      onChange={(e) => setDepartment(e.target.value)}
-                    />
+                    <Select value={department} onValueChange={setDepartment}>
+                      <SelectTrigger className="w-full h-10" id="edDept">
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DEPARTMENT_OPTIONS.map((dep) => (
+                          <SelectItem key={dep} value={dep}>
+                            {dep}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
