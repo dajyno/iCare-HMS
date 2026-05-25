@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useStaff } from "./StaffContext";
-import { ALL_POSITIONS } from "./data";
+import { FILTER_ORDERED_POSITIONS } from "./data";
 import AddStaffModal from "./AddStaffDrawer";
 import StaffUploadModal from "./StaffUploadModal";
 import type { StaffRecord } from "./types";
@@ -206,7 +206,7 @@ export default function StaffList() {
 
           {/* Horizontal Filter Pills */}
           <div className="px-4 py-2.5 flex items-center gap-1.5 overflow-x-auto border-b border-slate-100">
-            {["All Staff", ...ALL_POSITIONS].map((pos) => (
+            {["All Staff", ...FILTER_ORDERED_POSITIONS].map((pos) => (
               <button
                 key={pos}
                 onClick={() => setActiveFilter(pos)}
