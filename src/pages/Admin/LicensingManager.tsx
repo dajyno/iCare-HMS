@@ -60,19 +60,25 @@ const LicensingManager: React.FC = () => {
     setSaving(true);
     setSaveError("");
 
-    const { error } = await adminSupabase
-      .from("subscription_tiers")
-      .update({
-        monthly_price: editForm.monthlyPrice,
-        max_staff_seats: editForm.maxStaffSeats,
-        max_bed_capacity: editForm.maxBedCapacity,
-        description: editForm.description || null,
-        allowed_modules: JSON.stringify(editForm.allowedModules),
-      })
-      .eq("id", editingTier.id);
+    try {
+      const { error } = await adminSupabase
+        .from("subscription_tiers")
+        .update({
+          monthly_price: editForm.monthlyPrice,
+          max_staff_seats: editForm.maxStaffSeats,
+          max_bed_capacity: editForm.maxBedCapacity,
+          description: editForm.description || null,
+          allowed_modules: JSON.stringify(editForm.allowedModules),
+        })
+        .eq("id", editingTier.id);
 
-    if (error) {
-      setSaveError(error.message);
+      if (error) {
+        setSaveError(error.message);
+        setSaving(false);
+        return;
+      }
+    } catch (err: any) {
+      setSaveError(err.message || "Network error — please check your connection and try again.");
       setSaving(false);
       return;
     }
@@ -173,7 +179,7 @@ const LicensingManager: React.FC = () => {
               Update pricing, limits, and description for this subscription tier.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-2 max-h-[65vh] overflow-y-auto px-0.5">
             {saveError && (
               <div className="bg-red-900/30 border border-red-800/50 text-red-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
                 <AlertCircle className="w-3.5 h-3.5" />
