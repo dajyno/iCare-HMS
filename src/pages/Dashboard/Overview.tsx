@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/src/lib/supabase";
@@ -22,7 +22,8 @@ import {
   AlertCircle,
   MapPin,
 } from "lucide-react";
-import EmergencyAdmissionModal from "@/src/components/EmergencyAdmissionModal";
+import NewAdmissionWizard from "@/src/pages/Inpatient/components/NewAdmissionWizard";
+import type { WardConfig } from "@/src/pages/Inpatient/inpatientTypes";
 
 interface DashboardStats {
   totalPatients: number;
@@ -154,11 +155,61 @@ const Overview = () => {
   const p = (path: string) => hospital_slug ? `/${hospital_slug}${path}` : path;
   const [currentTime, setCurrentTime] = useState(new Date());
   const [admitModalOpen, setAdmitModalOpen] = useState(false);
+  const [wardConfiguration, setWardConfiguration] = useState<WardConfig[]>([]);
+  const [attendingDoctors, setAttendingDoctors] = useState<string[]>([]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!admitModalOpen) return;
+    let cancelled = false;
+
+    async function load() {
+      const { data: wardsData } = await supabase
+        .from("wards")
+        .select("*, department:departments(name), beds(*)")
+        .order("name", { ascending: true });
+      if (cancelled) return;
+
+      const config: WardConfig[] = (wardsData || []).map((w: any) => ({
+        wardId: w.id,
+        name: w.name,
+        department: w.department?.name ?? w.type ?? "General",
+        totalBeds: w.beds?.length ?? 0,
+        beds: (w.beds || []).map((b: any) => ({
+          bedCode: b.bed_number,
+          status: (b.status === "Occupied"
+            ? "Occupied"
+            : b.status === "Cleaning" || b.status === "Maintenance"
+            ? "Maintenance/Sanitizing"
+            : "Available") as "Available" | "Occupied" | "Maintenance/Sanitizing",
+          price: b.price ?? 2500,
+        })),
+      }));
+      setWardConfiguration(config);
+
+      const [usersRes, staffRes] = await Promise.all([
+        supabase.from("users").select("id, full_name").eq("role", "Doctor"),
+        (adminSupabase as any).from("staff").select("id, full_name").eq("is_clinician", true),
+      ]);
+      if (cancelled) return;
+
+      const doctorMap = new Map<string, string>();
+      for (const u of (usersRes.data || []) as any[]) {
+        if (u.full_name) doctorMap.set(u.id, u.full_name);
+      }
+      for (const s of (staffRes.data || []) as any[]) {
+        if (s.full_name && !doctorMap.has(s.id)) doctorMap.set(s.id, s.full_name);
+      }
+      setAttendingDoctors(Array.from(doctorMap.values()).sort());
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, [admitModalOpen]);
 
   const { data: stats, isLoading, error: queryError, isError } = useQuery({
     queryKey: ["dashboard-stats"],
@@ -173,6 +224,68 @@ const Overview = () => {
   });
 
   const handleNav = (href: string) => navigate(p(href));
+
+  const searchPatients = useCallback(async (query: string) => {
+    if (!query.trim()) return [];
+    const { data } = await supabase
+      .from("patients")
+      .select("patient_id, first_name, last_name, date_of_birth, allergies")
+      .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,patient_id.ilike.%${query}%`)
+      .limit(10);
+    return (data || []).map((p: any) => ({
+      folderNo: p.patient_id,
+      name: `${p.first_name} ${p.last_name}`.trim(),
+      age: p.date_of_birth
+        ? Math.floor((Date.now() - new Date(p.date_of_birth).getTime()) / (1000 * 60 * 60 * 24 * 365.25))
+        : 0,
+      allergies: p.allergies ? p.allergies.split(",").map((s: string) => s.trim()).filter(Boolean) : [],
+    }));
+  }, []);
+
+  const handleFinalizeAdmission = useCallback(async (payload: {
+    patient: any;
+    wardCode: string;
+    bedNo: string;
+    provisionalDiagnosis: string;
+    chiefComplaints: string;
+    attendingPhysician: string;
+  }) => {
+    const now = new Date().toISOString();
+    const s = adminSupabase as any;
+
+    const { data: patientData } = await s.from("patients").select("id").eq("patient_id", payload.patient.folderNo).maybeSingle();
+    if (!patientData) { alert("Patient not found."); return false; }
+
+    const { data: wardData } = await s.from("wards").select("id").eq("name", payload.wardCode).maybeSingle();
+    if (!wardData) { alert("Ward not found."); return false; }
+
+    const { data: bedData } = await s.from("beds").select("id, status").eq("bed_number", payload.bedNo).eq("ward_id", wardData.id).maybeSingle();
+    if (!bedData) { alert("Bed not found in database."); return false; }
+    if (bedData.status === "Occupied") { alert("This bed is already occupied."); return false; }
+
+    let doctorId: string | null = null;
+    const { data: userData } = await s.from("users").select("id").ilike("full_name", `%${payload.attendingPhysician.replace(/^Dr\.\s*/i, "")}%`).maybeSingle();
+    if (userData) doctorId = userData.id;
+
+    const { error: admError, data: newAdm } = await s.from("admissions").insert({
+      patient_id: patientData.id,
+      ward_id: wardData.id,
+      bed_id: bedData.id,
+      admission_date: now,
+      status: "Admitted",
+      admitting_doctor_id: doctorId,
+      diagnosis: payload.provisionalDiagnosis || null,
+      notes: payload.chiefComplaints || null,
+    }).select("id").single();
+
+    if (admError || !newAdm) {
+      alert("Failed to create admission: " + (admError?.message || String(admError)));
+      return false;
+    }
+
+    await s.from("beds").update({ status: "Occupied" }).eq("id", bedData.id);
+    return true;
+  }, []);
 
   if (isLoading) {
     return (
@@ -330,9 +443,13 @@ const Overview = () => {
         </div>
       </div>
 
-      <EmergencyAdmissionModal
+      <NewAdmissionWizard
         open={admitModalOpen}
         onClose={() => setAdmitModalOpen(false)}
+        wardConfiguration={wardConfiguration}
+        searchPatients={searchPatients}
+        attendingDoctors={attendingDoctors}
+        onFinalize={handleFinalizeAdmission}
       />
     </div>
   );
