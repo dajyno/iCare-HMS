@@ -146,7 +146,7 @@ const PlatformOverview: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {["Standard", "Premium", "Enterprise"].map((name) => {
             const t = m.byTier[name] || { count: 0, mrr: 0 };
-            return <TierCard key={name} name={name} price={tierPrices[name]} count={t.count} mrr={t.mrr} />;
+            return <TierCard key={name} name={name} price={tierPrices[name] || 0} count={t.count} mrr={t.mrr} />;
           })}
         </div>
       </div>
