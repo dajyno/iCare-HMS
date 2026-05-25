@@ -357,29 +357,35 @@ const Profile = () => {
                 </div>
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-600">Full Name</Label>
-              <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-9 text-sm" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-600">Full Name</Label>
+                <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-9 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-600">Email</Label>
+                <Input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="h-9 text-sm" />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-600">Email</Label>
-              <Input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="h-9 text-sm" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-600">Phone</Label>
+                <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="h-9 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-600">Department</Label>
+                <Input value={editDepartment} onChange={(e) => setEditDepartment(e.target.value)} className="h-9 text-sm" />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-600">Phone</Label>
-              <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="h-9 text-sm" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-600">Department</Label>
-              <Input value={editDepartment} onChange={(e) => setEditDepartment(e.target.value)} className="h-9 text-sm" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-600">Gender</Label>
-              <Input value={editGender} onChange={(e) => setEditGender(e.target.value)} className="h-9 text-sm" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-600">Address</Label>
-              <Input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} className="h-9 text-sm" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-600">Gender</Label>
+                <Input value={editGender} onChange={(e) => setEditGender(e.target.value)} className="h-9 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-600">Address</Label>
+                <Input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} className="h-9 text-sm" />
+              </div>
             </div>
             {editError && (
               <div className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{editError}</div>

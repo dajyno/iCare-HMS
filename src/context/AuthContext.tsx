@@ -52,22 +52,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser({
           id: userId,
           email: authUser.email || "",
-          full_name: staffRow.name || authUser.email?.split("@")[0] || "User",
+          fullName: staffRow.name || authUser.email?.split("@")[0] || "User",
           role,
           status: "active",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         });
       } else {
         const role = (authUser.user_metadata?.role || "Doctor") as User["role"];
         setUser({
           id: userId,
           email: authUser.email || "",
-          full_name: authUser.user_metadata?.full_name || authUser.email?.split("@")[0] || "User",
+          fullName: authUser.user_metadata?.full_name || authUser.email?.split("@")[0] || "User",
           role,
           status: "active",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         });
       }
     }
