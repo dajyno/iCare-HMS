@@ -149,6 +149,8 @@ const Profile = () => {
           full_name: editName,
           email: editEmail,
           phone: editPhone || null,
+          role: user.role,
+          status: "active",
         }, { onConflict: "id" });
       if (userErr) throw new Error(userErr.message || "Failed to update profile");
 
