@@ -138,6 +138,7 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("general");
 
   const [localName, setLocalName] = useState(settings.hospitalName);
+  const [localAddress, setLocalAddress] = useState(settings.hospitalAddress);
   const [localCode, setLocalCode] = useState(settings.hospitalCode);
   const [localEmail, setLocalEmail] = useState(settings.systemEmail);
 
@@ -229,6 +230,7 @@ export default function Settings() {
 
   useEffect(() => {
     setLocalName(settings.hospitalName);
+    setLocalAddress(settings.hospitalAddress);
     setLocalCode(settings.hospitalCode);
     setLocalEmail(settings.systemEmail);
     setLocalCurrency(settings.baseCurrency);
@@ -249,7 +251,7 @@ export default function Settings() {
   }, [savedToast]);
 
   const handleSaveGeneral = () => {
-    updateSettings({ hospitalName: localName, hospitalCode: localCode.toUpperCase(), systemEmail: localEmail });
+    updateSettings({ hospitalName: localName, hospitalAddress: localAddress, hospitalCode: localCode.toUpperCase(), systemEmail: localEmail });
     saveWithHospitalConfig({ hospitalName: localName, hospitalCode: localCode.toUpperCase() });
     setSavedToast("General settings saved");
   };
@@ -396,6 +398,10 @@ export default function Settings() {
                   <div className="grid gap-2">
                     <Label htmlFor="hospital-name">Hospital Name</Label>
                     <Input id="hospital-name" value={localName} onChange={(e) => setLocalName(e.target.value)} className="h-10" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="hospital-address">Hospital Address</Label>
+                    <Input id="hospital-address" value={localAddress} onChange={(e) => setLocalAddress(e.target.value)} className="h-10" placeholder="123 Healthcare Avenue, Medical District" />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="hospital-code">Hospital Code <span className="text-xs text-slate-400">(system-wide dynamic prefix for invoice numbers)</span></Label>

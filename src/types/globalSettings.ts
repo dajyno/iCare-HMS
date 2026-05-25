@@ -17,6 +17,7 @@ export interface RolePermissions {
 
 export interface GlobalSettings {
   hospitalName: string;
+  hospitalAddress: string;
   hospitalCode: string;
   systemEmail: string;
   databaseLastBackup: string | null;

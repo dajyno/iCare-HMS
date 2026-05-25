@@ -77,6 +77,7 @@ function defaultRbacMatrix(): Record<RoleKey, RolePermissions> {
 export function getDefaultSettings(): GlobalSettings {
   return {
     hospitalName: "iCare Medical Center",
+    hospitalAddress: "123 Healthcare Avenue, Medical District",
     hospitalCode: "HMS",
     systemEmail: "admin@icare.com",
     databaseLastBackup: null,
