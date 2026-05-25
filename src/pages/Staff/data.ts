@@ -48,7 +48,7 @@ export const DEPARTMENT_CATEGORIES = Object.keys(DEPARTMENT_POSITIONS);
 
 export const ALL_POSITIONS = Object.values(DEPARTMENT_POSITIONS).flat();
 
-const POPULAR_FIRST = ["Laboratory", "Pharmacy", "Hospital Administration", "Human Resources", "Finance / Accounts"];
+const POPULAR_FIRST = ["Medical Doctors", "Nursing", "Laboratory", "Pharmacy", "Hospital Administration", "Human Resources", "Finance / Accounts"];
 const REST = ALL_POSITIONS.filter((p) => !POPULAR_FIRST.includes(p));
 export const FILTER_ORDERED_POSITIONS = [...POPULAR_FIRST, ...REST];
 
