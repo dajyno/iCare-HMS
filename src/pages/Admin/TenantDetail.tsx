@@ -305,11 +305,11 @@ const TenantDetail: React.FC = () => {
             />
             {emailError && <p className="text-[10px] text-red-400">{emailError}</p>}
           </div>
-          <Button onClick={handleSaveAdminEmail} disabled={savingEmail} className="bg-emerald-600 hover:bg-emerald-700 shadow-[0_0_12px_rgba(16,185,129,0.2)] text-sm h-10">
+          <Button onClick={handleSaveAdminEmail} disabled={savingEmail} className="bg-emerald-600 hover:bg-emerald-700 shadow-[0_0_12px_rgba(16,185,129,0.2)] text-sm h-10 min-w-[130px]">
             {savingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {emailSaved ? "Saved" : "Save"}
           </Button>
-          <Button onClick={() => setShowResetModal(true)} variant="outline" className="border-[#0088ff]/30 text-[#0088ff] hover:text-[#00b4ff] text-sm h-10">
+          <Button onClick={() => setShowResetModal(true)} variant="outline" className="border-[#004488]/30 text-[#004488] hover:text-[#0055aa] text-sm h-10">
             <Key className="w-3.5 h-3.5 mr-1.5" />
             Reset Password
           </Button>
