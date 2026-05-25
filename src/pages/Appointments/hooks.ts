@@ -117,7 +117,7 @@ export function useCreateAppointment() {
       reason: string;
       status: AppointmentStatus;
     }) => {
-      const { error } = await supabase.from("appointments").insert({
+      const { error } = await (supabase as any).from("appointments").insert({
         patient_id: data.patientId,
         doctor_id: data.doctorId,
         start_time: data.startTime,
@@ -155,7 +155,7 @@ export function useUpdateAppointment() {
       if (data.invoiceAmount !== undefined) payload.invoice_amount = data.invoiceAmount;
       if (data.notes !== undefined) payload.notes = data.notes;
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("appointments")
         .update(payload)
         .eq("id", data.id);
@@ -171,7 +171,7 @@ export function useDeleteAppointment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("appointments").delete().eq("id", id);
+      const { error } = await (supabase as any).from("appointments").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -198,21 +198,21 @@ export function useCreateInvoice() {
         status: "Unpaid",
         source_type: "Consultation",
       };
-      const { data: invoiceData, error } = await supabase
+      const { data: invoiceData, error } = await (supabase as any)
         .from("invoices")
         .insert(payload)
         .select("id")
         .single();
       if (error) throw error;
       const invoiceId = invoiceData.id;
-      await supabase.from("invoice_items").insert({
+      await (supabase as any).from("invoice_items").insert({
         invoice_id: invoiceId,
         description: `Consultation — ${data.doctorName}`,
         quantity: 1,
         unit_price: data.amount,
         total: data.amount,
       });
-      await supabase
+      await (supabase as any)
         .from("appointments")
         .update({ invoice_id: invoiceId, invoice_amount: data.amount })
         .eq("id", data.appointmentId);
