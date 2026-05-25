@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Building2, Users, UserRound, Stethoscope, BedDouble, TrendingUp, DollarSign, Mail, Key, Loader2, AlertCircle, ExternalLink } from "lucide-react";
+import { ArrowLeft, Building2, Users, UserRound, Stethoscope, BedDouble, TrendingUp, DollarSign, Mail, Key, Loader2, AlertCircle, ExternalLink, CheckCircle2 } from "lucide-react";
 import { adminSupabase } from "../../lib/adminSupabase";
 import { toCamel } from "../../lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import type { Tenant } from "../../types/tenant";
 
 const CURRENCY = "\u20A6";
@@ -52,6 +53,11 @@ const TenantDetail: React.FC = () => {
   const [emailError, setEmailError] = useState("");
 
   const [resettingPassword, setResettingPassword] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
 
   useEffect(() => {
     if (!tenantId) { setNotFound(true); setLoading(false); return; }
@@ -118,6 +124,16 @@ const TenantDetail: React.FC = () => {
   };
 
   const handleResetPassword = async () => {
+    setPasswordError("");
+    setPasswordSuccess("");
+    if (!newPassword || newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords do not match");
+      return;
+    }
     setResettingPassword(true);
     try {
       const { data: users } = await adminSupabase
@@ -128,14 +144,16 @@ const TenantDetail: React.FC = () => {
 
       if (users && users.length > 0) {
         const user = users[0];
-        const defaultPassword = "password123";
-        await adminSupabase.auth.admin.updateUserById(user.id, { password: defaultPassword });
-        alert(`Password reset to "${defaultPassword}" for ${user.email || "the tenant admin"}`);
+        await adminSupabase.auth.admin.updateUserById(user.id, { password: newPassword });
+        setPasswordSuccess(`Password updated for ${user.email || "tenant admin"}`);
+        setNewPassword("");
+        setConfirmPassword("");
+        setTimeout(() => { setShowResetModal(false); setPasswordSuccess(""); }, 2000);
       } else {
-        alert("No user found for this tenant. Ensure a user exists with this tenant_id.");
+        setPasswordError("No user found for this tenant. Ensure a user exists with this tenant_id.");
       }
     } catch (err: any) {
-      alert("Password reset failed: " + (err.message || "Unknown error"));
+      setPasswordError(err.message || "Password reset failed");
     }
     setResettingPassword(false);
   };
@@ -225,15 +243,67 @@ const TenantDetail: React.FC = () => {
             {savingEmail ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
             {emailSaved ? "Saved" : "Save"}
           </Button>
-          <Button onClick={handleResetPassword} disabled={resettingPassword} variant="outline" className="border-slate-600 text-slate-300 hover:text-white text-sm h-10">
-            {resettingPassword ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Key className="w-3.5 h-3.5 mr-1.5" />}
+          <Button onClick={() => setShowResetModal(true)} variant="outline" className="border-slate-600 text-slate-300 hover:text-white text-sm h-10">
+            <Key className="w-3.5 h-3.5 mr-1.5" />
             Reset Password
           </Button>
         </div>
-        <p className="text-[10px] text-slate-500 mt-2">
-          Reset password will set the tenant admin's password to "password123".
-        </p>
       </div>
+
+      {/* Password Reset Modal */}
+      <Dialog open={showResetModal} onOpenChange={(o) => { if (!o) { setShowResetModal(false); setPasswordError(""); setPasswordSuccess(""); setNewPassword(""); setConfirmPassword(""); }}}>
+        <DialogContent className="bg-slate-800 border-slate-700 text-slate-100 sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">Reset Password</DialogTitle>
+            <DialogDescription className="text-slate-400 text-xs">
+              Set a new password for {tenant.hospitalName}'s admin account.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {passwordError && (
+              <div className="bg-red-900/30 border border-red-800/50 text-red-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                {passwordError}
+              </div>
+            )}
+            {passwordSuccess && (
+              <div className="bg-emerald-900/30 border border-emerald-800/50 text-emerald-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                {passwordSuccess}
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">New Password</Label>
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="bg-slate-900/50 border-slate-600 text-slate-100"
+                placeholder="Min 6 characters"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Confirm Password</Label>
+              <Input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="bg-slate-900/50 border-slate-600 text-slate-100"
+                placeholder="Re-enter new password"
+              />
+            </div>
+          </div>
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="ghost" onClick={() => { setShowResetModal(false); setPasswordError(""); setPasswordSuccess(""); setNewPassword(""); setConfirmPassword(""); }} className="text-slate-400">
+              Cancel
+            </Button>
+            <Button onClick={handleResetPassword} disabled={resettingPassword} className="bg-sky-600 hover:bg-sky-700">
+              {resettingPassword ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+              Update Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Hospital Metrics */}
       <div>

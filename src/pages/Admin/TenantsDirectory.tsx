@@ -396,9 +396,9 @@ const TenantsDirectory: React.FC = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
-                    <SelectItem value="Standard">Standard — \u20A6199,000/mo (10 seats, 0 beds)</SelectItem>
-                    <SelectItem value="Premium">Premium — \u20A6499,000/mo (50 seats, 40 beds)</SelectItem>
-                    <SelectItem value="Enterprise">Enterprise — \u20A6999,000/mo (unlimited)</SelectItem>
+                    <SelectItem value="Standard">Standard — {'\u20A6'}199,000/mo (10 seats, 0 beds)</SelectItem>
+                    <SelectItem value="Premium">Premium — {'\u20A6'}499,000/mo (50 seats, 40 beds)</SelectItem>
+                    <SelectItem value="Enterprise">Enterprise — {'\u20A6'}999,000/mo (unlimited)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Users, BedDouble, DollarSign, ShieldCheck, Pencil, Loader2, AlertCircle, X } from "lucide-react";
 import type { SubscriptionTier } from "../../types/tenant";
+import { ALL_MODULES } from "../../lib/moduleAccess";
 
 const MODULE_LABELS: Record<string, string> = {
   emr: "EMR",
@@ -28,7 +29,7 @@ const LicensingManager: React.FC = () => {
 
   // Edit state
   const [editingTier, setEditingTier] = useState<SubscriptionTier | null>(null);
-  const [editForm, setEditForm] = useState({ monthlyPrice: 0, maxStaffSeats: 0, maxBedCapacity: 0, description: "" });
+  const [editForm, setEditForm] = useState({ monthlyPrice: 0, maxStaffSeats: 0, maxBedCapacity: 0, description: "", allowedModules: [] as string[] });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
@@ -42,11 +43,14 @@ const LicensingManager: React.FC = () => {
 
   const openEdit = (tier: SubscriptionTier) => {
     setEditingTier(tier);
+    const raw = tier.allowedModules;
+    const parsedModules: string[] = typeof raw === "string" ? JSON.parse(raw || "[]") : (raw ?? []);
     setEditForm({
       monthlyPrice: tier.monthlyPrice,
       maxStaffSeats: tier.maxStaffSeats,
       maxBedCapacity: tier.maxBedCapacity,
       description: tier.description || "",
+      allowedModules: parsedModules,
     });
     setSaveError("");
   };
@@ -63,6 +67,7 @@ const LicensingManager: React.FC = () => {
         max_staff_seats: editForm.maxStaffSeats,
         max_bed_capacity: editForm.maxBedCapacity,
         description: editForm.description || null,
+        allowed_modules: JSON.stringify(editForm.allowedModules),
       })
       .eq("id", editingTier.id);
 
@@ -86,19 +91,12 @@ const LicensingManager: React.FC = () => {
           const raw = tier.allowedModules;
           const modules: string[] = typeof raw === "string" ? JSON.parse(raw || "[]") : (raw ?? []);
           return (
-            <Card key={tier.id} className="bg-slate-800 border-slate-700 relative group">
-              <button
-                onClick={() => openEdit(tier)}
-                className="absolute top-3 right-3 w-7 h-7 rounded-lg bg-slate-700/50 hover:bg-sky-600/30 text-slate-400 hover:text-sky-300 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
-                title="Edit plan"
-              >
-                <Pencil className="w-3.5 h-3.5" />
-              </button>
+            <Card key={tier.id} className="bg-slate-800 border-slate-700">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg font-bold text-white">{tier.name}</CardTitle>
                   <Badge variant="outline" className="text-sky-400 border-sky-500/30 bg-sky-500/10">
-                    \u20A6{tier.monthlyPrice.toLocaleString()}/mo
+                    {'\u20A6'}{tier.monthlyPrice.toLocaleString()}/mo
                   </Badge>
                 </div>
                 {tier.description && (
@@ -130,7 +128,7 @@ const LicensingManager: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-slate-400 text-xs">Monthly Price</p>
-                    <p className="text-white font-semibold">\u20A6{tier.monthlyPrice.toLocaleString()}</p>
+                    <p className="text-white font-semibold">{'\u20A6'}{tier.monthlyPrice.toLocaleString()}</p>
                   </div>
                 </div>
                 <div className="pt-2 border-t border-slate-700">
@@ -153,6 +151,13 @@ const LicensingManager: React.FC = () => {
                     )}
                   </div>
                 </div>
+                <Button
+                  onClick={() => openEdit(tier)}
+                  className="w-full mt-2 bg-sky-600 hover:bg-sky-700 text-sm font-bold"
+                >
+                  <Pencil className="w-3.5 h-3.5 mr-2" />
+                  Edit Plan
+                </Button>
               </CardContent>
             </Card>
           );
@@ -176,7 +181,7 @@ const LicensingManager: React.FC = () => {
               </div>
             )}
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Monthly Price (\u20A6)</Label>
+              <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Monthly Price ({'\u20A6'})</Label>
               <Input
                 type="number"
                 min={0}
@@ -213,6 +218,28 @@ const LicensingManager: React.FC = () => {
                 className="bg-slate-900/50 border-slate-600 text-slate-100 min-h-[60px]"
                 placeholder="Brief description of this plan..."
               />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Included Modules</Label>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                {ALL_MODULES.map((mod) => (
+                  <label key={mod} className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editForm.allowedModules.includes(mod)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setEditForm({ ...editForm, allowedModules: [...editForm.allowedModules, mod] });
+                        } else {
+                          setEditForm({ ...editForm, allowedModules: editForm.allowedModules.filter((m) => m !== mod) });
+                        }
+                      }}
+                      className="rounded bg-slate-700 border-slate-500"
+                    />
+                    {mod.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
           <DialogFooter className="pt-4">
