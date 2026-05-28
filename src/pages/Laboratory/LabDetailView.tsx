@@ -148,6 +148,7 @@ const LabDetailView = ({
         interpretation: interp || null,
         edited_by: (user as any)?.full_name ?? null,
         edited_at: new Date().toISOString(),
+        tenant_id: (user as any)?.tenantId ?? null,
       };
 
       const { error } = await supabase
