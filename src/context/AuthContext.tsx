@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { supabase, toCamel } from "../lib/supabase";
+import { supabase, toCamel, setCurrentTenantId } from "../lib/supabase";
 import { adminSupabase } from "../lib/adminSupabase";
 import type { StaffRecord } from "../pages/Staff/types";
 import { getCustomAccounts } from "../lib/accountsStore";
@@ -116,6 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
+      if (tenantId) setCurrentTenantId(tenantId);
       await fetchProfile(userId, authUser);
     };
 
@@ -185,6 +186,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    setCurrentTenantId(null);
     await supabase.auth.signOut();
     setUser(null);
   };

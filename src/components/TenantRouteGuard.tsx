@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Outlet, useLocation } from "react-router-dom";
-import { supabase, toCamel } from "../lib/supabase";
+import { supabase, toCamel, setCurrentTenantId } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { useGlobalSettings } from "../context/GlobalSettingsContext";
 import { useTenant } from "../context/TenantContext";
@@ -38,6 +38,7 @@ const TenantRouteGuard: React.FC = () => {
       if (cancelled) return;
 
       if (error || !data) {
+        setCurrentTenantId(null);
         setResolved("not_found");
         return;
       }
@@ -46,11 +47,13 @@ const TenantRouteGuard: React.FC = () => {
 
       if (t.status === "Suspended") {
         setTenant(t);
+        setCurrentTenantId(t.tenantId);
         setResolved("suspended");
         return;
       }
 
       setTenant(t);
+      setCurrentTenantId(t.tenantId);
       setResolved("ok");
     }
 
