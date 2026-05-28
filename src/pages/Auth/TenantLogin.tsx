@@ -121,19 +121,19 @@ const TenantLogin: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-blue-50 px-4 py-8 font-sans">
-      <div className="w-full max-w-[1000px] bg-white rounded-[24px] overflow-hidden shadow-2xl flex max-h-[calc(100vh-2rem)]">
+    <div className="min-h-screen flex items-center justify-center bg-blue-50 px-4 font-sans pb-16 lg:pb-0">
+      <div className="w-full max-w-[1000px] bg-white rounded-[24px] overflow-hidden shadow-2xl flex-col lg:flex-row max-h-[calc(100vh-2rem)]">
         {/* Left Form Pane */}
-        <div className="w-[45%] p-10 flex flex-col">
+        <div className="w-full lg:w-[45%] p-6 lg:p-10 flex flex-col">
           {/* Branding */}
-          <div className="mb-10">
-            <img src="/logo.png" alt="iCare" className="h-10 w-auto" />
+          <div className="mb-8 lg:mb-10 text-center lg:text-left">
+            <img src="/logo.png" alt="iCare" className="h-10 w-auto inline-block lg:inline" />
           </div>
 
           {/* Form */}
           <div className="flex-1 flex flex-col justify-center max-w-[360px] mx-auto w-full">
-            <h2 className="text-2xl font-bold text-slate-900 mb-1.5">Sign in</h2>
-            <p className="text-sm text-slate-500 mb-8 leading-relaxed">
+            <h2 className="text-2xl font-bold text-slate-900 mb-1.5 text-center lg:text-left">Sign in</h2>
+            <p className="text-sm text-slate-500 mb-8 leading-relaxed text-center lg:text-left">
               Enter your assigned hospital credentials to enter the operating platform.
             </p>
 
@@ -154,7 +154,7 @@ const TenantLogin: React.FC = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="h-10 bg-slate-50/50 border-slate-200 focus-visible:border-[#0088ff] focus-visible:ring-[#0088ff]/20"
+                  className="h-12 lg:h-10 bg-slate-50/50 border-slate-200 focus-visible:border-[#0088ff] focus-visible:ring-[#0088ff]/20"
                 />
               </div>
 
@@ -168,7 +168,7 @@ const TenantLogin: React.FC = () => {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-10 bg-slate-50/50 border-slate-200 focus-visible:border-[#0088ff] focus-visible:ring-[#0088ff]/20 pr-10"
+                    className="h-12 lg:h-10 bg-slate-50/50 border-slate-200 focus-visible:border-[#0088ff] focus-visible:ring-[#0088ff]/20 pr-10"
                   />
                   <button
                     type="button"
@@ -187,7 +187,7 @@ const TenantLogin: React.FC = () => {
 
               <Button
                 type="submit"
-                className="w-full h-11 text-sm font-semibold bg-[#0088ff] hover:bg-[#0077ee] text-white rounded-lg shadow-sm cursor-pointer"
+                className="w-full h-12 lg:h-11 text-sm font-semibold bg-[#0088ff] hover:bg-[#0077ee] text-white rounded-lg shadow-sm cursor-pointer"
                 disabled={loading || demoLoading}
               >
                 {loading || demoLoading ? (
@@ -199,8 +199,8 @@ const TenantLogin: React.FC = () => {
             </form>
           </div>
 
-          {/* Demo trigger */}
-          <div className="mt-auto pt-8 text-center">
+          {/* Demo trigger (desktop) */}
+          <div className="hidden lg:block mt-auto pt-8 text-center">
             <p className="text-xs text-slate-400">
               Looking to explore the iCare platform?{' '}
               <button
@@ -215,7 +215,7 @@ const TenantLogin: React.FC = () => {
         </div>
 
         {/* Right Visual Banner Pane */}
-        <div className="relative w-[55%]">
+        <div className="hidden lg:block relative lg:w-[55%]">
           <img
             src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=900&q=80"
             alt=""
@@ -227,6 +227,20 @@ const TenantLogin: React.FC = () => {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Demo trigger (mobile fixed bar) */}
+      <div className="lg:hidden fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-slate-200 py-3 px-4 text-center z-50">
+        <p className="text-xs text-slate-400">
+          Looking to explore the iCare platform?{' '}
+          <button
+            type="button"
+            onClick={handleDemoClick}
+            className="text-[#0088ff] font-semibold hover:underline cursor-pointer"
+          >
+            Try Live Demo
+          </button>
+        </p>
       </div>
     </div>
   );
