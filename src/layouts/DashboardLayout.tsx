@@ -28,6 +28,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import NotificationBell from "@/src/components/NotificationBell";
+import BottomNav from "@/src/components/BottomNav";
 
 const SidebarItem = ({ icon: Icon, label, href, active, onClick }: any) => (
   <Link
@@ -428,7 +429,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 focus:outline-none">
-          <div className="max-w-full mx-auto space-y-6 pb-12">
+          <div className="max-w-full mx-auto space-y-6             pb-20 md:pb-12">
             {children}
           </div>
         </div>
@@ -442,6 +443,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           <div>© {new Date().getFullYear()} iCare HIMS. Enterprise v2.4.1</div>
         </footer>
       </main>
+      <BottomNav onMoreClick={() => setMobileMenuOpen(true)} />
     </div>
   );
 };
