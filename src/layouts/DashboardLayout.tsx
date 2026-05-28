@@ -17,7 +17,6 @@ import {
   Settings,
   LogOut,
   Search,
-  Bell,
   ChevronDown,
   X,
   Scan,
@@ -28,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import NotificationBell from "@/src/components/NotificationBell";
 
 const SidebarItem = ({ icon: Icon, label, href, active, onClick }: any) => (
   <Link
@@ -419,10 +419,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
               )}
             </div>
             
-            <button className="relative p-1 text-slate-400 hover:text-blue-600 transition-colors">
-              <Bell className="w-6 h-6" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-            </button>
+            <NotificationBell />
             <span className="text-xs text-slate-500 font-mono whitespace-nowrap">
               {currentTime.toLocaleDateString()} {currentTime.toLocaleTimeString()}
             </span>

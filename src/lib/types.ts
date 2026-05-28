@@ -175,6 +175,16 @@ export interface LabResult {
   edited_at?: string | null;
 }
 
+export interface AppNotification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: "Info" | "Warning" | "Alert";
+  isRead: boolean;
+  createdAt: string;
+}
+
 export interface Invoice {
   id: string;
   invoice_number: string;
@@ -319,6 +329,7 @@ export type Database = {
       radiology_exams: { Row: RadiologyExam };
       radiology_requests: { Row: RadiologyRequest };
       radiology_results: { Row: RadiologyResult };
+      notifications: { Row: AppNotification };
     };
   };
 };
