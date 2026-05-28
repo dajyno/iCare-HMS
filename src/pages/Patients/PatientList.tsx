@@ -130,6 +130,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
       return data;
     },
     onSuccess: () => {
+      toast.success("Patient created successfully");
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       setShowNewModal(false);
       setNewForm({});
@@ -145,6 +146,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
       if (error) throw error;
     },
     onSuccess: () => {
+      toast.success("Patient updated successfully");
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       setShowEditModal(false);
       setEditPatient(null);
@@ -156,7 +158,10 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
       const { error } = await supabase.from("patients").update({ status: "inactive" }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["patients"] }),
+    onSuccess: () => {
+      toast.success("Patient archived successfully");
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
+    },
   });
 
   const apptMutation = useMutation({
@@ -165,6 +170,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
       if (error) throw error;
     },
     onSuccess: () => {
+      toast.success("Appointment booked successfully");
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       setShowApptModal(false);
       setApptPatient(null);

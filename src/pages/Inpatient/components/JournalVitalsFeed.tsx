@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/src/context/AuthContext";
+import { toast } from "sonner";
 import type { VitalsRecord, ActiveAdmission } from "../inpatientTypes";
 
 const Sparkline = ({ data, color }: { data: number[]; color: string }) => {
@@ -97,8 +98,6 @@ const JournalVitalsFeed = ({
   const [temp, setTemp] = useState("");
   const [spo2, setSpO2] = useState("");
   const [observations, setObservations] = useState("");
-  const [submitLabel, setSubmitLabel] = useState("Submit Record");
-
   const journal = useMemo(() => {
     const entries: any[] = [
       {
@@ -198,8 +197,7 @@ const JournalVitalsFeed = ({
     setTemp("");
     setSpO2("");
     setObservations("");
-    setSubmitLabel("Saved!");
-    setTimeout(() => setSubmitLabel("Submit Record"), 2000);
+    toast.success("Vitals recorded");
   };
 
   return (
@@ -301,7 +299,7 @@ const JournalVitalsFeed = ({
             className="h-9 gap-1.5 text-xs"
           >
             <Activity className="w-3.5 h-3.5" />
-            {submitLabel}
+            Submit Record
           </Button>
         </div>
       </div>

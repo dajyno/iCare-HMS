@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
+import { toast } from "sonner";
 import type {
   PharmacyPrescription,
   PharmacyPrescriptionItem,
@@ -205,6 +206,7 @@ export function useDispense() {
       return { prescriptionId: prescription.id };
     },
     onSuccess: () => {
+      toast.success("Prescription dispensed successfully");
       queryClient.invalidateQueries({ queryKey: ["pharmacy-prescriptions"] });
       queryClient.invalidateQueries({ queryKey: ["pharmacy-inventory"] });
     },
@@ -241,6 +243,7 @@ export function useAddInventoryItem() {
       if (error) throw new Error(error.message || "Failed to add item");
     },
     onSuccess: () => {
+      toast.success("Inventory item added successfully");
       queryClient.invalidateQueries({ queryKey: ["pharmacy-inventory"] });
     },
   });
@@ -257,6 +260,7 @@ export function useDeleteInventoryItem() {
       if (error) throw new Error(error.message || "Failed to delete item");
     },
     onSuccess: () => {
+      toast.success("Inventory item deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["pharmacy-inventory"] });
     },
   });
@@ -280,7 +284,8 @@ export function useBulkAddInventory() {
       if (error) throw new Error(error.message || "Failed to bulk add items");
       return items.length;
     },
-    onSuccess: () => {
+    onSuccess: (_data) => {
+      toast.success(`${_data} inventory items added successfully`);
       queryClient.invalidateQueries({ queryKey: ["pharmacy-inventory"] });
     },
   });

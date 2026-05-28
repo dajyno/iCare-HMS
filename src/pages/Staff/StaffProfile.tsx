@@ -7,7 +7,6 @@ import {
   Settings,
   Camera,
   Trash2,
-  Check,
   AlertTriangle,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,6 +37,7 @@ import { useCheckSeatLimit } from "@/src/hooks/useSeatLimit";
 import UpgradeSubscriptionModal from "@/src/components/UpgradeSubscriptionModal";
 import { useStaff } from "./StaffContext";
 import { DEPARTMENT_CATEGORIES, getPositionsForDepartment, CLINICIAN_POSITIONS, mapPositionToRole } from "./data";
+import { toast } from "sonner";
 
 const STATUS_STYLES: Record<string, string> = {
   Active: "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -53,8 +53,6 @@ export default function StaffProfile() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [settingsFeedback, setSettingsFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const checkSeatLimit = useCheckSeatLimit();
 
   const staff = records.find((r) => r.staff_id === id);
@@ -157,8 +155,7 @@ export default function StaffProfile() {
         new CustomEvent("profile-picture-updated", { detail: profilePicture })
       );
     }
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    toast.success("Profile details saved");
   };
 
   const handleSaveSettings = async () => {
@@ -167,8 +164,6 @@ export default function StaffProfile() {
       password: canLogin ? password : "",
       availability_status: availabilityStatus as any,
     });
-    setSettingsFeedback(null);
-
     if (canLogin && password.length >= 6 && staff.email) {
       if (!staff.canLogin) {
         const seatCheck = await checkSeatLimit();
@@ -188,32 +183,25 @@ export default function StaffProfile() {
         });
         if (error) {
           if (error.message?.includes("already registered")) {
-            setSettingsFeedback({
-              type: "success",
-              message: "Login access granted (account already exists)",
-            });
+            toast.success("Login access granted (account already exists)");
           } else {
-            setSettingsFeedback({ type: "error", message: error.message });
+            toast.error(error.message);
           }
         } else {
           if (data?.user?.id) {
             await updateRecord(staff.staff_id, { authUserId: data.user.id });
           }
-          setSettingsFeedback({ type: "success", message: "Login access granted" });
+          toast.success("Login access granted");
         }
       } catch (err: any) {
-        setSettingsFeedback({
-          type: "error",
-          message: err?.message || "Failed to create account",
-        });
+        toast.error(err?.message || "Failed to create account");
       }
     } else if (!canLogin && staff.email) {
       removeCustomAccount(staff.email);
-      setSettingsFeedback({ type: "success", message: "Login access revoked" });
+      toast.success("Login access revoked");
     }
 
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    toast.success("Staff settings saved");
   };
 
   const handleDelete = async () => {
@@ -437,21 +425,9 @@ export default function StaffProfile() {
                     onClick={handleSaveDetails}
                     disabled={!changed}
                     size="sm"
-                    className={cn(
-                      "gap-2",
-                      saved
-                        ? "bg-emerald-600 hover:bg-emerald-700"
-                        : "bg-sky-600 hover:bg-sky-700"
-                    )}
+                    className="gap-2 bg-sky-600 hover:bg-sky-700"
                   >
-                    {saved ? (
-                      <>
-                        <Check className="w-3.5 h-3.5" />
-                        Saved
-                      </>
-                    ) : (
-                      "Save Details"
-                    )}
+                    Save Details
                   </Button>
                 </div>
               </div>
@@ -563,41 +539,11 @@ export default function StaffProfile() {
                     onClick={handleSaveSettings}
                     disabled={!settingsChanged}
                     size="sm"
-                    className={cn(
-                      "gap-2",
-                      saved
-                        ? "bg-emerald-600 hover:bg-emerald-700"
-                        : "bg-sky-600 hover:bg-sky-700"
-                    )}
+                    className="gap-2 bg-sky-600 hover:bg-sky-700"
                   >
-                    {saved ? (
-                      <>
-                        <Check className="w-3.5 h-3.5" />
-                        Saved
-                      </>
-                    ) : (
-                      "Save Settings"
-                    )}
+                    Save Settings
                   </Button>
                 </div>
-
-                {settingsFeedback && (
-                  <div
-                    className={cn(
-                      "flex items-center gap-2 text-sm px-3 py-2 rounded-lg",
-                      settingsFeedback.type === "success"
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        : "bg-red-50 text-red-700 border border-red-200"
-                    )}
-                  >
-                    {settingsFeedback.type === "success" ? (
-                      <Check className="w-4 h-4 shrink-0" />
-                    ) : (
-                      <AlertTriangle className="w-4 h-4 shrink-0" />
-                    )}
-                    {settingsFeedback.message}
-                  </div>
-                )}
               </div>
             </TabsContent>
           </Tabs>

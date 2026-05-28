@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { adminSupabase } from "@/src/lib/adminSupabase";
 import type { Appointment, AppointmentStatus } from "@/src/lib/types";
+import { toast } from "sonner";
 
 export interface DoctorSlot {
   id: string;
@@ -128,6 +129,7 @@ export function useCreateAppointment() {
       if (error) throw error;
     },
     onSuccess: () => {
+      toast.success("Appointment created successfully");
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       queryClient.invalidateQueries({ queryKey: ["appointments", "all"] });
     },
@@ -165,6 +167,7 @@ export function useUpdateAppointment() {
       if (error) throw error;
     },
     onSuccess: () => {
+      toast.success("Appointment updated successfully");
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       queryClient.invalidateQueries({ queryKey: ["appointments", "all"] });
     },
@@ -179,6 +182,7 @@ export function useDeleteAppointment() {
       if (error) throw error;
     },
     onSuccess: () => {
+      toast.success("Appointment deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       queryClient.invalidateQueries({ queryKey: ["appointments", "all"] });
     },

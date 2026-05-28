@@ -17,6 +17,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 interface PrescriptionLineItem {
   medicationId: string;
@@ -149,12 +150,13 @@ const NewPrescriptionDialog = ({ open, onOpenChange, initialPatientId }: { open:
       return prescriptionId;
     },
     onSuccess: () => {
+      toast.success("Prescription created successfully");
       queryClient.invalidateQueries({ queryKey: ["pharmacy-prescriptions"] });
       resetForm();
       onOpenChange(false);
     },
     onError: (err: any) => {
-      console.error("Create prescription mutation failed:", err);
+      toast.error(err?.message || "Failed to create prescription");
     },
   });
 

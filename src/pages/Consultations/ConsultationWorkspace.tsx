@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import SearchableSelect from "@/components/ui/searchable-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 
 const consultationSchema = z.object({
   patientId: z.string().optional(),
@@ -57,7 +58,6 @@ const ConsultationWorkspace = () => {
   const [consultationId, setConsultationId] = useState<string | null>(null);
   const consultationIdRef = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [savedPrescriptions, setSavedPrescriptions] = useState<any[]>([]);
   const [savedLabs, setSavedLabs] = useState<any[]>([]);
   const [savedRadiology, setSavedRadiology] = useState<any[]>([]);
@@ -267,7 +267,7 @@ const ConsultationWorkspace = () => {
     }
   }, [existingPrescriptions, existingLabRequests, existingRadiologyRequests]);
 
-  const clearFeedback = () => { setError(null); setSuccess(null); };
+  const clearFeedback = () => { setError(null); };
 
   const ensureConsultation = async (pId: string): Promise<string> => {
     if (consultationIdRef.current) return consultationIdRef.current;
@@ -304,12 +304,11 @@ const ConsultationWorkspace = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      setSuccess("Clinical notes saved");
+      toast.success("Clinical notes saved");
       queryClient.refetchQueries({ queryKey: ["consultations"] });
-      setTimeout(() => setSuccess(null), 3000);
     },
     onError: (err: any) => {
-      setError(err?.message || "Failed to save clinical notes");
+      toast.error(err?.message || "Failed to save clinical notes");
     },
   });
 
@@ -348,7 +347,7 @@ const ConsultationWorkspace = () => {
       return toCamel(fullRx);
     },
     onSuccess: (savedRx) => {
-      setSuccess("Prescriptions saved");
+      toast.success("Prescriptions saved");
       replacePrescriptions([]);
       if (savedRx) setSavedPrescriptions((prev) => [...prev, savedRx]);
       queryClient.refetchQueries({ queryKey: ["consultations"] });
@@ -356,10 +355,9 @@ const ConsultationWorkspace = () => {
         queryClient.invalidateQueries({ queryKey: ["patient-rx", selectedPatient.id] });
       }
       queryClient.invalidateQueries({ queryKey: ["pharmacy-prescriptions"] });
-      setTimeout(() => setSuccess(null), 3000);
     },
     onError: (err: any) => {
-      setError(err?.message || "Failed to save prescriptions");
+      toast.error(err?.message || "Failed to save prescriptions");
     },
   });
 
@@ -394,15 +392,14 @@ const ConsultationWorkspace = () => {
       return savedData;
     },
     onSuccess: (savedLabsData) => {
-      setSuccess("Lab requests saved");
+      toast.success("Lab requests saved");
       replaceLabs([]);
       if (savedLabsData && savedLabsData.length > 0) setSavedLabs((prev) => [...prev, ...savedLabsData]);
       queryClient.refetchQueries({ queryKey: ["consultations"] });
       queryClient.invalidateQueries({ queryKey: ["patient-labs"] });
-      setTimeout(() => setSuccess(null), 3000);
     },
     onError: (err: any) => {
-      setError(err?.message || "Failed to save lab requests");
+      toast.error(err?.message || "Failed to save lab requests");
     },
   });
 
@@ -437,16 +434,15 @@ const ConsultationWorkspace = () => {
       return savedData;
     },
     onSuccess: (savedRadData) => {
-      setSuccess("Radiology requests saved");
+      toast.success("Radiology requests saved");
       replaceRads([]);
       if (savedRadData && savedRadData.length > 0) setSavedRadiology((prev) => [...prev, ...savedRadData]);
       queryClient.refetchQueries({ queryKey: ["consultations"] });
       queryClient.invalidateQueries({ queryKey: ["radiology-requests"] });
       queryClient.invalidateQueries({ queryKey: ["patient-radiology-requests"] });
-      setTimeout(() => setSuccess(null), 3000);
     },
     onError: (err: any) => {
-      setError(err?.message || "Failed to save radiology requests");
+      toast.error(err?.message || "Failed to save radiology requests");
     },
   });
 
@@ -636,14 +632,6 @@ const ConsultationWorkspace = () => {
           </div>
         </div>
       </div>
-
-      {error && (
-        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{error}</span>
-          <button type="button" className="ml-auto text-red-500 hover:text-red-700 font-bold" onClick={() => setError(null)}>&times;</button>
-        </div>
-      )}
 
       <Card className="border-none shadow-sm ring-1 ring-slate-200">
         <CardHeader>
@@ -974,13 +962,6 @@ const ConsultationWorkspace = () => {
               )}
             </TabsContent>
           </Tabs>
-
-          {success && (
-            <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
-              <span>{success}</span>
-              <button type="button" className="ml-auto text-emerald-500 hover:text-emerald-700 font-bold" onClick={() => setSuccess(null)}>&times;</button>
-            </div>
-          )}
 
           <div className="flex justify-end gap-4">
             <Button type="button" variant="outline" className="h-12 px-8" onClick={() => navigate(`/${hospital_slug}/consultations`)}>Cancel</Button>

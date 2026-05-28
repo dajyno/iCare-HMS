@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { motion } from "motion/react";
 import { X, Loader2, Clock, AlertTriangle, DollarSign } from "lucide-react";
+import { toast } from "sonner";
 import type { Appointment, AppointmentStatus } from "@/src/lib/types";
 import type { DoctorSlot } from "./hooks";
 import { useUpdateAppointment, useDeleteAppointment, useCreateInvoice, findConflicts } from "./hooks";
@@ -35,7 +36,6 @@ export default function EditAppointmentModal({
   const [error, setError] = useState("");
   const [conflicts, setConflicts] = useState<Appointment[]>([]);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   const dateStr = startTime ? startTime.split("T")[0] : new Date().toISOString().split("T")[0];
 
@@ -43,7 +43,6 @@ export default function EditAppointmentModal({
     setError("");
     setShowConfirmDelete(false);
     setConflicts([]);
-    setSaved(false);
     onClose();
   }, [onClose]);
 
@@ -106,7 +105,7 @@ export default function EditAppointmentModal({
       {
         onSuccess: () => {
           console.log("[EditModal doSave] update succeeded, status:", status);
-          setSaved(true);
+          toast.success("Appointment updated successfully");
           if (status === "Completed" && invoiceAmount && parseFloat(invoiceAmount) > 0 && appointment.patient) {
             const doctor = doctors.find((d) => d.id === doctorId);
             createInvoice.mutate({
@@ -129,7 +128,10 @@ export default function EditAppointmentModal({
   const handleDelete = () => {
     if (!appointment) return;
     deleteAppt.mutate(appointment.id, {
-      onSuccess: () => handleClose(),
+      onSuccess: () => {
+        toast.success("Appointment deleted successfully");
+        handleClose();
+      },
       onError: (err: any) => setError(err.message || "Failed to delete appointment"),
     });
   };
@@ -450,13 +452,13 @@ export default function EditAppointmentModal({
             </button>
             <button
               onClick={handleSave}
-              disabled={updateAppt.isPending || saved}
+              disabled={updateAppt.isPending}
               className="px-5 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
             >
               {updateAppt.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : null}
-              {updateAppt.isPending ? "Saving..." : saved ? "Saved!" : "Save Changes"}
+              {updateAppt.isPending ? "Saving..." : "Save Changes"}
             </button>
           </div>
         </div>
