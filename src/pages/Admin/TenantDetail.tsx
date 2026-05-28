@@ -657,7 +657,7 @@ const TenantDetail: React.FC = () => {
               </div>
             )}
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">
+              <Label className="text-xs font-bold text-[#8888aa]">
                 Type <span className="text-white">"{tenant.hospitalName}"</span> to confirm
               </Label>
               <Input
