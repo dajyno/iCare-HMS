@@ -122,18 +122,13 @@ const TenantLogin: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-blue-50 px-4 py-8 font-sans">
-      <div className="w-full max-w-[1000px] bg-white rounded-[24px] overflow-hidden shadow-2xl flex">
+      <div className="w-full max-w-[1000px] bg-white rounded-[24px] overflow-hidden shadow-2xl flex max-h-[calc(100vh-2rem)]">
         {/* Left Form Pane */}
         <div className="w-[45%] p-10 flex flex-col">
           {/* Branding */}
-          <div className="flex items-center gap-3 mb-12">
-            <div className="w-10 h-10 bg-[#0088ff] rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
-              i
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">iCare HIMS</h1>
-              <p className="text-[10px] text-slate-500 font-medium -mt-0.5">{hospitalName}</p>
-            </div>
+          <div className="mb-10">
+            <img src="/logo.png" alt="iCare" className="h-8 w-auto" />
+            <p className="text-[10px] text-slate-500 font-medium mt-0.5">{hospitalName}</p>
           </div>
 
           {/* Form */}
@@ -221,7 +216,7 @@ const TenantLogin: React.FC = () => {
         </div>
 
         {/* Right Visual Banner Pane */}
-        <div className="relative w-[55%] min-h-[600px]">
+        <div className="relative w-[55%]">
           <img
             src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=900&q=80"
             alt=""
