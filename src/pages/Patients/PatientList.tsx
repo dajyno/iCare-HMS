@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import SearchableSelect from "@/components/ui/searchable-select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -134,7 +135,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
       setNewForm({});
     },
     onError: (error: any) => {
-      alert(error?.message || error?.details || error?.hint || error?.error_description || JSON.stringify(error));
+      toast.error(error?.message || error?.details || error?.hint || error?.error_description || JSON.stringify(error));
     },
   });
 
@@ -235,7 +236,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
     if (!newForm.dateOfBirth) missing.push("Date of Birth");
     if (!newForm.phone?.trim()) missing.push("Phone");
     if (missing.length) {
-      alert(`Please fill in the required fields: ${missing.join(", ")}`);
+      toast.error(`Please fill in the required fields: ${missing.join(", ")}`);
       return;
     }
     createMutation.mutate(payload);

@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { generateInvoiceNumber } from "@/src/lib/invoiceNumber";
+import { toast } from "sonner";
 import type {
   InpatientMasterState,
   ActiveAdmission,
@@ -550,7 +551,7 @@ export function useInpatientState() {
         .eq("patient_id", payload.patient.folderNo)
         .maybeSingle();
       if (patientErr || !patientData) {
-        alert("Patient not found in database. Please register the patient first.");
+        toast.error("Patient not found in database. Please register the patient first.");
         return;
       }
 
@@ -561,7 +562,7 @@ export function useInpatientState() {
         .eq("name", payload.wardCode)
         .maybeSingle();
       if (wardErr || !wardData) {
-        alert("Ward not found. Please configure wards in Inpatient Settings.");
+        toast.error("Ward not found. Please configure wards in Inpatient Settings.");
         return;
       }
 
@@ -573,11 +574,11 @@ export function useInpatientState() {
         .eq("ward_id", wardData.id)
         .maybeSingle();
       if (bedErr || !bedData) {
-        alert("Bed not found. Please configure beds in Inpatient Settings.");
+        toast.error("Bed not found. Please configure beds in Inpatient Settings.");
         return;
       }
       if (bedData.status === "Occupied") {
-        alert("This bed is already occupied. Please select a different bed.");
+        toast.error("This bed is already occupied. Please select a different bed.");
         return;
       }
 
@@ -613,7 +614,7 @@ export function useInpatientState() {
 
       if (admError || !newAdm) {
         console.error("Failed to create admission:", admError);
-        alert("Failed to save admission to database: " + (admError?.message || admError));
+        toast.error("Failed to save admission to database: " + (admError?.message || admError));
         return;
       }
 
@@ -1116,9 +1117,9 @@ export function useInpatientState() {
             },
           ],
         }));
-        alert("Ward added successfully.");
+        toast.success("Ward added successfully.");
       } catch (err: any) {
-        alert("Failed to add ward: " + (err?.message || err));
+        toast.error("Failed to add ward: " + (err?.message || err));
       }
     },
     []
@@ -1139,9 +1140,9 @@ export function useInpatientState() {
             }
           ),
         }));
-        alert("Ward deleted successfully.");
+        toast.success("Ward deleted successfully.");
       } catch (err: any) {
-        alert("Failed to delete ward: " + (err?.message || err));
+        toast.error("Failed to delete ward: " + (err?.message || err));
       }
     },
     []

@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import SearchableSelect from "@/components/ui/searchable-select";
 import Pagination from "@/components/ui/pagination";
+import { toast } from "sonner";
 
 const VitalSigns = () => {
   const queryClient = useQueryClient();
@@ -119,9 +120,9 @@ const VitalSigns = () => {
     onError: (err: any) => {
       const detail = err?.message || err?.error?.message || err?.error_description || JSON.stringify(err);
       if (detail?.includes("foreign key") || detail?.includes("violates")) {
-        alert("Database constraint error: Your user profile needs to be set up. Please run the updated supabase-schema.sql in your Supabase SQL Editor to fix FK constraints.");
+        toast.error("Database constraint error: Your user profile needs to be set up. Please run the updated supabase-schema.sql in your Supabase SQL Editor to fix FK constraints.");
       } else {
-        alert(`Failed to save vital signs: ${detail}`);
+        toast.error(`Failed to save vital signs: ${detail}`);
       }
     },
   });

@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ChipGrid from "./ChipGrid";
+import { toast } from "sonner";
 
 const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; initialPatientId?: string }) => {
   const queryClient = useQueryClient();
@@ -310,7 +311,7 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
       onBack();
     },
     onError: (err) => {
-      alert("Failed to save: " + err.message);
+      toast.error("Failed to save: " + err.message);
     },
   });
 

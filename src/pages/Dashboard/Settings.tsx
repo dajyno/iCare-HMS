@@ -28,6 +28,7 @@ import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
 import { useStaff } from "@/src/pages/Staff/StaffContext";
 import { supabase } from "@/src/lib/supabase";
 import type { RoleKey } from "@/src/types/globalSettings";
+import { toast } from "sonner";
 import type { StaffRecord } from "@/src/pages/Staff/types";
 
 type ActiveTab = "general" | "financial" | "security" | "notifications" | "regional" | "database";
@@ -223,10 +224,8 @@ export default function Settings() {
     });
     updateSettings({ staffRouteOverrides: merged });
     setOverrideRole(null);
-    setSavedToast("Staff route overrides saved");
+    toast.success("Staff route overrides saved");
   };
-
-  const [savedToast, setSavedToast] = useState<string | null>(null);
 
   useEffect(() => {
     setLocalName(settings.hospitalName);
@@ -243,17 +242,10 @@ export default function Settings() {
     setLocalTimeFormat(settings.timeFormat);
   }, [settings]);
 
-  useEffect(() => {
-    if (savedToast) {
-      const t = setTimeout(() => setSavedToast(null), 2500);
-      return () => clearTimeout(t);
-    }
-  }, [savedToast]);
-
   const handleSaveGeneral = () => {
     updateSettings({ hospitalName: localName, hospitalAddress: localAddress, hospitalCode: localCode.toUpperCase(), systemEmail: localEmail });
     saveWithHospitalConfig({ hospitalName: localName, hospitalCode: localCode.toUpperCase() });
-    setSavedToast("General settings saved");
+    toast.success("General settings saved");
   };
 
   const handleSaveFinancial = () => {
@@ -265,7 +257,7 @@ export default function Settings() {
       invoicePaymentTerms: localTerms,
       invoiceConditions: localConditions,
     });
-    setSavedToast("Financial & Tax settings saved");
+    toast.success("Financial & Tax settings saved");
   };
 
   const handleSaveRegional = () => {
@@ -275,7 +267,7 @@ export default function Settings() {
       dateFormat: localDateFormat,
       timeFormat: localTimeFormat,
     });
-    setSavedToast("Regional settings saved");
+    toast.success("Regional settings saved");
   };
 
   const handleRouteToggle = (role: RoleKey, prefix: string) => {
@@ -326,7 +318,7 @@ export default function Settings() {
     setBackupLoading(false);
     setBackupModalOpen(false);
     setBackupConfirmed(false);
-    setSavedToast("Backup generated successfully");
+    toast.success("Backup generated successfully");
   };
 
   const handleRestore = async () => {
@@ -337,7 +329,7 @@ export default function Settings() {
     setRestoreTyped("");
     setRestoreConfirmed(false);
     setBackupFile(null);
-    setSavedToast("Database restored successfully");
+    toast.success("Database restored successfully");
   };
 
   const tabs: { key: ActiveTab; icon: typeof SettingsIcon; label: string }[] = [
@@ -356,12 +348,6 @@ export default function Settings() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">System Settings</h1>
           <p className="text-slate-500 text-sm">Configure hospital-wide preferences and security</p>
         </div>
-        {savedToast && (
-          <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-2 text-sm text-emerald-700 animate-in slide-in-from-top-2 fade-in">
-            <Check className="w-4 h-4" />
-            {savedToast}
-          </div>
-        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">

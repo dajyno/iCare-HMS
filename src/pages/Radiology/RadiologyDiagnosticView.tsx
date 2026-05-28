@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { getHospitalName } from "@/src/lib/hospitalConfig";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 const statusConfig: Record<string, { label: string; bg: string; text: string }> = {
   Requested: { label: "Requested", bg: "bg-purple-50", text: "text-purple-700" },
@@ -136,7 +137,7 @@ const RadiologyDiagnosticView = ({
       onClose();
     },
     onError: (err) => {
-      alert("Save failed: " + err.message);
+      toast.error("Save failed: " + err.message);
     },
   });
 
@@ -175,7 +176,7 @@ const RadiologyDiagnosticView = ({
       onClose();
     },
     onError: (err) => {
-      alert("Complete failed: " + err.message);
+      toast.error("Complete failed: " + err.message);
     },
   });
 

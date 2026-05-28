@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from "@/components/ui/label";
 import SearchableSelect from "@/components/ui/searchable-select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 const FamilyPatients = () => {
   const navigate = useNavigate();
@@ -95,7 +96,7 @@ const FamilyPatients = () => {
       setNewForm({});
     },
     onError: (error: any) => {
-      alert(error?.message || error?.details || error?.hint || error?.error_description || JSON.stringify(error));
+      toast.error(error?.message || error?.details || error?.hint || error?.error_description || JSON.stringify(error));
     },
   });
 
@@ -128,7 +129,7 @@ const FamilyPatients = () => {
     if (!newForm.dateOfBirth) missing.push("Date of Birth");
     if (!newForm.phone?.trim()) missing.push("Phone");
     if (missing.length) {
-      alert(`Please fill in the required fields: ${missing.join(", ")}`);
+      toast.error(`Please fill in the required fields: ${missing.join(", ")}`);
       return;
     }
     createMutation.mutate(payload);

@@ -256,14 +256,14 @@ const Overview = () => {
     const s = adminSupabase as any;
 
     const { data: patientData } = await s.from("patients").select("id").eq("patient_id", payload.patient.folderNo).maybeSingle();
-    if (!patientData) { alert("Patient not found."); return false; }
+    if (!patientData) { toast.error("Patient not found."); return false; }
 
     const { data: wardData } = await s.from("wards").select("id").eq("name", payload.wardCode).maybeSingle();
-    if (!wardData) { alert("Ward not found."); return false; }
+    if (!wardData) { toast.error("Ward not found."); return false; }
 
     const { data: bedData } = await s.from("beds").select("id, status").eq("bed_number", payload.bedNo).eq("ward_id", wardData.id).maybeSingle();
-    if (!bedData) { alert("Bed not found in database."); return false; }
-    if (bedData.status === "Occupied") { alert("This bed is already occupied."); return false; }
+    if (!bedData) { toast.error("Bed not found in database."); return false; }
+    if (bedData.status === "Occupied") { toast.error("This bed is already occupied."); return false; }
 
     let doctorId: string | null = null;
     const searchName = payload.attendingPhysician.replace(/^Dr\.\s*/i, "");
@@ -291,7 +291,7 @@ const Overview = () => {
     }).select("id").single();
 
     if (admError || !newAdm) {
-      alert("Failed to create admission: " + (admError?.message || String(admError)));
+      toast.error("Failed to create admission: " + (admError?.message || String(admError)));
       return false;
     }
 

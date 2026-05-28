@@ -25,6 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 
 const consultationSchema = z.object({
   patientId: z.string().min(1),
@@ -216,7 +217,7 @@ const ConsultationWorkspace = () => {
       queryClient.invalidateQueries({ queryKey: ["consultations"] });
       reset();
       setSelectedPatient(null);
-      alert("Consultation saved successfully!");
+      toast.success("Consultation saved successfully!");
     }
   });
 

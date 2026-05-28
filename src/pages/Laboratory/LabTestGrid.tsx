@@ -21,6 +21,7 @@ import { testCategories } from "./testCategories";
 import ToggleTile from "./ToggleTile";
 import { useStaff } from "../Staff/StaffContext";
 import { generateInvoiceNumber } from "@/src/lib/invoiceNumber";
+import { toast } from "sonner";
 
 const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initialPatientId?: string }) => {
   const [selectedTests, setSelectedTests] = useState<Set<string>>(new Set());
@@ -325,7 +326,7 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
       onBack();
     },
     onError: (err) => {
-      alert("Failed to save: " + err.message);
+      toast.error("Failed to save: " + err.message);
     },
   });
 

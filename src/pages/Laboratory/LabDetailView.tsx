@@ -24,6 +24,7 @@ import { format } from "date-fns";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { getHospitalName } from "@/src/lib/hospitalConfig";
 import { useAuth } from "../../context/AuthContext";
+import { toast } from "sonner";
 
 const mapStatus = (dbStatus: string) => {
   const map: Record<string, string> = {
@@ -180,11 +181,11 @@ const LabDetailView = ({
       await queryClient.invalidateQueries({ queryKey: ["batch-results"] });
       await queryClient.invalidateQueries({ queryKey: ["batch-orders"] });
       await queryClient.invalidateQueries({ queryKey: ["lab-result"] });
-      alert("Results saved successfully.");
+      toast.success("Results saved successfully.");
       onBack();
     },
     onError: (err) => {
-      alert("Save draft failed: " + err.message);
+      toast.error("Save draft failed: " + err.message);
     },
   });
 
@@ -194,11 +195,11 @@ const LabDetailView = ({
       await queryClient.invalidateQueries({ queryKey: ["batch-results"] });
       await queryClient.invalidateQueries({ queryKey: ["batch-orders"] });
       await queryClient.invalidateQueries({ queryKey: ["lab-result"] });
-      alert("Results completed successfully.");
+      toast.success("Results completed successfully.");
       onBack();
     },
     onError: (err) => {
-      alert("Complete failed: " + err.message);
+      toast.error("Complete failed: " + err.message);
     },
   });
 
@@ -220,7 +221,7 @@ const LabDetailView = ({
       queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
     },
     onError: (err) => {
-      alert("Mark as collected failed: " + err.message);
+      toast.error("Mark as collected failed: " + err.message);
     },
   });
 

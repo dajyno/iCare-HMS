@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import SearchableSelect from "@/components/ui/searchable-select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import ConsultationDetailCard from "@/src/components/ConsultationDetailCard";
+import { toast } from "sonner";
 
 const categoryBadge: Record<string, string> = {
   Individual: "bg-blue-50 text-blue-700", Family: "bg-emerald-50 text-emerald-700",
@@ -314,7 +315,7 @@ const PatientProfile = () => {
     },
     onError: (err: Error) => {
       setUploadingPic(false);
-      alert(`Failed to update profile picture: ${err.message}`);
+      toast.error(`Failed to update profile picture: ${err.message}`);
     },
   });
 
@@ -363,9 +364,9 @@ const PatientProfile = () => {
     },
     onError: (err: Error) => {
       if (err.message?.includes("foreign key") || err.message?.includes("violates")) {
-        alert("Database constraint error: Your user profile needs to be set up. Please run the updated supabase-schema.sql in your Supabase SQL Editor to fix FK constraints.");
+        toast.error("Database constraint error: Your user profile needs to be set up. Please run the updated supabase-schema.sql in your Supabase SQL Editor to fix FK constraints.");
       } else {
-        alert(`Failed to save vital signs: ${err.message}`);
+        toast.error(`Failed to save vital signs: ${err.message}`);
       }
     },
   });
@@ -442,7 +443,7 @@ const PatientProfile = () => {
       navigate("/billing");
     },
     onError: (err: Error) => {
-      alert(`Failed to create invoice: ${err.message}`);
+      toast.error(`Failed to create invoice: ${err.message}`);
     },
   });
 
@@ -515,7 +516,7 @@ const PatientProfile = () => {
       setDependantForm({ firstName: "", lastName: "", gender: "", dateOfBirth: "", bloodGroup: "", relationship: "" });
     },
     onError: (err: Error) => {
-      alert(`Failed to create dependant: ${err.message}`);
+      toast.error(`Failed to create dependant: ${err.message}`);
     },
   });
 
