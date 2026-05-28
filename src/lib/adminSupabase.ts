@@ -20,7 +20,7 @@ const rawAdminSupabase = createClient<Database>(supabaseUrl, serviceKey, {
 });
 
 // Tables that should NOT receive automatic tenant filtering
-const SKIP_TENANT_TABLES = new Set(["global_settings"]);
+const SKIP_TENANT_TABLES = new Set<string>();
 
 /** Wraps a query builder in a nested Proxy that auto-adds tenant_id filtering. */
 function addTenantFilter(table: string, builder: any): any {

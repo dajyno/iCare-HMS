@@ -5,8 +5,6 @@ import { fetchSettings, upsertSettings } from "@/src/services/globalSettingsServ
 import { supabase } from "@/src/lib/supabase";
 import { useAuth } from "./AuthContext";
 
-const STORAGE_KEY = "icare_global_settings";
-
 interface GlobalSettingsContextType {
   settings: GlobalSettings;
   updateSettings: (partial: Partial<GlobalSettings>) => void;
@@ -16,9 +14,13 @@ interface GlobalSettingsContextType {
 
 const GlobalSettingsContext = createContext<GlobalSettingsContextType | null>(null);
 
-function loadLocalCache(): GlobalSettings | null {
+function localKey(tenantId?: string | null): string {
+  return `icare_global_settings_${tenantId || "default"}`;
+}
+
+function loadLocalCache(tenantId?: string | null): GlobalSettings | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(localKey(tenantId));
     if (!raw) return null;
     return JSON.parse(raw) as GlobalSettings;
   } catch {
@@ -26,9 +28,9 @@ function loadLocalCache(): GlobalSettings | null {
   }
 }
 
-function saveLocalCache(settings: GlobalSettings): void {
+function saveLocalCache(settings: GlobalSettings, tenantId?: string | null): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    localStorage.setItem(localKey(tenantId), JSON.stringify(settings));
   } catch { /* ignore */ }
 }
 
@@ -41,47 +43,50 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     async function init() {
+      if (!user?.tenantId) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
       const db = await fetchSettings(supabase);
       if (cancelled) return;
 
       if (db) {
         const merged = { ...getDefaultSettings(), ...db };
         setSettings(merged);
-        saveLocalCache(merged);
+        saveLocalCache(merged, user.tenantId);
         setLoading(false);
         return;
       }
 
-      const local = loadLocalCache();
-      if (local) {
-        setSettings(local);
-        setLoading(false);
-        return;
-      }
-
-      setSettings(getDefaultSettings());
+      // No settings for this tenant yet — create defaults
+      const defaults = getDefaultSettings();
+      await upsertSettings(supabase, defaults, user.id);
+      setSettings(defaults);
+      saveLocalCache(defaults, user.tenantId);
       setLoading(false);
     }
 
     init();
     return () => { cancelled = true; };
-  }, []);
+  }, [user?.tenantId, user?.id]);
 
   const updateSettings = useCallback((partial: Partial<GlobalSettings>) => {
     setSettings((prev) => {
       const next = { ...prev, ...partial };
-      saveLocalCache(next);
+      saveLocalCache(next, user?.tenantId);
       upsertSettings(supabase, next, user?.id);
       return next;
     });
-  }, [user?.id]);
+  }, [user?.id, user?.tenantId]);
 
   const resetSettings = useCallback(() => {
     const defaults = getDefaultSettings();
     setSettings(defaults);
-    saveLocalCache(defaults);
+    saveLocalCache(defaults, user?.tenantId);
     upsertSettings(supabase, defaults, user?.id);
-  }, [user?.id]);
+  }, [user?.id, user?.tenantId]);
 
   return (
     <GlobalSettingsContext.Provider value={{ settings, updateSettings, resetSettings, loading }}>

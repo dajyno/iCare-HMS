@@ -23,7 +23,7 @@ export async function upsertSettings(
       updated_at: new Date().toISOString(),
       updated_by: userId || null,
     },
-    { onConflict: "id" },
+    { onConflict: "tenant_id,id" },
   );
 
   if (error) {

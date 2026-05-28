@@ -1,53 +1,19 @@
 import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import type { LineItem, InvoiceSummary, CatalogItem } from "./billingTypes";
-import { computeLineItemAmount, MOCK_INVOICES, MOCK_MEDICATIONS, MOCK_LAB_TESTS } from "./billingTypes";
+import { computeLineItemAmount, MOCK_MEDICATIONS, MOCK_LAB_TESTS } from "./billingTypes";
 import { createIncomeFromPayment } from "../Accounting/hooks";
 
 export function useInvoices() {
   return useQuery<InvoiceSummary[]>({
     queryKey: ["invoices"],
     queryFn: async () => {
-      try {
-        const { data, error } = await (supabase as any)
-          .from("invoices")
-          .select("*, patient:patients(*), items:invoice_items(*)")
-          .order("created_at", { ascending: false });
-        if (error) throw error;
-        const supabaseInvoices = toCamel(data) as InvoiceSummary[];
-
-        const { data: localData } = await (supabase as any)
-          .from("invoices")
-          .select("id");
-        const hasSupabaseData = Array.isArray(localData) && localData.length > 0;
-
-        const localKey = "icare_billing_local";
-        const raw = localStorage.getItem(localKey);
-        const localInvoices: InvoiceSummary[] = raw ? JSON.parse(raw) : [];
-
-        if (!hasSupabaseData && supabaseInvoices.length === 0) {
-          const combined = [...MOCK_INVOICES];
-          for (const loc of localInvoices) {
-            const i = combined.findIndex((m) => m.id === loc.id);
-            if (i !== -1) combined[i] = loc;
-            else combined.push(loc);
-          }
-          return combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        }
-
-        return [...supabaseInvoices, ...localInvoices].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      } catch {
-        const localKey = "icare_billing_local";
-        const raw = localStorage.getItem(localKey);
-        const localInvoices: InvoiceSummary[] = raw ? JSON.parse(raw) : [];
-        const combined = [...MOCK_INVOICES];
-        for (const loc of localInvoices) {
-          const i = combined.findIndex((m) => m.id === loc.id);
-          if (i !== -1) combined[i] = loc;
-          else combined.push(loc);
-        }
-        return combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      }
+      const { data, error } = await (supabase as any)
+        .from("invoices")
+        .select("*, patient:patients(*), items:invoice_items(*)")
+        .order("created_at", { ascending: false });
+      if (error) return [];
+      return (toCamel(data) as InvoiceSummary[]) || [];
     },
     staleTime: 1000 * 30,
   });
@@ -201,76 +167,32 @@ export function useCreateInvoice() {
         source_type: sourceType,
       };
 
-      try {
-        const { data: invoiceData, error: invoiceError } = await (supabase as any)
-          .from("invoices")
-          .insert(supabaseInvoicePayload)
-          .select("id")
-          .single();
-        if (invoiceError) throw invoiceError;
+      const { data: invoiceData, error: invoiceError } = await (supabase as any)
+        .from("invoices")
+        .insert(supabaseInvoicePayload)
+        .select("id")
+        .single();
+      if (invoiceError) throw invoiceError;
 
-        const invoiceId = invoiceData.id;
+      const invoiceId = invoiceData.id;
 
-        const itemsPayload = lineItems
-          .filter((item) => item.name.trim() && item.price > 0)
-          .map((item) => ({
-            invoice_id: invoiceId,
-            description: item.name,
-            quantity: item.qty,
-            unit_price: item.price,
-            total: computeLineItemAmount(item.price, item.qty),
-          }));
+      const itemsPayload = lineItems
+        .filter((item) => item.name.trim() && item.price > 0)
+        .map((item) => ({
+          invoice_id: invoiceId,
+          description: item.name,
+          quantity: item.qty,
+          unit_price: item.price,
+          total: computeLineItemAmount(item.price, item.qty),
+        }));
 
-        const { error: itemsError } = await (supabase as any)
-          .from("invoice_items")
-          .insert(itemsPayload);
+      const { error: itemsError } = await (supabase as any)
+        .from("invoice_items")
+        .insert(itemsPayload);
 
-        if (itemsError) throw itemsError;
+      if (itemsError) throw itemsError;
 
-        return invoiceId;
-      } catch {
-        const localInvoice: InvoiceSummary = {
-          id: `local-${Date.now()}`,
-          invoiceNumber,
-          patientId,
-          totalAmount,
-          amountPaid: 0,
-          balance: totalAmount,
-          status: "Unpaid",
-          sourceType,
-          paymentMethod: null,
-          createdBy: null,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          paidAt: null,
-          patient: patientInfo
-            ? {
-                id: patientId,
-                patientId: patientInfo.patientId,
-                firstName: patientInfo.firstName,
-                lastName: patientInfo.lastName,
-              }
-            : null,
-          items: lineItems
-            .filter((item) => item.name.trim() && item.price > 0)
-            .map((item) => ({
-              id: `local-item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-              invoiceId: `local-${Date.now()}`,
-              description: item.name,
-              quantity: item.qty,
-              unitPrice: item.price,
-              total: computeLineItemAmount(item.price, item.qty),
-            })),
-        };
-
-        const localKey = "icare_billing_local";
-        const raw = localStorage.getItem(localKey);
-        const existing: InvoiceSummary[] = raw ? JSON.parse(raw) : [];
-        existing.unshift(localInvoice);
-        localStorage.setItem(localKey, JSON.stringify(existing));
-
-        return localInvoice.id;
-      }
+      return invoiceId;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
@@ -393,25 +315,11 @@ export function useUpdateInvoiceStatus() {
       };
       if (paidAt) updatePayload.paid_at = paidAt;
 
-      try {
-        const { error } = await (supabase as any)
-          .from("invoices")
-          .update(updatePayload)
-          .eq("id", id);
-        if (error) throw error;
-      } catch {
-        const localKey = "icare_billing_local";
-        const raw = localStorage.getItem(localKey);
-        const existing: InvoiceSummary[] = raw ? JSON.parse(raw) : [];
-        const idx = existing.findIndex((inv) => inv.id === id);
-        const updatedInvoice = { ...currentInvoice, amountPaid: newAmountPaid, balance: newBalance, status, paymentMethod, paidAt, updatedAt: new Date().toISOString() };
-        if (idx !== -1) {
-          existing[idx] = updatedInvoice;
-        } else {
-          existing.push(updatedInvoice);
-        }
-        localStorage.setItem(localKey, JSON.stringify(existing));
-      }
+      const { error } = await (supabase as any)
+        .from("invoices")
+        .update(updatePayload)
+        .eq("id", id);
+      if (error) throw error;
 
       if (cache) {
         const updated = cache.map((inv) =>

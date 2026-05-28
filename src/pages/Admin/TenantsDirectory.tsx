@@ -16,6 +16,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, AlertCircle, Loader2 } from "lucide-react";
 import type { Tenant } from "../../types/tenant";
+import { getDefaultSettings } from "@/src/lib/globalSettings";
 
 const statusBadge = (status: string) => {
   const colors: Record<string, string> = {
@@ -88,6 +89,18 @@ const TenantsDirectory: React.FC = () => {
       setSubmitting(false);
       return;
     }
+
+    // Seed default settings for this tenant
+    await adminSupabase.from("global_settings").upsert(
+      {
+        id: 1,
+        tenant_id: tenantId,
+        settings: getDefaultSettings(),
+        updated_at: new Date().toISOString(),
+        updated_by: null,
+      },
+      { onConflict: "tenant_id,id" },
+    );
 
     // Create the admin auth user
     if (form.adminEmail) {

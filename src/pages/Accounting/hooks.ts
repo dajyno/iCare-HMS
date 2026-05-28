@@ -6,46 +6,21 @@ import {
   type ExpenseRecord,
   type LedgerEntry,
   type CategoryItem,
-  MOCK_BANK_ACCOUNTS,
-  MOCK_INCOME,
-  MOCK_EXPENSES,
   generateId,
-  ACCOUNTING_LOCAL_KEY,
   getIncomeCategories,
   getExpenseCategories,
 } from "./types";
-
-type AccountingData = {
-  bank_accounts: BankAccount[];
-  income: IncomeRecord[];
-  expenses: ExpenseRecord[];
-};
-
-function loadLocal(): AccountingData {
-  try {
-    const raw = localStorage.getItem(ACCOUNTING_LOCAL_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch { /* ignore */ }
-  return { bank_accounts: MOCK_BANK_ACCOUNTS, income: MOCK_INCOME, expenses: MOCK_EXPENSES };
-}
-
-function saveLocal(data: AccountingData) {
-  localStorage.setItem(ACCOUNTING_LOCAL_KEY, JSON.stringify(data));
-}
 
 export function useBankAccounts() {
   return useQuery<BankAccount[]>({
     queryKey: ["accounting", "bank_accounts"],
     queryFn: async () => {
-      try {
-        const { data, error } = await (supabase as any)
-          .from("bank_accounts")
-          .select("*")
-          .order("bank_name");
-        if (error) throw error;
-        if (data && data.length > 0) return toCamel(data) as BankAccount[];
-      } catch { /* fallback */ }
-      return loadLocal().bank_accounts;
+      const { data, error } = await (supabase as any)
+        .from("bank_accounts")
+        .select("*")
+        .order("bank_name");
+      if (error) return [];
+      return (toCamel(data) as BankAccount[]) || [];
     },
   });
 }
@@ -54,15 +29,12 @@ export function useIncome() {
   return useQuery<IncomeRecord[]>({
     queryKey: ["accounting", "income"],
     queryFn: async () => {
-      try {
-        const { data, error } = await (supabase as any)
-          .from("accounting_income")
-          .select("*")
-          .order("created_at", { ascending: false });
-        if (error) throw error;
-        if (data && data.length > 0) return toCamel(data) as IncomeRecord[];
-      } catch { /* fallback */ }
-      return loadLocal().income;
+      const { data, error } = await (supabase as any)
+        .from("accounting_income")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) return [];
+      return (toCamel(data) as IncomeRecord[]) || [];
     },
   });
 }
@@ -71,15 +43,12 @@ export function useExpenses() {
   return useQuery<ExpenseRecord[]>({
     queryKey: ["accounting", "expenses"],
     queryFn: async () => {
-      try {
-        const { data, error } = await (supabase as any)
-          .from("accounting_expenses")
-          .select("*")
-          .order("created_at", { ascending: false });
-        if (error) throw error;
-        if (data && data.length > 0) return toCamel(data) as ExpenseRecord[];
-      } catch { /* fallback */ }
-      return loadLocal().expenses;
+      const { data, error } = await (supabase as any)
+        .from("accounting_expenses")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) return [];
+      return (toCamel(data) as ExpenseRecord[]) || [];
     },
   });
 }
@@ -158,26 +127,21 @@ export function useCreateIncome() {
         id: generateId("INC"),
         created_at: new Date().toISOString(),
       };
-      try {
-        const { error } = await (supabase as any)
-          .from("accounting_income")
-          .insert({
-            id: newRecord.id,
-            amount: newRecord.amount,
-            category: newRecord.category,
-            bank_id: newRecord.bank_id,
-            status: newRecord.status,
-            date: newRecord.date,
-            description: newRecord.description,
-            patient_id: newRecord.patient_id,
-            patient_name: newRecord.patient_name,
-            payment_method: newRecord.payment_method,
-          });
-        if (!error) return newRecord;
-      } catch { /* fallback */ }
-      const local = loadLocal();
-      local.income.unshift(newRecord);
-      saveLocal(local);
+      const { error } = await (supabase as any)
+        .from("accounting_income")
+        .insert({
+          id: newRecord.id,
+          amount: newRecord.amount,
+          category: newRecord.category,
+          bank_id: newRecord.bank_id,
+          status: newRecord.status,
+          date: newRecord.date,
+          description: newRecord.description,
+          patient_id: newRecord.patient_id,
+          patient_name: newRecord.patient_name,
+          payment_method: newRecord.payment_method,
+        });
+      if (error) throw error;
       return newRecord;
     },
     onSuccess: () => {
@@ -195,25 +159,20 @@ export function useCreateExpense() {
         id: generateId("EXP"),
         created_at: new Date().toISOString(),
       };
-      try {
-        const { error } = await (supabase as any)
-          .from("accounting_expenses")
-          .insert({
-            id: newRecord.id,
-            amount: newRecord.amount,
-            category: newRecord.category,
-            bank_id: newRecord.bank_id,
-            status: newRecord.status,
-            date: newRecord.date,
-            description: newRecord.description,
-            payee: newRecord.payee,
-            payment_method: newRecord.payment_method,
-          });
-        if (!error) return newRecord;
-      } catch { /* fallback */ }
-      const local = loadLocal();
-      local.expenses.unshift(newRecord);
-      saveLocal(local);
+      const { error } = await (supabase as any)
+        .from("accounting_expenses")
+        .insert({
+          id: newRecord.id,
+          amount: newRecord.amount,
+          category: newRecord.category,
+          bank_id: newRecord.bank_id,
+          status: newRecord.status,
+          date: newRecord.date,
+          description: newRecord.description,
+          payee: newRecord.payee,
+          payment_method: newRecord.payment_method,
+        });
+      if (error) throw error;
       return newRecord;
     },
     onSuccess: () => {
@@ -230,21 +189,16 @@ export function useCreateBankAccount() {
         ...account,
         bank_id: generateId("B"),
       };
-      try {
-        const { error } = await (supabase as any)
-          .from("bank_accounts")
-          .insert({
-            bank_id: newAccount.bank_id,
-            bank_name: newAccount.bank_name,
-            account_name: newAccount.account_name,
-            account_number: newAccount.account_number,
-            balance: newAccount.balance,
-          });
-        if (!error) return newAccount;
-      } catch { /* fallback */ }
-      const local = loadLocal();
-      local.bank_accounts.push(newAccount);
-      saveLocal(local);
+      const { error } = await (supabase as any)
+        .from("bank_accounts")
+        .insert({
+          bank_id: newAccount.bank_id,
+          bank_name: newAccount.bank_name,
+          account_name: newAccount.account_name,
+          account_number: newAccount.account_number,
+          balance: newAccount.balance,
+        });
+      if (error) throw error;
       return newAccount;
     },
     onSuccess: () => {
@@ -267,27 +221,26 @@ export function useVerifyTransaction() {
       bank_id: string;
       amount: number;
     }) => {
-      const local = loadLocal();
       if (type === "Income") {
-        const idx = local.income.findIndex((i) => i.id === id);
-        if (idx !== -1) local.income[idx].status = "Verified";
+        await (supabase as any).from("accounting_income").update({ status: "Verified" }).eq("id", id);
       } else {
-        const idx = local.expenses.findIndex((e) => e.id === id);
-        if (idx !== -1) local.expenses[idx].status = "Verified";
+        await (supabase as any).from("accounting_expenses").update({ status: "Verified" }).eq("id", id);
       }
-      const bankIdx = local.bank_accounts.findIndex((b) => b.bank_id === bank_id);
-      if (bankIdx !== -1) {
-        if (type === "Income") local.bank_accounts[bankIdx].balance += amount;
-        else local.bank_accounts[bankIdx].balance -= amount;
+      // Update bank balance
+      const { data: bank } = await (supabase as any)
+        .from("bank_accounts")
+        .select("balance")
+        .eq("bank_id", bank_id)
+        .single();
+      if (bank) {
+        const newBalance = type === "Income"
+          ? (bank.balance || 0) + amount
+          : (bank.balance || 0) - amount;
+        await (supabase as any)
+          .from("bank_accounts")
+          .update({ balance: newBalance })
+          .eq("bank_id", bank_id);
       }
-      saveLocal(local);
-      try {
-        await Promise.all([
-          (supabase as any).from("accounting_income").update({ status: "Verified" }).eq("id", id),
-          (supabase as any).from("accounting_expenses").update({ status: "Verified" }).eq("id", id),
-          (supabase as any).from("bank_accounts").update({ balance: local.bank_accounts[bankIdx]?.balance }).eq("bank_id", bank_id),
-        ]);
-      } catch { /* ignore */ }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["accounting"] });
@@ -341,16 +294,12 @@ export function createIncomeFromPayment(params: {
   patientName: string | undefined;
   invoiceNumber: string;
 }): IncomeRecord {
-  const local = loadLocal();
-  const bank = local.bank_accounts.find((b) => b.bank_id === params.bankAccountId);
-  const bankName = bank?.bank_name || "";
-
   const record: IncomeRecord = {
     id: generateId("INC"),
     amount: params.amount,
     category: params.category,
     bank_id: params.bankAccountId || "CASH",
-    bank_name: bankName,
+    bank_name: params.bankAccountId || "",
     status: "Verified",
     date: new Date().toISOString().split("T")[0],
     description: `Payment for ${params.invoiceNumber}`,
@@ -360,27 +309,22 @@ export function createIncomeFromPayment(params: {
     created_at: new Date().toISOString(),
   };
 
-  local.income.unshift(record);
-  saveLocal(local);
-
-  try {
-    (supabase as any)
-      .from("accounting_income")
-      .insert({
-        id: record.id,
-        amount: record.amount,
-        category: record.category,
-        bank_id: record.bank_id,
-        status: record.status,
-        date: record.date,
-        description: record.description,
-        patient_id: record.patient_id || null,
-        patient_name: record.patient_name || null,
-        payment_method: record.payment_method,
-      })
-      .then(() => {})
-      .catch(() => {});
-  } catch { /* ignore */ }
+  (supabase as any)
+    .from("accounting_income")
+    .insert({
+      id: record.id,
+      amount: record.amount,
+      category: record.category,
+      bank_id: record.bank_id,
+      status: record.status,
+      date: record.date,
+      description: record.description,
+      patient_id: record.patient_id || null,
+      patient_name: record.patient_name || null,
+      payment_method: record.payment_method,
+    })
+    .then(() => {})
+    .catch(() => {});
 
   return record;
 }

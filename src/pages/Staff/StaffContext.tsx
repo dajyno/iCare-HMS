@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { adminSupabase } from "@/src/lib/adminSupabase";
+import { useAuth } from "@/src/context/AuthContext";
 import type { StaffRecord } from "./types";
 
 interface StaffContextType {
@@ -51,12 +52,15 @@ function staffToDb(record: Partial<StaffRecord>): Record<string, any> {
 }
 
 export function StaffProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [records, setRecords] = useState<StaffRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   const staffTable = () => adminSupabase.from("staff") as any;
 
   useEffect(() => {
+    if (!user?.tenantId) return;
+    setLoading(true);
     staffTable()
       .select("*")
       .order("created_at", { ascending: false })
@@ -66,7 +70,7 @@ export function StaffProvider({ children }: { children: ReactNode }) {
         }
         setLoading(false);
       });
-  }, []);
+  }, [user?.tenantId]);
 
   const addRecord = async (record: StaffRecord) => {
     const { error } = await staffTable().insert(staffToDb(record));
