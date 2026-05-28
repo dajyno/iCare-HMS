@@ -20,19 +20,62 @@ export function setCurrentTenantId(id: string | null) {
   _currentTenantId = id;
 }
 
+/** Returns the current tenant ID, or null if no tenant context is active. */
+export function getCurrentTenantId(): string | null {
+  return _currentTenantId;
+}
+
 // Tables that should NOT receive automatic tenant filtering
 const SKIP_TENANT_TABLES = new Set(["global_settings"]);
+
+/** Wraps a query builder in a nested Proxy that auto-adds tenant_id filtering. */
+function addTenantFilter(table: string, builder: any): any {
+  if (!_currentTenantId || SKIP_TENANT_TABLES.has(table)) return builder;
+
+  return new Proxy(builder, {
+    get(bTarget, bProp, bReceiver) {
+      if (bProp === "select") {
+        return (...args: any[]) => (bTarget as any).select(...args).eq("tenant_id", _currentTenantId);
+      }
+      if (bProp === "update") {
+        return (...args: any[]) => (bTarget as any).update(...args).eq("tenant_id", _currentTenantId);
+      }
+      if (bProp === "delete") {
+        return (...args: any[]) => (bTarget as any).delete(...args).eq("tenant_id", _currentTenantId);
+      }
+      if (bProp === "insert") {
+        return (...args: any[]) => {
+          const data = args[0];
+          if (Array.isArray(data)) {
+            return (bTarget as any).insert(data.map((item: any) => ({ ...item, tenant_id: _currentTenantId })), args[1]);
+          }
+          if (data && typeof data === "object") {
+            return (bTarget as any).insert({ ...data, tenant_id: _currentTenantId }, args[1]);
+          }
+          return (bTarget as any).insert(data, args[1]);
+        };
+      }
+      if (bProp === "upsert") {
+        return (...args: any[]) => {
+          const data = args[0];
+          if (Array.isArray(data)) {
+            return (bTarget as any).upsert(data.map((item: any) => ({ ...item, tenant_id: _currentTenantId })), args[1]);
+          }
+          if (data && typeof data === "object") {
+            return (bTarget as any).upsert({ ...data, tenant_id: _currentTenantId }, args[1]);
+          }
+          return (bTarget as any).upsert(data, args[1]);
+        };
+      }
+      return Reflect.get(bTarget, bProp, bReceiver);
+    },
+  });
+}
 
 export const supabase = new Proxy(rawSupabase, {
   get(target, prop, receiver) {
     if (prop === "from") {
-      return (table: string) => {
-        let query = target.from(table);
-        if (_currentTenantId && !SKIP_TENANT_TABLES.has(table)) {
-          query = (query as any).eq("tenant_id", _currentTenantId);
-        }
-        return query;
-      };
+      return (table: string) => addTenantFilter(table, target.from(table));
     }
     return Reflect.get(target, prop, receiver);
   },
