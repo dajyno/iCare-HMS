@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import type { Tenant } from "../../types/tenant";
 
 const TenantLogin: React.FC = () => {
@@ -26,6 +27,7 @@ const TenantLogin: React.FC = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
+  const [animPhase, setAnimPhase] = useState<"idle" | "collapsing" | "revealing" | "held">("idle");
 
   const isDemo = searchParams.get("demo") === "true";
   const submittedRef = useRef(false);
@@ -77,13 +79,32 @@ const TenantLogin: React.FC = () => {
     }
   }, [isDemo, tenantResolved]);
 
+  useEffect(() => {
+    if (animPhase === "collapsing") {
+      const t = setTimeout(() => setAnimPhase("revealing"), 600);
+      return () => clearTimeout(t);
+    }
+    if (animPhase === "revealing") {
+      const t = setTimeout(() => setAnimPhase("held"), 700);
+      return () => clearTimeout(t);
+    }
+    if (animPhase === "held") {
+      const t = setTimeout(() => navigate(`/${hospital_slug}/dashboard`), 600);
+      return () => clearTimeout(t);
+    }
+  }, [animPhase, hospital_slug, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     try {
       await login(email, password, tenant?.tenantId);
-      navigate(`/${hospital_slug}/dashboard`);
+      if (window.innerWidth >= 1024) {
+        setAnimPhase("collapsing");
+      } else {
+        navigate(`/${hospital_slug}/dashboard`);
+      }
     } catch (err: any) {
       setError(err.message || "Login failed. Please check your credentials.");
     } finally {
@@ -122,111 +143,185 @@ const TenantLogin: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-blue-50 px-4 font-sans pb-16 lg:pb-0">
-      <div className="w-full max-w-[1000px] bg-white rounded-[24px] overflow-hidden shadow-2xl flex-col lg:flex-row max-h-[calc(100vh-2rem)]">
-        {/* Left Form Pane */}
-        <div className="w-full lg:w-[45%] p-6 lg:p-10 flex flex-col">
-          {/* Branding */}
-          <div className="mb-8 lg:mb-10 text-center lg:text-left">
-            <img src="/logo.png" alt="iCare" className="h-10 w-auto inline-block lg:inline" />
-          </div>
+      <div className="relative w-full max-w-[1000px] bg-white rounded-[24px] overflow-hidden shadow-2xl flex-col lg:flex-row max-h-[calc(100vh-2rem)]">
+        <AnimatePresence>
+          {animPhase !== "revealing" && animPhase !== "held" && (
+            <motion.div
+              key="split-panes"
+              className="flex w-full flex-col lg:flex-row"
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {/* Left Form Pane */}
+              <motion.div
+                className="w-full lg:w-[45%] p-6 lg:p-10 flex flex-col"
+                animate={animPhase === "collapsing" ? { x: "50%" } : { x: "0%" }}
+                transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
+              >
+                {/* Branding */}
+                <motion.div
+                  className="mb-8 lg:mb-10 text-center lg:text-left"
+                  animate={animPhase === "collapsing" ? { opacity: 0 } : { opacity: 1 }}
+                  transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
+                >
+                  <img src="/logo.png" alt="iCare" className="h-10 w-auto inline-block lg:inline" />
+                </motion.div>
 
-          {/* Form */}
-          <div className="flex-1 flex flex-col justify-center max-w-[360px] mx-auto w-full">
-            <h2 className="text-2xl font-bold text-slate-900 mb-1.5 text-center lg:text-left">Sign in</h2>
-            <p className="text-sm text-slate-500 mb-8 leading-relaxed text-center lg:text-left">
-              Enter your assigned hospital credentials to enter the operating platform.
-            </p>
+                {/* Form */}
+                <motion.div
+                  className="flex-1 flex flex-col justify-center max-w-[360px] mx-auto w-full"
+                  animate={animPhase === "collapsing" ? { opacity: 0 } : { opacity: 1 }}
+                  transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
+                >
+                  <h2 className="text-2xl font-bold text-slate-900 mb-1.5 text-center lg:text-left">Sign in</h2>
+                  <p className="text-sm text-slate-500 mb-8 leading-relaxed text-center lg:text-left">
+                    Enter your assigned hospital credentials to enter the operating platform.
+                  </p>
 
-            <form ref={formRef} onSubmit={handleSubmit}>
-              {error && (
-                <div className="bg-red-50 border border-red-100 text-red-600 text-xs font-medium px-3 py-2.5 rounded-lg flex items-center gap-2 mb-4">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                  {error}
-                </div>
-              )}
-
-              <div className="space-y-1.5 mb-4">
-                <Label htmlFor="email" className="text-xs font-semibold text-slate-700">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="name@hospital.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-12 lg:h-10 bg-slate-50/50 border-slate-200 focus-visible:border-[#0088ff] focus-visible:ring-[#0088ff]/20"
-                />
-              </div>
-
-              <div className="space-y-1.5 mb-6">
-                <Label htmlFor="password" className="text-xs font-semibold text-slate-700">Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="h-12 lg:h-10 bg-slate-50/50 border-slate-200 focus-visible:border-[#0088ff] focus-visible:ring-[#0088ff]/20 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                    tabIndex={-1}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
+                  <form ref={formRef} onSubmit={handleSubmit}>
+                    {error && (
+                      <div className="bg-red-50 border border-red-100 text-red-600 text-xs font-medium px-3 py-2.5 rounded-lg flex items-center gap-2 mb-4">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        {error}
+                      </div>
                     )}
-                  </button>
-                </div>
-              </div>
 
-              <Button
-                type="submit"
-                className="w-full h-12 lg:h-11 text-sm font-semibold bg-[#0088ff] hover:bg-[#0077ee] text-white rounded-lg shadow-sm cursor-pointer"
-                disabled={loading || demoLoading}
+                    <div className="space-y-1.5 mb-4">
+                      <Label htmlFor="email" className="text-xs font-semibold text-slate-700">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="name@hospital.com"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={animPhase !== "idle"}
+                        className="h-12 lg:h-10 bg-slate-50/50 border-slate-200 focus-visible:border-[#0088ff] focus-visible:ring-[#0088ff]/20"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5 mb-6">
+                      <Label htmlFor="password" className="text-xs font-semibold text-slate-700">Password</Label>
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          required
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          disabled={animPhase !== "idle"}
+                          className="h-12 lg:h-10 bg-slate-50/50 border-slate-200 focus-visible:border-[#0088ff] focus-visible:ring-[#0088ff]/20 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                          tabIndex={-1}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <Button
+                      type="submit"
+                      className="w-full h-12 lg:h-11 text-sm font-semibold bg-[#0088ff] hover:bg-[#0077ee] text-white rounded-lg shadow-sm cursor-pointer"
+                      disabled={loading || demoLoading || animPhase !== "idle"}
+                    >
+                      {(loading || demoLoading) && animPhase === "idle" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "[ Login ]"
+                      )}
+                    </Button>
+                  </form>
+                </motion.div>
+
+                {/* Demo trigger (desktop) */}
+                <motion.div
+                  className="hidden lg:block mt-auto pt-8 text-center"
+                  animate={animPhase === "collapsing" ? { opacity: 0 } : { opacity: 1 }}
+                  transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
+                >
+                  <p className="text-xs text-slate-400">
+                    Looking to explore the iCare platform?{' '}
+                    <button
+                      type="button"
+                      onClick={handleDemoClick}
+                      className="text-[#0088ff] font-semibold hover:underline cursor-pointer"
+                    >
+                      Try Live Demo
+                    </button>
+                  </p>
+                </motion.div>
+              </motion.div>
+
+              {/* Right Visual Banner Pane */}
+              <motion.div
+                className="hidden lg:block relative lg:w-[55%]"
+                animate={animPhase === "collapsing" ? { x: "-50%" } : { x: "0%" }}
+                transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
               >
-                {loading || demoLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "[ Login ]"
-                )}
-              </Button>
-            </form>
-          </div>
+                <motion.div
+                  className={`absolute inset-0 ${animPhase === "collapsing" ? "blur" : ""}`}
+                  animate={animPhase === "collapsing" ? { opacity: 0.4 } : { opacity: 1 }}
+                  transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
+                >
+                  <img
+                    src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=900&q=80"
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                </motion.div>
+                <motion.div
+                  className="absolute bottom-6 right-6 bg-[#0088ff] rounded-[12px] p-6 max-w-[280px] shadow-lg"
+                  animate={animPhase === "collapsing" ? { opacity: 0 } : { opacity: 1 }}
+                  transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
+                >
+                  <p className="text-sm text-white/90 leading-relaxed">
+                    A secure, unified Hospital Management Information System built for absolute clinical precision, automated workflows, and seamless multi-tenant isolation.
+                  </p>
+                </motion.div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-          {/* Demo trigger (desktop) */}
-          <div className="hidden lg:block mt-auto pt-8 text-center">
-            <p className="text-xs text-slate-400">
-              Looking to explore the iCare platform?{' '}
-              <button
-                type="button"
-                onClick={handleDemoClick}
-                className="text-[#0088ff] font-semibold hover:underline cursor-pointer"
+        {/* Reveal Overlay */}
+        <AnimatePresence>
+          {animPhase !== "idle" && (
+            <motion.div
+              key="reveal"
+              className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white rounded-[24px]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <motion.img
+                src="/logo.png"
+                alt="iCare"
+                className="h-16 w-auto mb-6"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
+              />
+              <motion.p
+                className="text-3xl font-bold text-slate-900"
+                initial={{ opacity: 0, letterSpacing: "0.05em" }}
+                animate={{ opacity: 1, letterSpacing: "0.2em" }}
+                transition={{ duration: 0.5, ease: "easeOut", delay: 0.25 }}
               >
-                Try Live Demo
-              </button>
-            </p>
-          </div>
-        </div>
-
-        {/* Right Visual Banner Pane */}
-        <div className="hidden lg:block relative lg:w-[55%]">
-          <img
-            src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=900&q=80"
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-          <div className="absolute bottom-6 right-6 bg-[#0088ff] rounded-[12px] p-6 max-w-[280px] shadow-lg">
-            <p className="text-sm text-white/90 leading-relaxed">
-              A secure, unified Hospital Management Information System built for absolute clinical precision, automated workflows, and seamless multi-tenant isolation.
-            </p>
-          </div>
-        </div>
+                WELCOME
+              </motion.p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Demo trigger (mobile fixed bar) */}
