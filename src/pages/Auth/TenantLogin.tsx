@@ -85,17 +85,17 @@ const TenantLogin: React.FC = () => {
 
   useEffect(() => {
     if (animPhase === "collapsing") {
-      const delay = isMobile ? 1250 : 600;
+      const delay = isMobile ? 1250 : 1100;
       const t = setTimeout(() => setAnimPhase("revealing"), delay);
       return () => clearTimeout(t);
     }
     if (animPhase === "revealing") {
-      const delay = isMobile ? 850 : 700;
+      const delay = isMobile ? 850 : 800;
       const t = setTimeout(() => setAnimPhase("held"), delay);
       return () => clearTimeout(t);
     }
     if (animPhase === "held") {
-      const delay = isMobile ? 1000 : 600;
+      const delay = 1000;
       const t = setTimeout(() => navigate(`/${hospital_slug}/dashboard`), delay);
       return () => clearTimeout(t);
     }
@@ -223,14 +223,7 @@ const TenantLogin: React.FC = () => {
         className="relative w-full max-w-[1000px] bg-white rounded-[24px] overflow-hidden shadow-2xl flex-col lg:flex-row max-h-[calc(100vh-2rem)]"
         animate={
           isMobile && animPhase !== "idle"
-            ? {
-                width: "100vw",
-                height: "100dvh",
-                maxWidth: "none",
-                maxHeight: "none",
-                borderRadius: 0,
-                boxShadow: "0 0 #0000",
-              }
+            ? { width: "100vw", height: "100dvh", maxWidth: "none", maxHeight: "none", borderRadius: 0, boxShadow: "0 0 #0000" }
             : {}
         }
         transition={
@@ -360,12 +353,12 @@ const TenantLogin: React.FC = () => {
               <motion.div
                 className="hidden lg:block relative lg:w-[55%]"
                 animate={animPhase === "collapsing" ? { x: "-50%" } : { x: "0%" }}
-                transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ duration: isMobile ? 0.4 : 1.1, ease: [0.22, 1, 0.36, 1] }}
               >
                 <motion.div
                   className={`absolute inset-0 ${animPhase === "collapsing" ? "blur" : ""}`}
                   animate={animPhase === "collapsing" ? { opacity: 0.4 } : { opacity: 1 }}
-                  transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: isMobile ? 0.4 : 1.1, ease: [0.22, 1, 0.36, 1] }}
                 >
                   <img
                     src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=900&q=80"
@@ -376,7 +369,7 @@ const TenantLogin: React.FC = () => {
                 <motion.div
                   className="absolute bottom-6 right-6 bg-[#0088ff] rounded-[12px] p-6 max-w-[280px] shadow-lg"
                   animate={animPhase === "collapsing" ? { opacity: 0 } : { opacity: 1 }}
-                  transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: isMobile ? 0.4 : 1.1, ease: [0.22, 1, 0.36, 1] }}
                 >
                   <p className="text-sm text-white/90 leading-relaxed">
                     A secure, unified Hospital Management Information System built for absolute clinical precision, automated workflows, and seamless multi-tenant isolation.
@@ -422,17 +415,17 @@ const TenantLogin: React.FC = () => {
       {/* Demo trigger (mobile fixed bar) */}
       {animPhase === "idle" && (
         <div className="lg:hidden fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-slate-200 py-3 px-4 text-center z-50">
-          <p className="text-xs text-slate-400">
-            Looking to explore the iCare platform?{' '}
-            <button
-              type="button"
-              onClick={handleDemoClick}
-              className="text-[#0088ff] font-semibold hover:underline cursor-pointer"
-            >
-              Try Live Demo
-            </button>
-          </p>
-        </div>
+        <p className="text-xs text-slate-400">
+          Looking to explore the iCare platform?{' '}
+          <button
+            type="button"
+            onClick={handleDemoClick}
+            className="text-[#0088ff] font-semibold hover:underline cursor-pointer"
+          >
+            Try Live Demo
+          </button>
+        </p>
+      </div>
       )}
     </div>
   );
