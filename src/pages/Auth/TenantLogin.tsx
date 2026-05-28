@@ -127,8 +127,7 @@ const TenantLogin: React.FC = () => {
         <div className="w-[45%] p-10 flex flex-col">
           {/* Branding */}
           <div className="mb-10">
-            <img src="/logo.png" alt="iCare" className="h-8 w-auto" />
-            <p className="text-[10px] text-slate-500 font-medium mt-0.5">{hospitalName}</p>
+            <img src="/logo.png" alt="iCare" className="h-10 w-auto" />
           </div>
 
           {/* Form */}
