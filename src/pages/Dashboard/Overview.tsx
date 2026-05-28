@@ -272,8 +272,8 @@ const Overview = () => {
     if (userData) {
       doctorId = userData.id;
     } else {
-      const { data: staffData } = await (adminSupabase as any).from("staff").select("staff_id").ilike("name", `%${searchName}%`).maybeSingle();
-      doctorId = staffData?.staff_id ?? null;
+      const { data: staffData } = await (adminSupabase as any).from("staff").select("auth_user_id").ilike("name", `%${searchName}%`).maybeSingle();
+      doctorId = staffData?.auth_user_id ?? null;
     }
     if (!doctorId) {
       const { data: { user } } = await supabase.auth.getUser();
