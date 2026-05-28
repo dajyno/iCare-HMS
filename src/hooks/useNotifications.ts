@@ -62,11 +62,26 @@ export function useNotifications() {
         .select("id")
         .eq("user_id", user.id)
         .eq("title", title)
-        .eq("is_read", false)
         .maybeSingle();
 
       if (existing) {
+        await adminSupabase
+          .from("notifications")
+          .update({
+            message,
+            created_at: new Date().toISOString(),
+            is_read: false,
+          })
+          .eq("id", existing.id);
         seenKeys.current.add(key);
+        if (type === "Warning") {
+          toast.warning(message);
+        } else if (type === "Alert") {
+          toast.error(message);
+        } else {
+          toast.info(message);
+        }
+        fetchNotifications();
         return;
       }
 
