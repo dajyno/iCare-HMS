@@ -171,6 +171,8 @@ export interface LabResult {
   technician_id?: string | null;
   validated_by_id?: string | null;
   date: string;
+  edited_by?: string | null;
+  edited_at?: string | null;
 }
 
 export interface Invoice {

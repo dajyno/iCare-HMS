@@ -155,8 +155,13 @@ const LabDetailView = ({
         .upsert(upsertPayload, { onConflict: "request_id", ignoreDuplicates: false });
 
       if (error && error.message?.includes("edited_at")) {
-        // Fallback: column not yet added to schema
         delete upsertPayload.edited_at;
+        const { error: retryError } = await supabase
+          .from("lab_results")
+          .upsert(upsertPayload, { onConflict: "request_id", ignoreDuplicates: false });
+        if (retryError) throw retryError;
+      } else if (error && error.message?.includes("edited_by")) {
+        delete upsertPayload.edited_by;
         const { error: retryError } = await supabase
           .from("lab_results")
           .upsert(upsertPayload, { onConflict: "request_id", ignoreDuplicates: false });
