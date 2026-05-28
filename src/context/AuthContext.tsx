@@ -16,6 +16,7 @@ interface AuthContextType {
 
 const DEFAULT_ACCOUNTS: Record<string, { name: string; role: string }> = {
   "admin@icare.com": { name: "Super Admin", role: "SuperAdmin" },
+  "demo@icare.com": { name: "Demo User", role: "HospitalAdmin" },
   "alice@icare.com": { name: "Dr. Alice Smith", role: "Doctor" },
   "bob@icare.com": { name: "Dr. Bob Wilson", role: "Doctor" },
   "jane@icare.com": { name: "Nurse Jane", role: "Nurse" },

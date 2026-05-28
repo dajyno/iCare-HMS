@@ -50,6 +50,22 @@ async function main() {
       },
     },
     {
+      fullName: "Demo User",
+      email: "demo@icare.com",
+      password: hashedPassword,
+      role: "HospitalAdmin",
+      departmentId: genMed.id,
+      staffProfile: {
+        create: {
+          staffId: "STF007",
+          departmentId: genMed.id,
+          employmentType: "Full-time",
+          dateJoined: new Date(),
+          permissions: "all",
+        },
+      },
+    },
+    {
       fullName: "Dr. Alice Smith",
       email: "alice@icare.com",
       password: hashedPassword,
