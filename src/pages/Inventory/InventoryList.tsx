@@ -10,6 +10,9 @@ import {
   Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PageSkeleton } from "@/src/components/skeletons/PageSkeleton";
+import { TableSkeleton } from "@/src/components/skeletons/TableSkeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -40,7 +43,18 @@ const InventoryList = () => {
     );
   }, [items, searchTerm]);
 
-  if (isLoading) return <div className="p-12 text-center text-slate-400">Loading inventory...</div>;
+  if (isLoading) return (
+    <PageSkeleton title="Hospital Inventory" description="Manage medical supplies, stock levels and suppliers">
+      <div className="space-y-6">
+        <div className="grid gap-6 md:grid-cols-3">
+          <Skeleton className="h-24 rounded-xl" />
+          <Skeleton className="h-24 rounded-xl" />
+          <Skeleton className="h-24 rounded-xl" />
+        </div>
+        <TableSkeleton rows={6} columns={5} />
+      </div>
+    </PageSkeleton>
+  );
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

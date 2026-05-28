@@ -5,7 +5,7 @@ import { supabase, toCamel } from "@/src/lib/supabase";
 import Pagination from "@/components/ui/pagination";
 import {
   Search, Plus, Filter, MoreVertical, User, Phone, Mail,
-  Loader2, AlertCircle, X, Save, Edit, Archive, CalendarDays,
+  AlertCircle, X, Save, Edit, Archive, CalendarDays,
   Stethoscope, FlaskConical, Pill, FileText, Activity, MapPin, Clock,
   Users, Building, Briefcase, Shield, ChevronDown
 } from "lucide-react";
@@ -20,6 +20,8 @@ import { toast } from "sonner";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { PageSkeleton } from "@/src/components/skeletons/PageSkeleton";
+import { TableSkeleton } from "@/src/components/skeletons/TableSkeleton";
 
 const categoryBadge: Record<string, string> = {
   Individual: "bg-blue-50 text-blue-700 border-blue-100",
@@ -305,10 +307,9 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
 
   if (isLoading) {
     return (
-      <div className="h-[60vh] flex flex-col items-center justify-center p-12">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-4" />
-        <p className="text-slate-400 font-medium">Accessing patient records...</p>
-      </div>
+      <PageSkeleton title="Patients" description="Manage and register hospital patients">
+        <TableSkeleton rows={8} columns={5} />
+      </PageSkeleton>
     );
   }
 

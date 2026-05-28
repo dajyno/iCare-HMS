@@ -1,5 +1,6 @@
 import { type LucideIcon, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 interface MetricCardProps {
@@ -35,15 +36,15 @@ export default function MetricCard({ label, value, trend, icon: Icon, color, loa
 
   if (loading) {
     return (
-      <Card className="border-none shadow-sm ring-1 ring-slate-200 animate-pulse">
+      <Card className="border-none shadow-sm ring-1 ring-slate-200">
         <CardContent className="p-5">
           <div className="flex items-start justify-between">
             <div className="space-y-2 flex-1">
-              <div className="h-3 w-24 bg-slate-200 rounded" />
-              <div className="h-7 w-20 bg-slate-200 rounded" />
-              <div className="h-3 w-28 bg-slate-200 rounded" />
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-7 w-20" />
+              <Skeleton className="h-3 w-28" />
             </div>
-            <div className="w-10 h-10 rounded-lg bg-slate-200" />
+            <Skeleton className="w-10 h-10 rounded-lg shrink-0" />
           </div>
         </CardContent>
       </Card>

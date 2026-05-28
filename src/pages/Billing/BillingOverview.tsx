@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TableSkeleton } from "@/src/components/skeletons/TableSkeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -347,12 +348,7 @@ const BillingOverview = () => {
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-24">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-2 border-slate-300 border-t-sky-600 rounded-full animate-spin" />
-              <p className="text-sm text-slate-400">Loading invoices...</p>
-            </div>
-          </div>
+          <TableSkeleton rows={8} columns={6} searchable={false} />
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <p className="text-sm text-red-500">Failed to load invoices.</p>

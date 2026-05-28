@@ -18,12 +18,13 @@ import {
   Calendar,
   Clock,
   ArrowRight,
-  Loader2,
   AlertCircle,
   MapPin,
 } from "lucide-react";
 import NewAdmissionWizard from "@/src/pages/Inpatient/components/NewAdmissionWizard";
 import type { WardConfig } from "@/src/pages/Inpatient/inpatientTypes";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CardGridSkeleton } from "@/src/components/skeletons/CardGridSkeleton";
 import { toast } from "sonner";
 
 interface DashboardStats {
@@ -302,10 +303,25 @@ const Overview = () => {
 
   if (isLoading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-slate-400">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          <p className="text-sm font-medium">Loading hospital dashboard...</p>
+      <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="flex flex-col gap-1 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-64" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <div className="mt-2 flex items-center gap-3 sm:mt-0">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-20" />
+          </div>
+        </div>
+        <div className="flex flex-col gap-6 lg:flex-row">
+          <div className="flex-1 lg:w-3/4">
+            <CardGridSkeleton count={10} columns={4} />
+          </div>
+          <div className="flex flex-col gap-4 lg:w-1/4 lg:min-w-[280px]">
+            <Skeleton className="h-64 rounded-xl" />
+            <Skeleton className="h-40 rounded-xl" />
+          </div>
         </div>
       </div>
     );

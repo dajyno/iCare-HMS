@@ -3,10 +3,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import {
-  Search, Plus, Users, Phone, Mail, Loader2, AlertCircle,
+  Search, Plus, Users, Phone, Mail, AlertCircle,
   User, Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageSkeleton } from "@/src/components/skeletons/PageSkeleton";
+import { TableSkeleton } from "@/src/components/skeletons/TableSkeleton";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -143,9 +145,9 @@ const FamilyPatients = () => {
   };
 
   if (isLoading) return (
-    <div className="h-[60vh] flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-    </div>
+    <PageSkeleton title="Family Groups">
+      <TableSkeleton rows={5} columns={4} />
+    </PageSkeleton>
   );
 
   if (isError) return (

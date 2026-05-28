@@ -27,6 +27,8 @@ import {
   DialogContent,
 } from "@/components/ui/dialog";
 import Pagination from "@/components/ui/pagination";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PageSkeleton } from "@/src/components/skeletons/PageSkeleton";
 import PrescriptionBadge from "./PrescriptionBadge";
 import PrescriptionDetail from "./PrescriptionDetail";
 import NewPrescriptionDialog from "./NewPrescriptionDialog";
@@ -157,20 +159,12 @@ const PrescriptionTerminal = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-in fade-in duration-500">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Prescription Terminal</h1>
-            <p className="text-sm text-slate-500">Live queue of pending patient prescriptions</p>
-          </div>
+      <PageSkeleton title="Prescription Terminal" description="Live queue of pending patient prescriptions">
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-full rounded-lg" />
+          <Skeleton className="h-64 w-full rounded-xl" />
         </div>
-        <div className="flex items-center justify-center py-24">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-slate-300 border-t-sky-600 rounded-full animate-spin" />
-            <p className="text-sm text-slate-400">Loading prescription queue...</p>
-          </div>
-        </div>
-      </div>
+      </PageSkeleton>
     );
   }
 

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { FileText, Search, CreditCard, Wallet, Receipt, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -76,11 +77,13 @@ const BillingPage = () => {
             <p className="text-xs text-slate-500">Invoice management</p>
           </div>
         </div>
-        <div className="flex items-center justify-center py-24">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-slate-300 border-t-sky-600 rounded-full animate-spin" />
-            <p className="text-sm text-slate-400">Loading invoices...</p>
+        <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Skeleton className="h-24 rounded-xl" />
+            <Skeleton className="h-24 rounded-xl" />
+            <Skeleton className="h-24 rounded-xl" />
           </div>
+          <Skeleton className="h-64 w-full rounded-xl" />
         </div>
       </div>
     );

@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   AlertCircle
 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -56,7 +57,20 @@ const LabQueue = () => {
     }
   });
 
-  if (isLoading) return <div className="p-12 text-center text-slate-400">Loading lab queue...</div>;
+  if (isLoading) return (
+    <Card>
+      <CardHeader>
+        <Skeleton className="h-5 w-32" />
+        <Skeleton className="h-4 w-48" />
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Skeleton className="h-9 w-full rounded-md" />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-12 w-full rounded-md" />
+        ))}
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

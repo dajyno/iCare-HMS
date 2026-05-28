@@ -3,13 +3,15 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import {
-  Clock, Play, CheckCircle2, Plus, Loader2, AlertCircle, Eye,
+  Clock, Play, CheckCircle2, Plus, AlertCircle, Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Pagination from "@/components/ui/pagination";
 import ConsultationDetailCard from "@/src/components/ConsultationDetailCard";
+import { PageSkeleton } from "@/src/components/skeletons/PageSkeleton";
+import { TableSkeleton } from "@/src/components/skeletons/TableSkeleton";
 
 const statusConfig: Record<string, { icon: any; label: string; color: string; bg: string }> = {
   VitalsRecorded: { icon: Clock, label: "Vitals Recorded", color: "text-amber-600", bg: "bg-amber-50" },
@@ -177,9 +179,9 @@ const ConsultationList = () => {
   }, [radiologyRequests, selectedConsultation]);
 
   if (isLoading) return (
-    <div className="h-[60vh] flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-    </div>
+    <PageSkeleton title="Recent Consultations">
+      <TableSkeleton rows={6} columns={4} />
+    </PageSkeleton>
   );
 
   if (isError) return (

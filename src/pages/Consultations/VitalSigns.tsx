@@ -4,10 +4,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { useAuth } from "@/src/context/AuthContext";
 import {
-  HeartPulse, Plus, Loader2, AlertCircle, Thermometer,
+  HeartPulse, Plus, AlertCircle, Thermometer,
   Activity, Scale, Droplets, Weight, Ruler, Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -133,8 +134,40 @@ const VitalSigns = () => {
   };
 
   if (isLoading) return (
-    <div className="h-[60vh] flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <Skeleton className="h-7 w-32" />
+          <Skeleton className="h-4 w-24" />
+        </div>
+        <Skeleton className="h-9 w-36 rounded-md" />
+      </div>
+      <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 border-b border-slate-100">
+              <tr>
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <th key={i} className="px-4 py-3">
+                    <Skeleton className="h-4 w-20" />
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 5 }).map((_, r) => (
+                <tr key={r} className="border-b border-slate-100">
+                  {Array.from({ length: 8 }).map((_, c) => (
+                    <td key={c} className="px-4 py-3">
+                      <Skeleton className={`h-4 ${c === 0 ? "w-32" : "w-14 mx-auto"}`} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 

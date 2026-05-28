@@ -1,8 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
 import type { DrillDownRecord, DrillDownColumn } from "../types";
 
 interface DrillDownModalProps {
@@ -40,11 +40,12 @@ export default function DrillDownModal({ open, onClose, title, records, columns,
         </DialogHeader>
         <ScrollArea className="p-6 max-h-[60vh]">
           {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="flex flex-col items-center gap-3">
-                <Loader2 className="w-6 h-6 text-sky-500 animate-spin" />
-                <p className="text-sm text-slate-400">Loading records...</p>
-              </div>
+            <div className="space-y-3 py-6 px-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-5/6" />
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-4 w-4/5" />
             </div>
           ) : records.length === 0 ? (
             <div className="flex items-center justify-center py-16">

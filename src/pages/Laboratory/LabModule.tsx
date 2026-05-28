@@ -6,6 +6,7 @@ import { supabase, toCamel } from "@/src/lib/supabase";
 import { useAuth } from "../../context/AuthContext";
 import { FlaskConical, Plus, FolderEdit } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import ContextHeader from "./ContextHeader";
 import LabOrderTable from "./LabOrderTable";
 import LabDetailView from "./LabDetailView";
@@ -100,11 +101,12 @@ const LabModule = () => {
     return (
       <div className="space-y-6 animate-in fade-in duration-500">
         <ContextHeader patient={null} />
-        <div className="flex items-center justify-center py-24">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-slate-300 border-t-[#005EB8] rounded-full animate-spin" />
-            <p className="text-sm text-slate-400">Loading laboratory workspace...</p>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-5 w-48" />
+            <Skeleton className="h-9 w-28 rounded-md" />
           </div>
+          <Skeleton className="h-64 w-full rounded-xl" />
         </div>
       </div>
     );

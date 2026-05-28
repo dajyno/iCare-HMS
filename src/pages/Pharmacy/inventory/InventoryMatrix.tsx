@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PageSkeleton } from "@/src/components/skeletons/PageSkeleton";
 import {
   Table,
   TableBody,
@@ -203,20 +205,12 @@ const InventoryMatrix = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-in fade-in duration-500">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Inventory Matrix</h1>
-            <p className="text-sm text-slate-500">Pharmacy stock ledger and supply management</p>
-          </div>
+      <PageSkeleton title="Inventory Matrix" description="Pharmacy stock ledger and supply management">
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-full rounded-lg" />
+          <Skeleton className="h-64 w-full rounded-xl" />
         </div>
-        <div className="flex items-center justify-center py-24">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-slate-300 border-t-sky-600 rounded-full animate-spin" />
-            <p className="text-sm text-slate-400">Loading inventory...</p>
-          </div>
-        </div>
-      </div>
+      </PageSkeleton>
     );
   }
 

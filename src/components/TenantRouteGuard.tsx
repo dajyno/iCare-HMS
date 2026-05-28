@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Outlet, useLocation } from "react-router-dom";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase, toCamel, setCurrentTenantId } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { useGlobalSettings } from "../context/GlobalSettingsContext";
@@ -84,9 +85,9 @@ const TenantRouteGuard: React.FC = () => {
   if (resolved === "loading") {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
-        <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="w-12 h-12 bg-slate-200 rounded-xl"></div>
-          <div className="h-4 w-32 bg-slate-200 rounded"></div>
+        <div className="flex flex-col items-center gap-4">
+          <Skeleton className="w-12 h-12 rounded-xl" />
+          <Skeleton className="h-4 w-32" />
         </div>
       </div>
     );
@@ -98,9 +99,9 @@ const TenantRouteGuard: React.FC = () => {
   if (authLoading) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
-        <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="w-12 h-12 bg-slate-200 rounded-xl"></div>
-          <div className="h-4 w-32 bg-slate-200 rounded"></div>
+        <div className="flex flex-col items-center gap-4">
+          <Skeleton className="w-12 h-12 rounded-xl" />
+          <Skeleton className="h-4 w-32" />
         </div>
       </div>
     );

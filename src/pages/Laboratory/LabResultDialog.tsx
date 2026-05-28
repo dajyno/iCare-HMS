@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/src/lib/supabase";
 import {
   Dialog,
@@ -144,8 +145,12 @@ const LabResultDialog = ({
           </div>
 
           {resultLoading ? (
-            <div className="py-8 text-center text-sm text-slate-400">
-              Loading result...
+            <div className="space-y-4 py-4">
+              <Skeleton className="h-10 w-48" />
+              <div className="grid grid-cols-2 gap-4">
+                <Skeleton className="h-16 rounded-lg" />
+                <Skeleton className="h-16 rounded-lg" />
+              </div>
             </div>
           ) : result ? (
             <div className="space-y-4">

@@ -1,6 +1,7 @@
 import React from "react";
 import { Routes, Route, Navigate, BrowserRouter, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { AdminAuthProvider, useAdminAuth } from "./context/AdminAuthContext";
 import { TenantProvider } from "./context/TenantContext";
@@ -60,9 +61,9 @@ const AdminProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children
 
   if (loading) return (
     <div className="h-screen w-screen flex items-center justify-center bg-slate-900">
-      <div className="animate-pulse flex flex-col items-center gap-4">
-        <div className="w-10 h-10 bg-slate-700 rounded-xl"></div>
-        <div className="h-4 w-24 bg-slate-700 rounded"></div>
+      <div className="flex flex-col items-center gap-4">
+        <Skeleton className="w-10 h-10 rounded-xl bg-slate-700" />
+        <Skeleton className="h-4 w-24 bg-slate-700" />
       </div>
     </div>
   );

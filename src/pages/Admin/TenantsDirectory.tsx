@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, AlertCircle, Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Tenant } from "../../types/tenant";
 import { getDefaultSettings } from "@/src/lib/globalSettings";
 
@@ -252,12 +253,14 @@ const TenantsDirectory: React.FC = () => {
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan={4} className="text-center py-12 text-[#666688]">
-                    <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
-                    Loading...
-                  </td>
-                </tr>
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="border-b border-slate-100">
+                    <td className="px-4 py-3"><Skeleton className="h-4 w-40" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-4 w-24" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-4 w-20" /></td>
+                    <td className="px-4 py-3"><Skeleton className="h-5 w-16 rounded-md" /></td>
+                  </tr>
+                ))
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="text-center py-12 text-[#666688]">No hospitals found</td>

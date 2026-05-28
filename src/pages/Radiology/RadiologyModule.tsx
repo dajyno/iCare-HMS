@@ -7,6 +7,8 @@ import RadiologyLedger from "./RadiologyLedger";
 import RadiologyDiagnosticView from "./RadiologyDiagnosticView";
 import RadiologyNewExam from "./RadiologyNewExam";
 import ManageCategoriesDialog from "./ManageCategoriesDialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PageSkeleton } from "@/src/components/skeletons/PageSkeleton";
 
 const RadiologyModule = () => {
   const queryClient = useQueryClient();
@@ -102,14 +104,15 @@ const RadiologyModule = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-in fade-in duration-500">
-        <div className="flex items-center justify-center py-24">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-slate-300 border-t-[#005EB8] rounded-full animate-spin" />
-            <p className="text-sm text-slate-400">Loading radiology workspace...</p>
+      <PageSkeleton>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-5 w-48" />
+            <Skeleton className="h-9 w-28 rounded-md" />
           </div>
+          <Skeleton className="h-64 w-full rounded-xl" />
         </div>
-      </div>
+      </PageSkeleton>
     );
   }
 

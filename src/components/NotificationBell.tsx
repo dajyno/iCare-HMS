@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { Bell, Check, Info, AlertTriangle, AlertCircle, X, Loader2 } from "lucide-react";
+import { Bell, Check, Info, AlertTriangle, AlertCircle, X } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useNotifications } from "@/src/hooks/useNotifications";
 
 function timeAgo(dateStr: string): string {
@@ -74,8 +75,16 @@ export default function NotificationBell() {
 
           <div className="max-h-[360px] overflow-y-auto">
             {loading ? (
-              <div className="flex items-center justify-center py-8 text-slate-400">
-                <Loader2 className="w-5 h-5 animate-spin" />
+              <div className="space-y-3 py-4 px-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <Skeleton className="w-8 h-8 rounded-full shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      <Skeleton className="h-3 w-40" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : notifications.length === 0 ? (
               <div className="flex flex-col items-center py-8 text-slate-400">

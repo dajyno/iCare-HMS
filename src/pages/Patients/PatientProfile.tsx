@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import SearchableSelect from "@/components/ui/searchable-select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import ConsultationDetailCard from "@/src/components/ConsultationDetailCard";
+import { ProfileSkeleton } from "@/src/components/skeletons/ProfileSkeleton";
 import { toast } from "sonner";
 
 const categoryBadge: Record<string, string> = {
@@ -628,11 +629,7 @@ const PatientProfile = () => {
     });
   };
 
-  if (isLoading) return (
-    <div className="h-[60vh] flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-    </div>
-  );
+  if (isLoading) return <ProfileSkeleton />;
 
   if (isError || !patient) return (
     <div className="p-12 text-center text-slate-400">

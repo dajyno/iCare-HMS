@@ -1,7 +1,8 @@
 import { useState, useCallback, useMemo } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Plus, Settings, Bed, Loader2 } from "lucide-react";
+import { Plus, Settings, Bed } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useInpatientState } from "./useInpatientState";
 import { useStaff } from "../Staff/StaffContext";
 import WardBoard from "./components/WardBoard";
@@ -68,11 +69,21 @@ const InpatientOverview = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-32">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 text-sky-600 animate-spin" />
-          <p className="text-sm text-slate-400">Loading inpatient data...</p>
+      <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Skeleton className="w-10 h-10 rounded-lg" />
+            <div className="space-y-1.5">
+              <Skeleton className="h-6 w-64" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-9 w-9 rounded-md" />
+            <Skeleton className="h-9 w-32 rounded-md" />
+          </div>
         </div>
+        <Skeleton className="h-80 w-full rounded-xl" />
       </div>
     );
   }
