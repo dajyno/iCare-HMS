@@ -365,7 +365,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
               </SheetContent>
             </Sheet>
 
-          <div className="flex items-center gap-3 sm:gap-6">
+          <div className="flex items-center gap-3 sm:gap-6 ml-auto">
             <div className="relative flex-1 sm:flex-none" ref={searchRef}>
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
               <input
