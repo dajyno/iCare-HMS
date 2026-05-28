@@ -1,8 +1,10 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../context/AuthContext";
 import { useTenant } from "../../context/TenantContext";
 import { supabase, toCamel } from "../../lib/supabase";
+import { adminSupabase } from "../../lib/adminSupabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +34,7 @@ const TenantLogin: React.FC = () => {
   const isDemo = searchParams.get("demo") === "true";
   const submittedRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!hospital_slug) {
@@ -81,18 +84,91 @@ const TenantLogin: React.FC = () => {
 
   useEffect(() => {
     if (animPhase === "collapsing") {
-      const t = setTimeout(() => setAnimPhase("revealing"), 600);
+      const t = setTimeout(() => setAnimPhase("revealing"), 1100);
       return () => clearTimeout(t);
     }
     if (animPhase === "revealing") {
-      const t = setTimeout(() => setAnimPhase("held"), 700);
+      const t = setTimeout(() => setAnimPhase("held"), 800);
       return () => clearTimeout(t);
     }
     if (animPhase === "held") {
-      const t = setTimeout(() => navigate(`/${hospital_slug}/dashboard`), 600);
+      const t = setTimeout(() => navigate(`/${hospital_slug}/dashboard`), 1000);
       return () => clearTimeout(t);
     }
   }, [animPhase, hospital_slug, navigate]);
+
+  // Kick off dashboard data prefetch as soon as collapse begins
+  useEffect(() => {
+    if (animPhase === "collapsing") {
+      prefetchDashboardData();
+    }
+  }, [animPhase]);
+
+  const prefetchDashboardData = useCallback(async () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    try {
+      const [
+        { count: totalPatients },
+        { count: consultationsToday },
+        { count: pendingLabs },
+        { count: pendingScans },
+        { count: pendingRx },
+        { data: beds },
+        { data: dailyPayments },
+        { count: unpaidInvoices },
+        { count: activeStaff },
+      ] = await Promise.all([
+        supabase.from("patients").select("*", { count: "exact", head: true }),
+        supabase.from("consultations").select("*", { count: "exact", head: true })
+          .gte("created_at", today.toISOString()).lt("created_at", tomorrow.toISOString()),
+        supabase.from("lab_requests").select("*", { count: "exact", head: true })
+          .neq("status", "Completed"),
+        supabase.from("radiology_requests").select("*", { count: "exact", head: true })
+          .neq("status", "Completed"),
+        supabase.from("prescriptions").select("*", { count: "exact", head: true })
+          .eq("status", "Paid"),
+        supabase.from("beds").select("status"),
+        supabase.from("invoices").select("amount_paid")
+          .eq("status", "Paid")
+          .gte("paid_at", today.toISOString()).lt("paid_at", tomorrow.toISOString()),
+        supabase.from("invoices").select("*", { count: "exact", head: true })
+          .neq("status", "Paid"),
+        (adminSupabase as any).from("staff").select("*", { count: "exact", head: true }),
+      ]);
+
+      const occupiedBeds = (beds || []).filter((b: any) => b.status === "Occupied").length;
+      const totalBeds = beds?.length || 1;
+
+      queryClient.setQueryData(["dashboard-stats"], {
+        totalPatients: totalPatients || 0,
+        consultationsToday: consultationsToday || 0,
+        pendingLabs: pendingLabs || 0,
+        pendingScans: pendingScans || 0,
+        pendingRx: pendingRx || 0,
+        bedOccupancy: Math.round((occupiedBeds / totalBeds) * 100),
+        dailyRevenue: (dailyPayments || []).reduce((sum: number, p: any) => sum + (p.amount_paid || 0), 0) || 0,
+        outstandingClaims: unpaidInvoices || 0,
+        activeStaff: activeStaff || 0,
+      });
+
+      const { data: appointments } = await supabase
+        .from("appointments")
+        .select("id, start_time, status, patients(id, first_name, last_name)")
+        .gte("start_time", new Date().toISOString())
+        .order("start_time", { ascending: true })
+        .limit(5);
+
+      if (appointments) {
+        queryClient.setQueryData(["upcoming-appointments"], appointments);
+      }
+    } catch {
+      // prefetch failed silently — dashboard will load its own queries
+    }
+  }, [queryClient, supabase, adminSupabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,13 +232,13 @@ const TenantLogin: React.FC = () => {
               <motion.div
                 className="w-full lg:w-[45%] p-6 lg:p-10 flex flex-col"
                 animate={animPhase === "collapsing" ? { x: "50%" } : { x: "0%" }}
-                transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
+                transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
               >
                 {/* Branding */}
                 <motion.div
                   className="mb-8 lg:mb-10 text-center lg:text-left"
                   animate={animPhase === "collapsing" ? { opacity: 0 } : { opacity: 1 }}
-                  transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
+                  transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
                 >
                   <img src="/logo.png" alt="iCare" className="h-10 w-auto inline-block lg:inline" />
                 </motion.div>
@@ -171,7 +247,7 @@ const TenantLogin: React.FC = () => {
                 <motion.div
                   className="flex-1 flex flex-col justify-center max-w-[360px] mx-auto w-full"
                   animate={animPhase === "collapsing" ? { opacity: 0 } : { opacity: 1 }}
-                  transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
+                  transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
                 >
                   <h2 className="text-2xl font-bold text-slate-900 mb-1.5 text-center lg:text-left">Sign in</h2>
                   <p className="text-sm text-slate-500 mb-8 leading-relaxed text-center lg:text-left">
@@ -246,7 +322,7 @@ const TenantLogin: React.FC = () => {
                 <motion.div
                   className="hidden lg:block mt-auto pt-8 text-center"
                   animate={animPhase === "collapsing" ? { opacity: 0 } : { opacity: 1 }}
-                  transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
+                  transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
                 >
                   <p className="text-xs text-slate-400">
                     Looking to explore the iCare platform?{' '}
@@ -265,12 +341,12 @@ const TenantLogin: React.FC = () => {
               <motion.div
                 className="hidden lg:block relative lg:w-[55%]"
                 animate={animPhase === "collapsing" ? { x: "-50%" } : { x: "0%" }}
-                transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
+                transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
               >
                 <motion.div
                   className={`absolute inset-0 ${animPhase === "collapsing" ? "blur" : ""}`}
                   animate={animPhase === "collapsing" ? { opacity: 0.4 } : { opacity: 1 }}
-                  transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
+                  transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
                 >
                   <img
                     src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=900&q=80"
@@ -281,7 +357,7 @@ const TenantLogin: React.FC = () => {
                 <motion.div
                   className="absolute bottom-6 right-6 bg-[#0088ff] rounded-[12px] p-6 max-w-[280px] shadow-lg"
                   animate={animPhase === "collapsing" ? { opacity: 0 } : { opacity: 1 }}
-                  transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
+                  transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
                 >
                   <p className="text-sm text-white/90 leading-relaxed">
                     A secure, unified Hospital Management Information System built for absolute clinical precision, automated workflows, and seamless multi-tenant isolation.
@@ -307,15 +383,15 @@ const TenantLogin: React.FC = () => {
                 src="/logo.png"
                 alt="iCare"
                 className="h-16 w-auto mb-6"
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
+                transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
               />
               <motion.p
                 className="text-3xl font-bold text-slate-900"
                 initial={{ opacity: 0, letterSpacing: "0.05em" }}
                 animate={{ opacity: 1, letterSpacing: "0.2em" }}
-                transition={{ duration: 0.5, ease: "easeOut", delay: 0.25 }}
+                transition={{ duration: 0.8, ease: "easeOut", delay: 0.35 }}
               >
                 WELCOME
               </motion.p>
