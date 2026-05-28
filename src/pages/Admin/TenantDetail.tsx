@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Building2, Users, UserRound, Stethoscope, BedDouble, TrendingUp, DollarSign, Mail, Key, Loader2, AlertCircle, ExternalLink, CheckCircle2, Settings, Save } from "lucide-react";
+import { ArrowLeft, Building2, Users, UserRound, Stethoscope, BedDouble, TrendingUp, DollarSign, Mail, Key, Loader2, AlertCircle, ExternalLink, CheckCircle2, Settings, Save, ChevronDown, Trash2 } from "lucide-react";
 import { adminSupabase } from "../../lib/adminSupabase";
 import { toCamel } from "../../lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,12 @@ const TenantDetail: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState("");
+
+  const [controlsOpen, setControlsOpen] = useState(false);
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
+  const [deletingTenant, setDeletingTenant] = useState(false);
 
   useEffect(() => {
     if (!tenantId) { setNotFound(true); setLoading(false); return; }
@@ -326,6 +332,48 @@ const TenantDetail: React.FC = () => {
     if (refreshed) setTenant(toCamel(refreshed) as Tenant);
   };
 
+  const handleDeleteTenant = async () => {
+    if (!tenantId || !tenant) return;
+    setDeletingTenant(true);
+
+    // All tables that may have a tenant_id column
+    const dataTables = [
+      "users", "departments", "staff_profiles", "staff", "patients",
+      "appointments", "consultations", "vital_signs", "prescriptions",
+      "prescription_items", "medications", "lab_tests", "lab_requests",
+      "lab_results", "invoices", "invoice_items", "payments",
+      "inventory_items", "suppliers", "purchase_orders", "purchase_order_items",
+      "wards", "beds", "admissions", "discharges", "radiology_categories",
+      "radiology_exams", "radiology_requests", "radiology_results",
+      "audit_logs", "notifications", "accounting_expenses",
+      "accounting_income", "bank_accounts", "inpatient_vitals",
+      "inpatient_medication_schedules", "inpatient_fluid_entries",
+      "inpatient_clinical_notes",
+    ];
+
+    // Delete from all data tables first (ignore errors for nonexistent tables)
+    await Promise.allSettled(
+      dataTables.map((t) =>
+        (adminSupabase as any).from(t).delete().eq("tenant_id", tenantId)
+      )
+    );
+
+    // Delete the tenant row itself
+    const { error } = await adminSupabase
+      .from("tenants")
+      .delete()
+      .eq("tenant_id", tenantId);
+
+    setDeletingTenant(false);
+
+    if (error) {
+      setDeleteConfirmInput(`Failed to delete: ${error.message}`);
+      return;
+    }
+
+    navigate("/admin/tenants");
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -473,29 +521,40 @@ const TenantDetail: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Hospital Controls */}
-      <div className="bg-[#0d0d1a] border border-[#1a1a35] rounded-xl p-5">
-        <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-          <Settings className="w-4 h-4 text-[#0088ff]" />
-          Hospital Controls
-        </h2>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button onClick={openEditLimits} className="bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_12px_rgba(0,136,255,0.15)] text-sm">
-            Edit Limits
-          </Button>
-          {tenant.status !== "Suspended" ? (
-            <Button onClick={() => handleStatusAction("Suspended")} className="bg-red-600 hover:bg-red-700 text-white text-sm">
-              Suspend Account
-            </Button>
-          ) : (
-            <Button onClick={() => handleStatusAction("Active")} variant="outline" className="border-emerald-800/50 text-emerald-400 hover:bg-emerald-900/30 text-sm">
-              Reactivate Account
-            </Button>
-          )}
-          <Button onClick={() => handleStatusAction("Trial")} className="bg-amber-600 hover:bg-amber-700 text-white text-sm">
-            Set to Trial
-          </Button>
-        </div>
+      {/* Hospital Controls — Collapsible */}
+      <div className="bg-[#0d0d1a] border border-[#1a1a35] rounded-xl">
+        <button
+          onClick={() => setControlsOpen(!controlsOpen)}
+          className="w-full flex items-center justify-between p-5 cursor-pointer hover:bg-white/[0.01] transition-colors"
+        >
+          <h2 className="text-sm font-bold text-white flex items-center gap-2">
+            <Settings className="w-4 h-4 text-[#0088ff]" />
+            Hospital Controls
+          </h2>
+          <ChevronDown className={`w-4 h-4 text-[#8888aa] transition-transform duration-200 ${controlsOpen ? "rotate-180" : ""}`} />
+        </button>
+        {controlsOpen && (
+          <div className="px-5 pb-5 pt-0 border-t border-[#1a1a35]">
+            <div className="flex flex-wrap items-center gap-3 pt-4">
+              <Button onClick={openEditLimits} className="bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_12px_rgba(0,136,255,0.15)] text-sm">
+                Edit Limits
+              </Button>
+              {tenant.status !== "Suspended" ? (
+                <Button onClick={() => handleStatusAction("Suspended")} className="bg-amber-500 hover:bg-amber-600 text-white text-sm shadow-[0_0_12px_rgba(245,158,11,0.2)]">
+                  Suspend Account
+                </Button>
+              ) : (
+                <Button onClick={() => handleStatusAction("Active")} variant="outline" className="border-emerald-800/50 text-emerald-400 hover:bg-emerald-900/30 text-sm">
+                  Reactivate Account
+                </Button>
+              )}
+              <Button onClick={() => setShowDeleteModal(true)} className="bg-red-600 hover:bg-red-700 text-white text-sm shadow-[0_0_12px_rgba(239,68,68,0.2)]">
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                Delete Account
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Edit Limits Modal */}
@@ -572,6 +631,54 @@ const TenantDetail: React.FC = () => {
             <Button onClick={handleSaveLimits} disabled={savingLimits} className="bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_12px_rgba(0,136,255,0.15)]">
               {savingLimits ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
               Save Limits
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Account Confirmation Modal */}
+      <Dialog open={showDeleteModal} onOpenChange={(o) => { if (!o) { setShowDeleteModal(false); setDeleteConfirmInput(""); }}}>
+        <DialogContent className="bg-[#0d0d1a] border-[#1a1a35] text-[#e8e8f0] sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-white flex items-center gap-2">
+              <Trash2 className="w-4 h-4 text-red-400" />
+              Delete Hospital Account
+            </DialogTitle>
+            <DialogDescription className="text-[#8888aa] text-xs space-y-2">
+              <p>This will permanently delete <span className="text-white font-bold">{tenant.hospitalName}</span> and <span className="text-red-400 font-bold">all associated data</span> across every module.</p>
+              <p className="text-red-400/80 font-medium">This action cannot be undone.</p>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {deleteConfirmInput && deleteConfirmInput.startsWith("Failed to delete") && (
+              <div className="bg-red-900/30 border border-red-800/50 text-red-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                {deleteConfirmInput}
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">
+                Type <span className="text-white">"{tenant.hospitalName}"</span> to confirm
+              </Label>
+              <Input
+                value={deleteConfirmInput}
+                onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                placeholder={tenant.hospitalName}
+                className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-red-500 focus:ring-red-500/25"
+              />
+            </div>
+          </div>
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="ghost" onClick={() => { setShowDeleteModal(false); setDeleteConfirmInput(""); }} className="text-[#8888aa]">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeleteTenant}
+              disabled={deletingTenant || deleteConfirmInput !== tenant.hospitalName}
+              className="bg-red-600 hover:bg-red-700 text-white shadow-[0_0_12px_rgba(239,68,68,0.25)]"
+            >
+              {deletingTenant ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Trash2 className="w-3.5 h-3.5 mr-1" />}
+              {deletingTenant ? "Deleting..." : "Permanently Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>
