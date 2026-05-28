@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { useAuth } from "../../context/AuthContext";
-import { FlaskConical, Plus, FolderEdit } from "lucide-react";
+import { Plus, FolderEdit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import ContextHeader from "./ContextHeader";
@@ -127,7 +127,7 @@ const LabModule = () => {
     <div className="flex flex-col h-full animate-in fade-in duration-500">
       <ContextHeader patient={activePatient} />
 
-      <div className="flex-1 p-6 overflow-y-auto">
+      <div className="flex-1 p-3 sm:p-4 lg:p-6 overflow-y-auto">
         <AnimatePresence mode="wait">
           {selectedOrder === "new" ? (
             <motion.div
@@ -148,27 +148,22 @@ const LabModule = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-              className="space-y-5"
+              className="space-y-4 sm:space-y-5"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-slate-100">
-                    <FlaskConical className="w-5 h-5 text-slate-500" />
-                  </div>
-                  <div>
-                    <h1 className="text-lg font-bold text-slate-900">
-                      Laboratory
-                    </h1>
-                    <p className="text-xs text-slate-500">
-                      Manage test requests and record results
-                    </p>
-                  </div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h1 className="text-lg font-bold text-slate-900">
+                    Laboratory
+                  </h1>
+                  <p className="text-xs text-slate-500">
+                    Manage test requests and record results
+                  </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-9 px-4 gap-1.5 text-xs font-semibold border-slate-200"
+                    className="h-9 px-4 gap-1.5 text-xs font-semibold border-slate-200 w-full sm:w-auto"
                     onClick={() => setCategoriesOpen(true)}
                   >
                     <FolderEdit className="w-3.5 h-3.5" />
@@ -176,7 +171,7 @@ const LabModule = () => {
                   </Button>
                   <Button
                     size="sm"
-                    className="bg-[#005EB8] hover:bg-[#004d9a] text-white h-9 px-4 gap-2 font-semibold text-xs"
+                    className="bg-[#005EB8] hover:bg-[#004d9a] text-white h-9 px-4 gap-2 font-semibold text-xs w-full sm:w-auto"
                     onClick={() => setSelectedOrder("new")}
                   >
                     <Plus className="w-3.5 h-3.5" />

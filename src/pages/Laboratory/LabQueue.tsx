@@ -73,15 +73,15 @@ const LabQueue = () => {
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Laboratory Queue</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Laboratory Queue</h1>
           <p className="text-sm text-slate-500">Process pending test requests and record results</p>
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
         {!Array.isArray(requests) || requests.length === 0 ? (
           <div className="col-span-full py-20 text-center bg-white border rounded-xl border-dashed">
             <Flask className="w-12 h-12 text-slate-200 mx-auto mb-4" />
@@ -93,27 +93,27 @@ const LabQueue = () => {
           requests.map((req: any) => (
             <Card key={req.id} className="border-none shadow-sm ring-1 ring-slate-200 overflow-hidden">
                <div className={`h-1.5 w-full ${req.status === 'Completed' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-               <CardHeader className="pb-2">
-                 <div className="flex items-center justify-between">
-                    <Badge variant="outline" className="bg-slate-100 border-none font-mono text-[10px]">
-                      REQ-{req.id.slice(-6).toUpperCase()}
-                    </Badge>
-                    <Badge className={req.status === 'Completed' ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}>
-                      {req.status}
-                    </Badge>
-                 </div>
-                 <CardTitle className="text-lg font-bold mt-2">{req.test.name}</CardTitle>
-                 <CardDescription className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-700">{req.patient.firstName} {req.patient.lastName}</span>
-                    <span>•</span>
-                    <span>{req.patient.gender}</span>
-                 </CardDescription>
+               <CardHeader className="p-4 sm:p-6 pb-2">
+                  <div className="flex items-center justify-between">
+                     <Badge variant="outline" className="bg-slate-100 border-none font-mono text-[10px]">
+                       REQ-{req.id.slice(-6).toUpperCase()}
+                     </Badge>
+                     <Badge className={req.status === 'Completed' ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}>
+                       {req.status}
+                     </Badge>
+                  </div>
+                  <CardTitle className="text-base sm:text-lg font-bold mt-2">{req.test.name}</CardTitle>
+                  <CardDescription className="flex items-center gap-2">
+                     <span className="font-semibold text-slate-700">{req.patient.firstName} {req.patient.lastName}</span>
+                     <span>•</span>
+                     <span>{req.patient.gender}</span>
+                  </CardDescription>
                </CardHeader>
-               <CardContent className="space-y-4">
-                 <div className="flex items-center justify-between text-xs text-slate-500">
-                    <span className="flex items-center gap-1"><FlaskConical className="w-3 h-3" /> {req.test.sampleType || "Blood"}</span>
-                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {format(new Date(req.createdAt), "HH:mm, MMM dd")}</span>
-                 </div>
+               <CardContent className="p-4 sm:p-6 pt-0 space-y-3 sm:space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs text-slate-500">
+                     <span className="flex items-center gap-1"><FlaskConical className="w-3 h-3 shrink-0" /> {req.test.sampleType || "Blood"}</span>
+                     <span className="flex items-center gap-1"><Clock className="w-3 h-3 shrink-0" /> {format(new Date(req.createdAt), "HH:mm, MMM dd")}</span>
+                  </div>
                  
                  {req.status !== 'Completed' && (
                    <Button 
