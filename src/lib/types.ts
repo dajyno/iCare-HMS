@@ -183,6 +183,7 @@ export interface AppNotification {
   type: "Info" | "Warning" | "Alert";
   isRead: boolean;
   createdAt: string;
+  link?: string;
 }
 
 export interface Invoice {

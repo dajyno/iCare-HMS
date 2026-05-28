@@ -53,7 +53,7 @@ export function useNotifications() {
   }, [user]);
 
   const ensureNotification = useCallback(
-    async (key: string, title: string, message: string, type: "Info" | "Warning" | "Alert") => {
+    async (key: string, title: string, message: string, type: "Info" | "Warning" | "Alert", link?: string) => {
       if (!user) return;
       if (seenKeys.current.has(key)) return;
 
@@ -71,6 +71,7 @@ export function useNotifications() {
             message,
             created_at: new Date().toISOString(),
             is_read: false,
+            ...(link !== undefined && { link }),
           })
           .eq("id", existing.id);
         seenKeys.current.add(key);
@@ -90,6 +91,7 @@ export function useNotifications() {
         title,
         message,
         type,
+        ...(link !== undefined && { link }),
       });
 
       if (!error) {
@@ -128,7 +130,8 @@ export function useNotifications() {
       "pending-transactions",
       "Pending Transactions",
       `${c} invoice${c !== 1 ? "s" : ""} awaiting payment`,
-      "Info"
+      "Info",
+      "/billing"
     );
   }, [settings.pendingTransactionAlerts, user, ensureNotification]);
 
@@ -155,7 +158,8 @@ export function useNotifications() {
       "low-stock",
       "Low Stock Alert",
       `${lowStock.length} item${lowStock.length !== 1 ? "s" : ""} below reorder level: ${names}${more}`,
-      "Warning"
+      "Warning",
+      "/pharmacy/inventory"
     );
   }, [settings.lowStockAlerts, user, ensureNotification]);
 

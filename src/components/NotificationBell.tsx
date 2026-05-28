@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Bell, Check, Info, AlertTriangle, AlertCircle, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNotifications } from "@/src/hooks/useNotifications";
@@ -28,6 +29,8 @@ const typeIcon = (type: string) => {
 };
 
 export default function NotificationBell() {
+  const navigate = useNavigate();
+  const { hospital_slug } = useParams<{ hospital_slug: string }>();
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -96,7 +99,9 @@ export default function NotificationBell() {
                 <button
                   key={n.id}
                   onClick={() => {
+                    if (n.link) navigate(`/${hospital_slug}${n.link}`);
                     if (!n.isRead) markAsRead(n.id);
+                    setOpen(false);
                   }}
                   className={`w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors flex items-start gap-3 border-b border-slate-50 ${
                     !n.isRead ? "bg-blue-50/30" : ""

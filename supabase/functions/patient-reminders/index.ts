@@ -42,14 +42,15 @@ Deno.cron("Patient Reminders", "0 6,14 * * *", async () => {
       minute: "2-digit",
     });
 
-    const { error: insertError } = await supabase
-      .from("notifications")
-      .insert({
-        user_id: apt.doctor_id,
-        title: "Upcoming Appointment Tomorrow",
-        message: `${patientName} at ${time}`,
-        type: "Info",
-      });
+      const { error: insertError } = await supabase
+        .from("notifications")
+        .insert({
+          user_id: apt.doctor_id,
+          title: "Upcoming Appointment Tomorrow",
+          message: `${patientName} at ${time}`,
+          type: "Info",
+          link: "/appointments",
+        });
 
     if (insertError) {
       console.error(`Failed to insert notification for appointment ${apt.id}:`, insertError);
