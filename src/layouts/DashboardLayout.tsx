@@ -21,7 +21,6 @@ import {
   X,
   Scan,
   Calculator,
-  Menu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -304,17 +303,8 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       <main className="flex-1 flex flex-col min-w-0">
         {/* Top Header */}
         <header className="h-auto min-h-16 bg-white border-b border-blue-100 flex flex-wrap items-center justify-between gap-2 px-4 sm:px-8 py-2 sm:py-0 shrink-0">
-          <div className="flex items-center gap-2 text-slate-500 text-sm">
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden shrink-0"
-                onClick={() => setMobileMenuOpen(true)}
-              >
-                <Menu className="w-5 h-5" />
-              </Button>
-              <SheetContent side="left" className="w-72 p-0 flex flex-col">
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetContent side="left" className="w-72 p-0 flex flex-col">
                 <div className="p-6 flex items-center border-b border-blue-100">
           <img src="/logo.png" alt="iCare" className="h-9 w-auto" />
                 </div>
@@ -374,10 +364,9 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 </div>
               </SheetContent>
             </Sheet>
-          </div>
 
           <div className="flex items-center gap-3 sm:gap-6">
-            <div className="relative" ref={searchRef}>
+            <div className="relative flex-1 sm:flex-none" ref={searchRef}>
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
               <input
                 type="text"
@@ -385,7 +374,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Escape") { setSearchQuery(""); setSearchResults([]); (e.target as HTMLInputElement).blur(); } }}
                 placeholder="Search patients, reports..."
-                className="w-40 sm:w-64 pl-9 pr-10 py-1.5 text-sm bg-slate-100 border-none rounded-full focus:ring-2 focus:ring-blue-400 transition-all outline-none"
+                className="w-full sm:w-64 pl-9 pr-10 py-1.5 text-sm bg-slate-100 border-none rounded-full focus:ring-2 focus:ring-blue-400 transition-all outline-none"
               />
               {searchQuery.trim() && (
                 <button
@@ -421,7 +410,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
             </div>
             
             <NotificationBell />
-            <span className="text-xs text-slate-500 font-mono whitespace-nowrap">
+            <span className="hidden md:inline text-xs text-slate-500 font-mono whitespace-nowrap">
               {currentTime.toLocaleDateString()} {currentTime.toLocaleTimeString()}
             </span>
           </div>

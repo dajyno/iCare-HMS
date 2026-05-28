@@ -5,7 +5,7 @@ import {
   Users,
   ClipboardList,
   User,
-  Grid3x3,
+  MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -77,7 +77,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ onMoreClick }) => {
           onClick={onMoreClick}
           className="flex flex-col items-center justify-center min-h-[48px] flex-1 gap-0.5 px-1 py-1 bg-transparent border-none cursor-pointer"
         >
-          <Grid3x3
+          <MoreHorizontal
             className={cn(
               "w-5 h-5",
               isMoreActive ? "text-blue-600" : "text-slate-400"

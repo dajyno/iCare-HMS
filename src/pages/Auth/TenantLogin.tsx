@@ -34,6 +34,7 @@ const TenantLogin: React.FC = () => {
   const isDemo = searchParams.get("demo") === "true";
   const submittedRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const isMobile = window.innerWidth < 1024;
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -84,18 +85,21 @@ const TenantLogin: React.FC = () => {
 
   useEffect(() => {
     if (animPhase === "collapsing") {
-      const t = setTimeout(() => setAnimPhase("revealing"), 1100);
+      const delay = isMobile ? 1250 : 600;
+      const t = setTimeout(() => setAnimPhase("revealing"), delay);
       return () => clearTimeout(t);
     }
     if (animPhase === "revealing") {
-      const t = setTimeout(() => setAnimPhase("held"), 800);
+      const delay = isMobile ? 850 : 700;
+      const t = setTimeout(() => setAnimPhase("held"), delay);
       return () => clearTimeout(t);
     }
     if (animPhase === "held") {
-      const t = setTimeout(() => navigate(`/${hospital_slug}/dashboard`), 1000);
+      const delay = isMobile ? 1000 : 600;
+      const t = setTimeout(() => navigate(`/${hospital_slug}/dashboard`), delay);
       return () => clearTimeout(t);
     }
-  }, [animPhase, hospital_slug, navigate]);
+  }, [animPhase, hospital_slug, navigate, isMobile]);
 
   // Kick off dashboard data prefetch as soon as collapse begins
   useEffect(() => {
@@ -176,11 +180,7 @@ const TenantLogin: React.FC = () => {
     setError("");
     try {
       await login(email, password, tenant?.tenantId);
-      if (window.innerWidth >= 1024) {
-        setAnimPhase("collapsing");
-      } else {
-        navigate(`/${hospital_slug}/dashboard`);
-      }
+      setAnimPhase("collapsing");
     } catch (err: any) {
       setError(err.message || "Login failed. Please check your credentials.");
     } finally {
@@ -219,7 +219,26 @@ const TenantLogin: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-blue-50 px-4 font-sans pb-16 lg:pb-0">
-      <div className="relative w-full max-w-[1000px] bg-white rounded-[24px] overflow-hidden shadow-2xl flex-col lg:flex-row max-h-[calc(100vh-2rem)]">
+      <motion.div
+        className="relative w-full max-w-[1000px] bg-white rounded-[24px] overflow-hidden shadow-2xl flex-col lg:flex-row max-h-[calc(100vh-2rem)]"
+        animate={
+          isMobile && animPhase !== "idle"
+            ? {
+                width: "100vw",
+                height: "100dvh",
+                maxWidth: "none",
+                maxHeight: "none",
+                borderRadius: 0,
+                boxShadow: "0 0 #0000",
+              }
+            : {}
+        }
+        transition={
+          isMobile && animPhase === "collapsing"
+            ? { duration: 0.85, ease: [0.22, 1, 0.36, 1], delay: 0.4 }
+            : { duration: 0.3 }
+        }
+      >
         <AnimatePresence>
           {animPhase !== "revealing" && animPhase !== "held" && (
             <motion.div
@@ -231,14 +250,14 @@ const TenantLogin: React.FC = () => {
               {/* Left Form Pane */}
               <motion.div
                 className="w-full lg:w-[45%] p-6 lg:p-10 flex flex-col"
-                animate={animPhase === "collapsing" ? { x: "50%" } : { x: "0%" }}
-                transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+                animate={animPhase === "collapsing" && !isMobile ? { x: "50%" } : { x: "0%" }}
+                transition={{ duration: isMobile ? 0.4 : 1.1, ease: [0.22, 1, 0.36, 1] }}
               >
                 {/* Branding */}
                 <motion.div
                   className="mb-8 lg:mb-10 text-center lg:text-left"
                   animate={animPhase === "collapsing" ? { opacity: 0 } : { opacity: 1 }}
-                  transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: isMobile ? 0.4 : 1.1, ease: [0.22, 1, 0.36, 1] }}
                 >
                   <img src="/logo.png" alt="iCare" className="h-10 w-auto inline-block lg:inline" />
                 </motion.div>
@@ -247,7 +266,7 @@ const TenantLogin: React.FC = () => {
                 <motion.div
                   className="flex-1 flex flex-col justify-center max-w-[360px] mx-auto w-full"
                   animate={animPhase === "collapsing" ? { opacity: 0 } : { opacity: 1 }}
-                  transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: isMobile ? 0.4 : 1.1, ease: [0.22, 1, 0.36, 1] }}
                 >
                   <h2 className="text-2xl font-bold text-slate-900 mb-1.5 text-center lg:text-left">Sign in</h2>
                   <p className="text-sm text-slate-500 mb-8 leading-relaxed text-center lg:text-left">
@@ -322,7 +341,7 @@ const TenantLogin: React.FC = () => {
                 <motion.div
                   className="hidden lg:block mt-auto pt-8 text-center"
                   animate={animPhase === "collapsing" ? { opacity: 0 } : { opacity: 1 }}
-                  transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: isMobile ? 0.4 : 1.1, ease: [0.22, 1, 0.36, 1] }}
                 >
                   <p className="text-xs text-slate-400">
                     Looking to explore the iCare platform?{' '}
@@ -370,12 +389,12 @@ const TenantLogin: React.FC = () => {
 
         {/* Reveal Overlay */}
         <AnimatePresence>
-          {animPhase !== "idle" && (
+          {(isMobile ? animPhase === "revealing" || animPhase === "held" : animPhase !== "idle") && (
             <motion.div
               key="reveal"
-              className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white rounded-[24px]"
+              className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white"
               initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              animate={{ opacity: 1, borderRadius: isMobile && animPhase !== "idle" ? 0 : 24 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
             >
@@ -383,36 +402,38 @@ const TenantLogin: React.FC = () => {
                 src="/logo.png"
                 alt="iCare"
                 className="h-16 w-auto mb-6"
-                initial={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+                transition={{ duration: isMobile ? 0.7 : 0.8, ease: "easeOut", delay: isMobile ? 0.15 : 0.2 }}
               />
               <motion.p
                 className="text-3xl font-bold text-slate-900"
                 initial={{ opacity: 0, letterSpacing: "0.05em" }}
                 animate={{ opacity: 1, letterSpacing: "0.2em" }}
-                transition={{ duration: 0.8, ease: "easeOut", delay: 0.35 }}
+                transition={{ duration: isMobile ? 0.7 : 0.8, ease: "easeOut", delay: isMobile ? 0.15 : 0.35 }}
               >
                 WELCOME
               </motion.p>
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </motion.div>
 
       {/* Demo trigger (mobile fixed bar) */}
-      <div className="lg:hidden fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-slate-200 py-3 px-4 text-center z-50">
-        <p className="text-xs text-slate-400">
-          Looking to explore the iCare platform?{' '}
-          <button
-            type="button"
-            onClick={handleDemoClick}
-            className="text-[#0088ff] font-semibold hover:underline cursor-pointer"
-          >
-            Try Live Demo
-          </button>
-        </p>
-      </div>
+      {animPhase === "idle" && (
+        <div className="lg:hidden fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-slate-200 py-3 px-4 text-center z-50">
+          <p className="text-xs text-slate-400">
+            Looking to explore the iCare platform?{' '}
+            <button
+              type="button"
+              onClick={handleDemoClick}
+              className="text-[#0088ff] font-semibold hover:underline cursor-pointer"
+            >
+              Try Live Demo
+            </button>
+          </p>
+        </div>
+      )}
     </div>
   );
 };
