@@ -68,6 +68,7 @@ const TenantDetail: React.FC = () => {
   const [passwordSuccess, setPasswordSuccess] = useState("");
 
   const [controlsOpen, setControlsOpen] = useState(false);
+  const [identityOpen, setIdentityOpen] = useState(false);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
@@ -695,44 +696,54 @@ const TenantDetail: React.FC = () => {
           </div>
 
           {/* Section: Hospital Identity */}
-          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-blue-600" />
-            Hospital Identity
-          </h2>
-          <div className="bg-white border border-slate-100 rounded-xl p-5">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Hospital Name</Label>
-                <Input
-                  value={editHospitalName}
-                  onChange={(e) => { setEditHospitalName(e.target.value); setIdentitySuccess(""); }}
-                  className="bg-white border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">URL Slug</Label>
-                <Input
-                  value={editUrlSlug}
-                  onChange={(e) => { setEditUrlSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "")); setIdentitySuccess(""); }}
-                  placeholder="my-hospital"
-                  className="bg-white border-slate-300 text-slate-900 font-mono focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                />
-              </div>
-              <Button onClick={handleSaveIdentity} disabled={savingIdentity} className="bg-blue-600 hover:bg-blue-700 shadow-[0_0_12px_rgba(37,99,235,0.15)] text-sm h-10 text-white">
-                {savingIdentity ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                {identitySuccess || "Save"}
-              </Button>
-            </div>
-            {identityError && (
-              <div className="mt-3 bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                {identityError}
-              </div>
-            )}
-            {identitySuccess && (
-              <div className="mt-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
-                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                {identitySuccess}
+          <div className="bg-white border border-slate-100 rounded-xl">
+            <button
+              onClick={() => setIdentityOpen(!identityOpen)}
+              className="w-full flex items-center justify-between p-5 cursor-pointer hover:bg-slate-50 transition-colors"
+            >
+              <span className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-blue-600" />
+                Hospital Identity
+              </span>
+              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${identityOpen ? "rotate-180" : ""}`} />
+            </button>
+            {identityOpen && (
+              <div className="px-5 pb-5 pt-0 border-t border-slate-100">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end pt-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Hospital Name</Label>
+                    <Input
+                      value={editHospitalName}
+                      onChange={(e) => { setEditHospitalName(e.target.value); setIdentitySuccess(""); }}
+                      className="bg-white border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">URL Slug</Label>
+                    <Input
+                      value={editUrlSlug}
+                      onChange={(e) => { setEditUrlSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "")); setIdentitySuccess(""); }}
+                      placeholder="my-hospital"
+                      className="bg-white border-slate-300 text-slate-900 font-mono focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <Button onClick={handleSaveIdentity} disabled={savingIdentity} className="text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-sm h-10">
+                    {savingIdentity ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    {identitySuccess || "Save"}
+                  </Button>
+                </div>
+                {identityError && (
+                  <div className="mt-3 bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    {identityError}
+                  </div>
+                )}
+                {identitySuccess && (
+                  <div className="mt-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    {identitySuccess}
+                  </div>
+                )}
               </div>
             )}
           </div>
