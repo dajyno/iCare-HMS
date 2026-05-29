@@ -15,6 +15,7 @@ import HospitalNotFound from "./components/HospitalNotFound";
 
 import Login from "./pages/Auth/Login";
 import TenantLogin from "./pages/Auth/TenantLogin";
+import AuthCallback from "./pages/Auth/AuthCallback";
 import AdminLogin from "./pages/Admin/AdminLogin";
 import PlatformOverview from "./pages/Admin/PlatformOverview";
 import TenantsDirectory from "./pages/Admin/TenantsDirectory";
@@ -100,6 +101,7 @@ export default function App() {
 
                 {/* Tenant Login */}
                 <Route path="/:hospital_slug/login" element={<TenantLogin />} />
+                <Route path="/:hospital_slug/auth/callback" element={<AuthCallback />} />
 
                 {/* Tenant Routes */}
                 <Route path="/:hospital_slug" element={<TenantRouteGuard />}>

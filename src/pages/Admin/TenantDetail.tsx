@@ -514,7 +514,7 @@ const TenantDetail: React.FC = () => {
         }
       }
 
-      // 4. Sign in via Supabase Auth REST API and pass tokens to new tab
+      // 4. Sign in via Supabase Auth REST API, then pass tokens to the auth callback page
       if (adminUser?.email && knownPassword) {
         const res = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
           method: "POST",
@@ -524,8 +524,12 @@ const TenantDetail: React.FC = () => {
 
         if (res.ok) {
           const session = await res.json();
-          const hash = `access_token=${encodeURIComponent(session.access_token)}&refresh_token=${encodeURIComponent(session.refresh_token)}&expires_in=${session.expires_in}&token_type=bearer`;
-          window.open(`${window.location.origin}/${slug}/dashboard#${hash}`, "_blank");
+          const params = new URLSearchParams({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+            redirect_to: `/${slug}/dashboard`,
+          });
+          window.open(`${window.location.origin}/${slug}/auth/callback?${params}`, "_blank");
           return;
         }
       }
