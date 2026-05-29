@@ -9,6 +9,7 @@ import {
   LogOut,
   Menu,
   X,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -35,12 +36,19 @@ const AdminLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-[#07070d] text-[#e8e8f0] overflow-hidden">
+    <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden">
       {/* Desktop Sidebar */}
-      <aside className="w-64 bg-[#0d0d1a] border-r border-[#1a1a35] flex flex-col hidden md:flex">
-        <div className="p-6 border-b border-[#1a1a35]">
-          <h1 className="text-lg font-bold tracking-tight text-white">iCare SaaS</h1>
-          <p className="text-[10px] text-[#8888aa] uppercase tracking-wider mt-1">Control Center</p>
+      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex">
+        <div className="p-6 border-b border-slate-200">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-[0_0_16px_rgba(37,99,235,0.2)]">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-base font-bold tracking-tight text-slate-900">iCare SaaS</h1>
+              <p className="text-[10px] text-slate-400 uppercase tracking-wider">Control Center</p>
+            </div>
+          </div>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
@@ -51,8 +59,8 @@ const AdminLayout: React.FC = () => {
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 text-left",
                 isActive(item.href)
-                  ? "bg-[#0088ff]/10 text-[#0088ff] border-l-2 border-[#0088ff] rounded-l-none"
-                  : "text-[#8888aa] hover:text-white hover:bg-white/[0.03]"
+                  ? "bg-blue-50 text-blue-600 border-l-2 border-blue-600 rounded-l-none"
+                  : "text-slate-400 hover:text-slate-900 hover:bg-slate-100"
               )}
             >
               <item.icon className="w-5 h-5" strokeWidth={2} />
@@ -61,20 +69,20 @@ const AdminLayout: React.FC = () => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-[#1a1a35]">
+        <div className="p-4 border-t border-slate-200">
           <div className="flex items-center gap-3 px-3 py-2">
-            <div className="w-8 h-8 rounded-full bg-[#0088ff] shadow-[0_0_12px_rgba(0,136,255,0.3)] flex items-center justify-center text-xs font-bold text-white">
+            <div className="w-8 h-8 rounded-full bg-blue-600 shadow-[0_0_12px_rgba(37,99,235,0.3)] flex items-center justify-center text-xs font-bold text-white">
               {admin?.name?.charAt(0) || "A"}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold truncate text-white">{admin?.name || "Admin"}</p>
-              <p className="text-[10px] text-[#8888aa] uppercase">{admin?.role}</p>
+              <p className="text-xs font-semibold truncate text-slate-900">{admin?.name || "Admin"}</p>
+              <p className="text-[10px] text-slate-400 uppercase">{admin?.role}</p>
             </div>
           </div>
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start gap-2 text-red-400 hover:text-red-300 hover:bg-red-900/30 text-xs h-8 mt-2"
+            className="w-full justify-start gap-2 text-red-500 hover:text-red-700 hover:bg-red-50 text-xs h-8 mt-2"
             onClick={logout}
           >
             <LogOut className="w-3.5 h-3.5" />
@@ -96,8 +104,17 @@ const AdminLayout: React.FC = () => {
         {/* Mobile Drawer */}
         {mobileOpen && (
           <div className="md:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setMobileOpen(false)}>
-            <div className="w-64 h-full bg-[#0d0d1a] p-4" onClick={(e) => e.stopPropagation()}>
-              <nav className="space-y-1 mt-8">
+            <div className="w-64 h-full bg-white border-r border-slate-200 p-4" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-3 pb-4 mb-4 border-b border-slate-200 mt-2">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-[0_0_12px_rgba(37,99,235,0.2)]">
+                  <Shield className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-900">iCare SaaS</p>
+                  <p className="text-[9px] text-slate-400 uppercase tracking-wider">Control Center</p>
+                </div>
+              </div>
+              <nav className="space-y-1">
                 {navItems.map((item) => (
                   <button
                     key={item.href}
@@ -105,8 +122,8 @@ const AdminLayout: React.FC = () => {
                     className={cn(
                       "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 text-left",
                       isActive(item.href)
-                        ? "bg-[#0088ff]/10 text-[#0088ff]"
-                        : "text-[#8888aa] hover:text-white"
+                        ? "bg-blue-50 text-blue-600"
+                        : "text-slate-400 hover:text-slate-900 hover:bg-slate-100"
                     )}
                   >
                     <item.icon className="w-5 h-5" />
