@@ -60,10 +60,13 @@ export function useNotifications() {
         .select("id, message")
         .eq("user_id", user.id)
         .eq("title", title)
-        .maybeSingle();
+        .order("created_at", { ascending: false })
+        .limit(1);
 
-      if (existing) {
-        if (existing.message !== message) {
+      const row = existing && existing.length > 0 ? existing[0] : null;
+
+      if (row) {
+        if (row.message !== message) {
           await adminSupabase
             .from("notifications")
             .update({
@@ -71,7 +74,7 @@ export function useNotifications() {
               created_at: new Date().toISOString(),
               ...(link !== undefined && { link }),
             })
-            .eq("id", existing.id);
+            .eq("id", row.id);
           fetchNotifications();
         }
         return;
