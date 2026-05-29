@@ -95,7 +95,7 @@ const TenantsDirectory: React.FC = () => {
       {
         id: 1,
         tenant_id: tenantId,
-        settings: getDefaultSettings(),
+        settings: { ...getDefaultSettings(), hospitalName: form.hospitalName },
         updated_at: new Date().toISOString(),
         updated_by: null,
       },
@@ -348,7 +348,7 @@ const TenantsDirectory: React.FC = () => {
                   <SelectTrigger className="bg-white border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-white border-slate-200 text-slate-700">
+                  <SelectContent className="bg-white border-slate-200 text-slate-700 min-w-[max-content]">
                     <SelectItem value="Standard">Standard — {'\u20A6'}199,000/mo (10 seats, 0 beds)</SelectItem>
                     <SelectItem value="Premium">Premium — {'\u20A6'}499,000/mo (50 seats, 40 beds)</SelectItem>
                     <SelectItem value="Enterprise">Enterprise — {'\u20A6'}999,000/mo (unlimited)</SelectItem>
@@ -357,7 +357,7 @@ const TenantsDirectory: React.FC = () => {
               </div>
             </div>
             <DialogFooter className="pt-4">
-              <Button type="button" variant="ghost" onClick={() => setModalOpen(false)} className="text-slate-500">
+              <Button type="button" variant="outline" onClick={() => setModalOpen(false)} className="text-slate-500">
                 Cancel
               </Button>
               <Button type="submit" disabled={submitting} className="bg-blue-600 hover:bg-blue-700 shadow-[0_0_12px_rgba(37,99,235,0.15)] text-white">

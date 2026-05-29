@@ -84,6 +84,12 @@ const TenantDetail: React.FC = () => {
   const [addFeaturesLoading, setAddFeaturesLoading] = useState(false);
   const [addFeaturesError, setAddFeaturesError] = useState("");
 
+  const [editHospitalName, setEditHospitalName] = useState("");
+  const [editUrlSlug, setEditUrlSlug] = useState("");
+  const [savingIdentity, setSavingIdentity] = useState(false);
+  const [identityError, setIdentityError] = useState("");
+  const [identitySuccess, setIdentitySuccess] = useState("");
+
   useEffect(() => {
     if (!tenantId) { setNotFound(true); setLoading(false); return; }
 
@@ -103,6 +109,8 @@ const TenantDetail: React.FC = () => {
       const t = toCamel(tData) as Tenant;
       setTenant(t);
       setAdminEmail((t as any).adminEmail || "");
+      setEditHospitalName(t.hospitalName);
+      setEditUrlSlug(t.urlSlug);
 
       const [
         { count: uCount },
@@ -154,6 +162,56 @@ const TenantDetail: React.FC = () => {
     setSavingEmail(false);
     setEmailSaved(true);
     setTimeout(() => setEmailSaved(false), 3000);
+  };
+
+  const handleSaveIdentity = async () => {
+    if (!tenantId) return;
+    setSavingIdentity(true);
+    setIdentityError("");
+    setIdentitySuccess("");
+
+    const sanitizedSlug = editUrlSlug.toLowerCase().replace(/[^a-z0-9-]/g, "");
+    if (!sanitizedSlug) {
+      setIdentityError("URL slug cannot be empty");
+      setSavingIdentity(false);
+      return;
+    }
+    if (!editHospitalName.trim()) {
+      setIdentityError("Hospital name cannot be empty");
+      setSavingIdentity(false);
+      return;
+    }
+
+    const { data: existing } = await adminSupabase
+      .from("tenants")
+      .select("tenant_id")
+      .eq("url_slug", sanitizedSlug)
+      .neq("tenant_id", tenantId)
+      .maybeSingle();
+
+    if (existing) {
+      setIdentityError("This URL slug is already taken by another hospital");
+      setSavingIdentity(false);
+      return;
+    }
+
+    const { error } = await adminSupabase
+      .from("tenants")
+      .update({ hospital_name: editHospitalName.trim(), url_slug: sanitizedSlug })
+      .eq("tenant_id", tenantId);
+
+    if (error) {
+      setIdentityError(error.message);
+      setSavingIdentity(false);
+      return;
+    }
+
+    setSavingIdentity(false);
+    setIdentitySuccess("Saved");
+    setEditUrlSlug(sanitizedSlug);
+    const { data: refreshed } = await adminSupabase.from("tenants").select("*").eq("tenant_id", tenantId).maybeSingle();
+    if (refreshed) setTenant(toCamel(refreshed) as Tenant);
+    setTimeout(() => setIdentitySuccess(""), 3000);
   };
 
   const handleResetPassword = async () => {
@@ -634,6 +692,49 @@ const TenantDetail: React.FC = () => {
                 Reset Password
               </Button>
             </div>
+          </div>
+
+          {/* Section: Hospital Identity */}
+          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-blue-600" />
+            Hospital Identity
+          </h2>
+          <div className="bg-white border border-slate-100 rounded-xl p-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Hospital Name</Label>
+                <Input
+                  value={editHospitalName}
+                  onChange={(e) => { setEditHospitalName(e.target.value); setIdentitySuccess(""); }}
+                  className="bg-white border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">URL Slug</Label>
+                <Input
+                  value={editUrlSlug}
+                  onChange={(e) => { setEditUrlSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "")); setIdentitySuccess(""); }}
+                  placeholder="my-hospital"
+                  className="bg-white border-slate-300 text-slate-900 font-mono focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+              <Button onClick={handleSaveIdentity} disabled={savingIdentity} className="bg-blue-600 hover:bg-blue-700 shadow-[0_0_12px_rgba(37,99,235,0.15)] text-sm h-10 text-white">
+                {savingIdentity ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {identitySuccess || "Save"}
+              </Button>
+            </div>
+            {identityError && (
+              <div className="mt-3 bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                {identityError}
+              </div>
+            )}
+            {identitySuccess && (
+              <div className="mt-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                {identitySuccess}
+              </div>
+            )}
           </div>
 
           {/* Section: Hospital Controls */}
