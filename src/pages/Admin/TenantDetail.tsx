@@ -455,6 +455,72 @@ const TenantDetail: React.FC = () => {
     if (refreshed) setTenant(toCamel(refreshed) as Tenant);
   };
 
+  const handleOpenDashboard = async () => {
+    if (!tenant) return;
+    const slug = tenant.urlSlug;
+    const fallback = () => window.open(`/${slug}/login`, "_blank");
+
+    try {
+      // 1. Look for an existing HospitalAdmin user for this tenant
+      const { data: admins } = await adminSupabase
+        .from("users")
+        .select("id, email, full_name")
+        .eq("tenant_id", tenantId)
+        .eq("role", "HospitalAdmin")
+        .limit(1);
+
+      let adminUser: any = admins?.[0] || null;
+
+      // 2. If no admin user found but admin_email is set, auto-provision one
+      if (!adminUser && (tenant as any).adminEmail) {
+        const tempPw = Math.random().toString(36).slice(2, 10) + "A1!";
+        const { data: newAuth, error: createErr } = await (adminSupabase as any).auth.admin.createUser({
+          email: (tenant as any).adminEmail,
+          password: tempPw,
+          email_confirm: true,
+          user_metadata: { full_name: `${tenant.hospitalName} Admin`, role: "HospitalAdmin" },
+        });
+
+        if (!createErr && newAuth?.user?.id) {
+          const { error: insertErr } = await (adminSupabase as any).from("users").insert({
+            id: newAuth.user.id,
+            email: (tenant as any).adminEmail,
+            tenant_id: tenantId,
+            full_name: `${tenant.hospitalName} Admin`,
+            role: "HospitalAdmin",
+            status: "active",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+
+          if (!insertErr) {
+            adminUser = { id: newAuth.user.id, email: (tenant as any).adminEmail, full_name: `${tenant.hospitalName} Admin` } as any;
+          }
+        }
+      }
+
+      // 3. If we have an admin email, generate a magic link
+      if (adminUser?.email) {
+        const { data: linkData, error: linkErr } = await adminSupabase.auth.admin.generateLink({
+          type: "magiclink",
+          email: adminUser.email,
+          options: {
+            redirectTo: `${window.location.origin}/${slug}/dashboard`,
+          },
+        });
+
+        if (!linkErr && linkData?.properties?.action_link) {
+          window.open(linkData.properties.action_link, "_blank");
+          return;
+        }
+      }
+    } catch {
+      // Fallback on any error
+    }
+
+    fallback();
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -511,7 +577,7 @@ const TenantDetail: React.FC = () => {
           variant="ghost"
           size="sm"
           className="text-xs text-blue-600 hover:text-blue-700"
-          onClick={() => window.open(`/${tenant.urlSlug}/dashboard`, "_blank")}
+          onClick={handleOpenDashboard}
         >
           <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
           Open Hospital Dashboard
