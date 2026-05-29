@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import type { Tenant } from "../../types/tenant";
-import { ALL_MODULES } from "../../lib/moduleAccess";
+import { ALL_MODULES, TIER_DISPLAY_NAMES, TIER_MODULE_DEFAULTS } from "../../lib/moduleAccess";
 
 const CURRENCY = "\u20A6";
 
@@ -73,6 +73,17 @@ const TenantDetail: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
   const [deletingTenant, setDeletingTenant] = useState(false);
+
+  const [showChangePlanModal, setShowChangePlanModal] = useState(false);
+  const [selectedTier, setSelectedTier] = useState("Standard");
+  const [tierOptions, setTierOptions] = useState<{ name: string; monthly_price: number; max_staff_seats: number; max_bed_capacity: number }[]>([]);
+  const [changePlanLoading, setChangePlanLoading] = useState(false);
+  const [changePlanError, setChangePlanError] = useState("");
+
+  const [showAddFeaturesModal, setShowAddFeaturesModal] = useState(false);
+  const [addFeaturesModules, setAddFeaturesModules] = useState<string[]>([]);
+  const [addFeaturesLoading, setAddFeaturesLoading] = useState(false);
+  const [addFeaturesError, setAddFeaturesError] = useState("");
 
   useEffect(() => {
     if (!tenantId) { setNotFound(true); setLoading(false); return; }
@@ -374,6 +385,79 @@ const TenantDetail: React.FC = () => {
     navigate("/admin/tenants");
   };
 
+  const openChangePlan = async () => {
+    if (!tenant) return;
+    const { data } = await adminSupabase.from("subscription_tiers").select("name, monthly_price, max_staff_seats, max_bed_capacity");
+    setTierOptions(data || []);
+    setSelectedTier(tenant.tier);
+    setChangePlanError("");
+    setShowChangePlanModal(true);
+  };
+
+  const handleChangePlan = async () => {
+    if (!tenantId || !tenant) return;
+    if (selectedTier === tenant.tier) { setShowChangePlanModal(false); return; }
+    setChangePlanLoading(true);
+    setChangePlanError("");
+
+    const tierLimits: Record<string, { seats: number; beds: number }> = {
+      Standard: { seats: 10, beds: 0 },
+      Premium: { seats: 50, beds: 40 },
+      Enterprise: { seats: 99999, beds: 99999 },
+    };
+    const limits = tierLimits[selectedTier] || tierLimits.Standard;
+
+    const { error } = await adminSupabase.from("tenants").update({
+      tier: selectedTier,
+      max_staff_seats: limits.seats,
+      max_bed_capacity: limits.beds,
+      allowed_modules_override: null,
+    }).eq("tenant_id", tenantId);
+
+    if (error) {
+      setChangePlanError(error.message);
+      setChangePlanLoading(false);
+      return;
+    }
+
+    setChangePlanLoading(false);
+    setShowChangePlanModal(false);
+
+    const { data: refreshed } = await adminSupabase.from("tenants").select("*").eq("tenant_id", tenantId).maybeSingle();
+    if (refreshed) setTenant(toCamel(refreshed) as Tenant);
+  };
+
+  const openAddFeatures = () => {
+    if (!tenant) return;
+    const overrideRaw = (tenant as any).allowedModulesOverride;
+    const parsed: string[] = typeof overrideRaw === "string" ? JSON.parse(overrideRaw || "[]") : (overrideRaw ?? []);
+    setAddFeaturesModules(parsed.length > 0 ? parsed : (TIER_MODULE_DEFAULTS[tenant.tier] ?? []));
+    setAddFeaturesError("");
+    setShowAddFeaturesModal(true);
+  };
+
+  const handleAddFeatures = async () => {
+    if (!tenantId) return;
+    setAddFeaturesLoading(true);
+    setAddFeaturesError("");
+
+    const { error } = await adminSupabase.from("tenants").update({
+      allowed_modules_override: JSON.stringify(addFeaturesModules),
+    }).eq("tenant_id", tenantId);
+
+    if (error) {
+      setAddFeaturesError(error.message);
+      setAddFeaturesLoading(false);
+      return;
+    }
+
+    setAddFeaturesLoading(false);
+    setShowAddFeaturesModal(false);
+
+    const { data: refreshed } = await adminSupabase.from("tenants").select("*").eq("tenant_id", tenantId).maybeSingle();
+    if (refreshed) setTenant(toCamel(refreshed) as Tenant);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -539,6 +623,9 @@ const TenantDetail: React.FC = () => {
               <Button onClick={openEditLimits} className="bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_12px_rgba(0,136,255,0.15)] text-sm">
                 Edit Limits
               </Button>
+              <Button onClick={openChangePlan} className="bg-purple-600 hover:bg-purple-700 text-white text-sm shadow-[0_0_12px_rgba(147,51,234,0.2)]">
+                Change Plan
+              </Button>
               {tenant.status !== "Suspended" ? (
                 <Button onClick={() => handleStatusAction("Suspended")} className="bg-amber-500 hover:bg-amber-600 text-white text-sm shadow-[0_0_12px_rgba(245,158,11,0.2)]">
                   Suspend Account
@@ -548,6 +635,9 @@ const TenantDetail: React.FC = () => {
                   Reactivate Account
                 </Button>
               )}
+              <Button onClick={openAddFeatures} className="bg-teal-600 hover:bg-teal-700 text-white text-sm shadow-[0_0_12px_rgba(20,184,166,0.2)]">
+                Add Features
+              </Button>
               <Button onClick={() => setShowDeleteModal(true)} className="bg-red-600 hover:bg-red-700 text-white text-sm shadow-[0_0_12px_rgba(239,68,68,0.2)]">
                 <Trash2 className="w-3.5 h-3.5 mr-1.5" />
                 Delete Account
@@ -679,6 +769,178 @@ const TenantDetail: React.FC = () => {
             >
               {deletingTenant ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Trash2 className="w-3.5 h-3.5 mr-1" />}
               {deletingTenant ? "Deleting..." : "Permanently Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Plan Modal */}
+      <Dialog open={showChangePlanModal} onOpenChange={(o) => { if (!o) { setShowChangePlanModal(false); setChangePlanError(""); }}}>
+        <DialogContent className="bg-[#0d0d1a] border-[#1a1a35] text-[#e8e8f0] sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-white">Change Plan — {tenant.hospitalName}</DialogTitle>
+            <DialogDescription className="text-[#8888aa] text-xs">
+              Select a new subscription plan. Changing plan will reset module overrides to the new plan's defaults.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            {changePlanError && (
+              <div className="bg-red-900/30 border border-red-800/50 text-red-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                {changePlanError}
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {["Standard", "Premium", "Enterprise"].map((tier) => {
+                const option = tierOptions.find((o) => o.name === tier);
+                const isCurrent = tenant?.tier === tier;
+                const isSelected = selectedTier === tier;
+                const displayName = TIER_DISPLAY_NAMES[tier] || tier;
+                const modules = TIER_MODULE_DEFAULTS[tier] ?? [];
+                const seats = option?.max_staff_seats ?? (tier === "Standard" ? 10 : tier === "Premium" ? 50 : 99999);
+                const beds = option?.max_bed_capacity ?? (tier === "Standard" ? 0 : tier === "Premium" ? 40 : 99999);
+                const price = option?.monthly_price ?? 0;
+                return (
+                  <button
+                    key={tier}
+                    type="button"
+                    onClick={() => setSelectedTier(tier)}
+                    className={`relative text-left p-4 rounded-xl border transition-all cursor-pointer ${
+                      isSelected
+                        ? "border-purple-500 bg-purple-900/20 shadow-[0_0_16px_rgba(147,51,234,0.15)]"
+                        : "border-[#1a1a35] bg-[#07070d] hover:border-[#333366]"
+                    }`}
+                  >
+                    {isCurrent && (
+                      <span className="absolute top-2 right-2 text-[10px] font-bold text-emerald-400 bg-emerald-900/40 px-2 py-0.5 rounded-full border border-emerald-700/50">
+                        Current
+                      </span>
+                    )}
+                    <div className="space-y-2">
+                      <h3 className="font-bold text-white text-sm">{displayName}</h3>
+                      <p className="text-[10px] text-[#666688] uppercase tracking-wider font-semibold">{tier}</p>
+                      <p className="text-lg font-bold text-[#0088ff]">
+                        {CURRENCY}{(price || 0).toLocaleString()}<span className="text-xs text-[#8888aa] font-normal">/mo</span>
+                      </p>
+                      <div className="text-[11px] text-[#b0b0cc] space-y-1 pt-1 border-t border-[#1a1a35]">
+                        <p>{seats >= 99999 ? "Unlimited" : seats} staff seats</p>
+                        <p>{beds >= 99999 ? "Unlimited" : beds} bed capacity</p>
+                        <p className="pt-1 text-[10px] text-[#666688] font-semibold uppercase tracking-wider">Modules</p>
+                        <ul className="space-y-0.5">
+                          {modules.map((m) => (
+                            <li key={m} className="flex items-center gap-1.5">
+                              <span className="text-emerald-400 text-[10px]">✓</span>
+                              {m.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            {selectedTier !== tenant?.tier && (
+              <div className="bg-amber-900/20 border border-amber-800/40 text-amber-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                {tenant?.tier && TIER_MODULE_DEFAULTS[selectedTier] && TIER_MODULE_DEFAULTS[tenant.tier]
+                  ? (() => {
+                      const lostModules = TIER_MODULE_DEFAULTS[tenant.tier].filter(
+                        (m) => !TIER_MODULE_DEFAULTS[selectedTier].includes(m)
+                      );
+                      return lostModules.length > 0
+                        ? `Downgrading will disable: ${lostModules.map((m) => m.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())).join(", ")}. Module overrides will be reset.`
+                        : "Module overrides will be reset when changing plans.";
+                    })()
+                  : "Module overrides will be reset when changing plans."}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="ghost" onClick={() => { setShowChangePlanModal(false); setChangePlanError(""); }} className="text-[#8888aa]">
+              Cancel
+            </Button>
+            <Button onClick={handleChangePlan} disabled={changePlanLoading || selectedTier === tenant?.tier} className="bg-purple-600 hover:bg-purple-700 shadow-[0_0_12px_rgba(147,51,234,0.2)]">
+              {changePlanLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+              {changePlanLoading ? "Changing..." : "Change Plan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Features Modal */}
+      <Dialog open={showAddFeaturesModal} onOpenChange={(o) => { if (!o) { setShowAddFeaturesModal(false); setAddFeaturesError(""); }}}>
+        <DialogContent className="bg-[#0d0d1a] border-[#1a1a35] text-[#e8e8f0] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-white">Add Features — {tenant.hospitalName}</DialogTitle>
+            <DialogDescription className="text-[#8888aa] text-xs">
+              Individually enable or disable modules for this hospital.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            {addFeaturesError && (
+              <div className="bg-red-900/30 border border-red-800/50 text-red-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                {addFeaturesError}
+              </div>
+            )}
+            <p className="text-[10px] text-[#666688] font-medium">
+              {tenant?.tier && (
+                <>Default modules for {TIER_DISPLAY_NAMES[tenant.tier]}: <span className="text-[#b0b0cc]">{TIER_MODULE_DEFAULTS[tenant.tier]?.map((m) => m.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())).join(", ") || "None"}</span></>
+              )}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {ALL_MODULES.map((mod) => {
+                const isDefaultForTier = tenant?.tier && (TIER_MODULE_DEFAULTS[tenant.tier] ?? []).includes(mod);
+                return (
+                  <label
+                    key={mod}
+                    className={`flex items-center gap-2 text-xs rounded-lg border px-3 py-2.5 cursor-pointer transition-colors ${
+                      addFeaturesModules.includes(mod)
+                        ? "border-teal-600/60 bg-teal-900/20 text-teal-300"
+                        : "border-[#1a1a35] bg-[#07070d] text-[#b0b0cc] hover:border-[#333366]"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={addFeaturesModules.includes(mod)}
+                      onChange={(e) => {
+                        if (e.target.checked) setAddFeaturesModules([...addFeaturesModules, mod]);
+                        else setAddFeaturesModules(addFeaturesModules.filter((m) => m !== mod));
+                      }}
+                      className="rounded bg-[#0d0d1a] border-[#1a1a35]"
+                    />
+                    <div className="flex-1">
+                      <span>{mod.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</span>
+                      {isDefaultForTier && (
+                        <span className="ml-1.5 text-[9px] text-emerald-500/70 font-medium">(included)</span>
+                      )}
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (tenant?.tier) {
+                  setAddFeaturesModules(TIER_MODULE_DEFAULTS[tenant.tier] ?? []);
+                }
+              }}
+              className="text-[#8888aa] hover:text-white text-xs"
+            >
+              Reset to {tenant?.tier ? TIER_DISPLAY_NAMES[tenant.tier] : "Tier"} Defaults
+            </Button>
+          </div>
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="ghost" onClick={() => { setShowAddFeaturesModal(false); setAddFeaturesError(""); }} className="text-[#8888aa]">
+              Cancel
+            </Button>
+            <Button onClick={handleAddFeatures} disabled={addFeaturesLoading} className="bg-teal-600 hover:bg-teal-700 shadow-[0_0_12px_rgba(20,184,166,0.2)]">
+              {addFeaturesLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+              {addFeaturesLoading ? "Saving..." : "Save Features"}
             </Button>
           </DialogFooter>
         </DialogContent>
