@@ -38,9 +38,9 @@ const AdminLayout: React.FC = () => {
     <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden">
       {/* Desktop Sidebar */}
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex">
-        <div className="p-6 border-b border-slate-200 flex items-center gap-3">
-          <img src="/logo.svg" alt="iCare" className="w-8 h-8" />
-          <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Control Center</p>
+        <div className="p-6 border-b border-slate-200 flex flex-col items-center">
+          <img src="/logo-saas.png" alt="iCare" className="w-full" />
+          <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mt-2">Control Center</p>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
@@ -97,9 +97,9 @@ const AdminLayout: React.FC = () => {
         {mobileOpen && (
           <div className="md:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setMobileOpen(false)}>
             <div className="w-64 h-full bg-white border-r border-slate-200 p-4" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center gap-3 pb-4 mb-4 border-b border-slate-200 mt-2">
-                <img src="/logo.svg" alt="iCare" className="w-7 h-7" />
-                <p className="text-[9px] text-slate-500 uppercase tracking-wider font-semibold">Control Center</p>
+              <div className="flex flex-col items-center pb-4 mb-4 border-b border-slate-200 mt-2">
+                <img src="/logo-saas.png" alt="iCare" className="w-full max-w-[120px]" />
+                <p className="text-[9px] text-slate-500 uppercase tracking-wider font-semibold mt-1.5">Control Center</p>
               </div>
               <nav className="space-y-1">
                 {navItems.map((item) => (
