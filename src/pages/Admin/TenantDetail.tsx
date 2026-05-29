@@ -15,22 +15,22 @@ const CURRENCY = "\u20A6";
 
 const statusBadge = (status: string) => {
   const colors: Record<string, string> = {
-    Active: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-    Trial: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    Suspended: "bg-red-500/20 text-red-400 border-red-500/30",
+    Active: "bg-emerald-100 text-emerald-700 border-emerald-300",
+    Trial: "bg-amber-100 text-amber-700 border-amber-300",
+    Suspended: "bg-red-100 text-red-700 border-red-300",
   };
-  return colors[status] || "bg-slate-500/20 text-slate-400";
+  return colors[status] || "bg-slate-100 text-slate-600";
 };
 
 const MetricCard: React.FC<{ icon: React.ElementType; label: string; value: string }> = ({ icon: Icon, label, value }) => (
-  <div className="bg-[#0d0d1a] border border-[#1a1a35] rounded-xl p-5 transition-all duration-300 hover:border-[#0088ff]/30 hover:shadow-[0_0_20px_rgba(0,136,255,0.04)]">
+  <div className="bg-white border border-slate-200 rounded-xl p-5 transition-all duration-300 hover:border-blue-300 hover:shadow-md">
     <div className="flex items-center justify-between mb-3">
-      <span className="text-xs font-semibold text-[#8888aa] uppercase tracking-wider">{label}</span>
-      <div className="w-9 h-9 rounded-lg bg-[#0088ff] flex items-center justify-center shadow-[0_0_12px_rgba(0,136,255,0.15)]">
+      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</span>
+      <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shadow-[0_0_12px_rgba(37,99,235,0.15)]">
         <Icon className="w-4 h-4 text-white" />
       </div>
     </div>
-    <p className="text-2xl font-bold text-white">{value}</p>
+    <p className="text-2xl font-bold text-slate-900">{value}</p>
   </div>
 );
 
@@ -461,7 +461,7 @@ const TenantDetail: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-[#8888aa]" />
+        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
       </div>
     );
   }
@@ -470,9 +470,9 @@ const TenantDetail: React.FC = () => {
     return (
       <div className="text-center py-20">
         <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-4" />
-        <h2 className="text-lg font-bold text-white mb-1">Hospital Not Found</h2>
-        <p className="text-sm text-[#8888aa]">No tenant found with ID "{tenantId}"</p>
-        <Button onClick={() => navigate("/admin/tenants")} className="mt-4 bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_12px_rgba(0,136,255,0.15)]">
+        <h2 className="text-lg font-bold text-slate-900 mb-1">Hospital Not Found</h2>
+        <p className="text-sm text-slate-500">No tenant found with ID "{tenantId}"</p>
+        <Button onClick={() => navigate("/admin/tenants")} className="mt-4 bg-blue-600 hover:bg-blue-700 shadow-[0_0_12px_rgba(37,99,235,0.15)] text-white">
           Back to Hospital Accounts
         </Button>
       </div>
@@ -485,20 +485,20 @@ const TenantDetail: React.FC = () => {
     <div className="space-y-6">
       {/* Back + Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/admin/tenants")} className="text-[#8888aa] hover:text-white">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/admin/tenants")} className="text-slate-400 hover:text-slate-700">
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-white">{tenant.hospitalName}</h1>
+            <h1 className="text-xl font-bold text-slate-900">{tenant.hospitalName}</h1>
             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${statusBadge(tenant.status)}`}>
               {tenant.status}
             </span>
-            <Badge variant="outline" className="text-[#0088ff] border-[#0088ff]/30 bg-[#0088ff]/10">
+            <Badge variant="outline" className="text-blue-600 border-blue-300 bg-blue-50">
               {tenant.tier}
             </Badge>
           </div>
-          <p className="text-xs text-[#8888aa] mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             <span className="font-mono">{tenant.urlSlug}</span>
             <span className="mx-2">·</span>
             ID: {tenant.tenantId}
@@ -513,7 +513,7 @@ const TenantDetail: React.FC = () => {
         <Button
           variant="ghost"
           size="sm"
-          className="text-xs text-[#0088ff] hover:text-[#00b4ff]"
+          className="text-xs text-blue-600 hover:text-blue-700"
           onClick={() => window.open(`/${tenant.urlSlug}/dashboard`, "_blank")}
         >
           <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
@@ -522,28 +522,28 @@ const TenantDetail: React.FC = () => {
       </div>
 
       {/* Admin Management */}
-      <div className="bg-[#0d0d1a] border border-[#1a1a35] rounded-xl p-5">
-        <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-          <Mail className="w-4 h-4 text-[#0088ff]" />
+      <div className="bg-white border border-slate-200 rounded-xl p-5">
+        <h2 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+          <Mail className="w-4 h-4 text-blue-600" />
           Admin Management
         </h2>
         <div className="flex items-end gap-3">
           <div className="flex-1 space-y-1.5">
-            <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Admin Email</Label>
+            <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Admin Email</Label>
             <Input
               type="email"
               value={adminEmail}
               onChange={(e) => { setAdminEmail(e.target.value); setEmailSaved(false); }}
               placeholder="admin@hospital.com"
-              className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25"
+              className="bg-white border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
-            {emailError && <p className="text-[10px] text-red-400">{emailError}</p>}
+            {emailError && <p className="text-[10px] text-red-500">{emailError}</p>}
           </div>
-          <Button onClick={handleSaveAdminEmail} disabled={savingEmail} className="bg-emerald-600 hover:bg-emerald-700 shadow-[0_0_12px_rgba(16,185,129,0.2)] text-sm h-10 min-w-[130px]">
+          <Button onClick={handleSaveAdminEmail} disabled={savingEmail} className="bg-emerald-600 hover:bg-emerald-700 shadow-[0_0_12px_rgba(16,185,129,0.2)] text-sm h-10 min-w-[130px] text-white">
             {savingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {emailSaved ? "Saved" : "Save"}
           </Button>
-          <Button onClick={() => setShowResetModal(true)} variant="outline" className="border-[#004488]/30 text-[#004488] hover:text-[#0055aa] text-sm h-10">
+          <Button onClick={() => setShowResetModal(true)} variant="outline" className="border-blue-300 text-blue-600 hover:text-blue-700 text-sm h-10">
             <Key className="w-3.5 h-3.5 mr-1.5" />
             Reset Password
           </Button>
@@ -552,52 +552,52 @@ const TenantDetail: React.FC = () => {
 
       {/* Password Reset Modal */}
       <Dialog open={showResetModal} onOpenChange={(o) => { if (!o) { setShowResetModal(false); setPasswordError(""); setPasswordSuccess(""); setNewPassword(""); setConfirmPassword(""); }}}>
-        <DialogContent className="bg-[#0d0d1a] border-[#1a1a35] text-[#e8e8f0] sm:max-w-sm">
+        <DialogContent className="bg-white border-slate-200 text-slate-900 sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-white">Reset Password</DialogTitle>
-            <DialogDescription className="text-[#8888aa] text-xs">
+            <DialogTitle className="text-lg font-bold text-slate-900">Reset Password</DialogTitle>
+            <DialogDescription className="text-slate-500 text-xs">
               Set a new password for {tenant.hospitalName}'s admin account.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             {passwordError && (
-              <div className="bg-red-900/30 border border-red-800/50 text-red-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+              <div className="bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 {passwordError}
               </div>
             )}
             {passwordSuccess && (
-              <div className="bg-emerald-900/30 border border-emerald-800/50 text-emerald-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+              <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                 {passwordSuccess}
               </div>
             )}
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">New Password</Label>
+              <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">New Password</Label>
               <Input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25"
+                className="bg-white border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 placeholder="Min 6 characters"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Confirm Password</Label>
+              <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Confirm Password</Label>
               <Input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25"
+                className="bg-white border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 placeholder="Re-enter new password"
               />
             </div>
           </div>
           <DialogFooter className="pt-4">
-            <Button type="button" variant="ghost" onClick={() => { setShowResetModal(false); setPasswordError(""); setPasswordSuccess(""); setNewPassword(""); setConfirmPassword(""); }} className="text-[#8888aa]">
+            <Button type="button" variant="ghost" onClick={() => { setShowResetModal(false); setPasswordError(""); setPasswordSuccess(""); setNewPassword(""); setConfirmPassword(""); }} className="text-slate-500">
               Cancel
             </Button>
-            <Button onClick={handleResetPassword} disabled={resettingPassword} className="bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_12px_rgba(0,136,255,0.15)]">
+            <Button onClick={handleResetPassword} disabled={resettingPassword} className="bg-blue-600 hover:bg-blue-700 shadow-[0_0_12px_rgba(37,99,235,0.15)] text-white">
               {resettingPassword ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
               Update Password
             </Button>
@@ -606,21 +606,21 @@ const TenantDetail: React.FC = () => {
       </Dialog>
 
       {/* Hospital Controls — Collapsible */}
-      <div className="bg-[#0d0d1a] border border-[#1a1a35] rounded-xl">
+      <div className="bg-white border border-slate-200 rounded-xl">
         <button
           onClick={() => setControlsOpen(!controlsOpen)}
-          className="w-full flex items-center justify-between p-5 cursor-pointer hover:bg-white/[0.01] transition-colors"
+          className="w-full flex items-center justify-between p-5 cursor-pointer hover:bg-slate-50 transition-colors"
         >
-          <h2 className="text-sm font-bold text-white flex items-center gap-2">
-            <Settings className="w-4 h-4 text-[#0088ff]" />
+          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <Settings className="w-4 h-4 text-blue-600" />
             Hospital Controls
           </h2>
-          <ChevronDown className={`w-4 h-4 text-[#8888aa] transition-transform duration-200 ${controlsOpen ? "rotate-180" : ""}`} />
+          <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${controlsOpen ? "rotate-180" : ""}`} />
         </button>
         {controlsOpen && (
-          <div className="px-5 pb-5 pt-0 border-t border-[#1a1a35]">
+          <div className="px-5 pb-5 pt-0 border-t border-slate-200">
             <div className="flex flex-wrap items-center gap-3 pt-4">
-              <Button onClick={openEditLimits} className="bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_12px_rgba(0,136,255,0.15)] text-sm">
+              <Button onClick={openEditLimits} className="bg-blue-600 hover:bg-blue-700 shadow-[0_0_12px_rgba(37,99,235,0.15)] text-sm text-white">
                 Edit Limits
               </Button>
               <Button onClick={openChangePlan} className="bg-purple-600 hover:bg-purple-700 text-white text-sm shadow-[0_0_12px_rgba(147,51,234,0.2)]">
@@ -631,7 +631,7 @@ const TenantDetail: React.FC = () => {
                   Suspend Account
                 </Button>
               ) : (
-                <Button onClick={() => handleStatusAction("Active")} variant="outline" className="border-emerald-800/50 text-emerald-400 hover:bg-emerald-900/30 text-sm">
+                <Button onClick={() => handleStatusAction("Active")} variant="outline" className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-sm">
                   Reactivate Account
                 </Button>
               )}
@@ -649,44 +649,44 @@ const TenantDetail: React.FC = () => {
 
       {/* Edit Limits Modal */}
       <Dialog open={showLimitsModal} onOpenChange={(o) => { if (!o) { setShowLimitsModal(false); setLimitsError(""); }}}>
-        <DialogContent className="bg-[#0d0d1a] border-[#1a1a35] text-[#e8e8f0] sm:max-w-md">
+        <DialogContent className="bg-white border-slate-200 text-slate-900 sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-white">Edit Limits — {tenant.hospitalName}</DialogTitle>
-            <DialogDescription className="text-[#8888aa] text-xs">
+            <DialogTitle className="text-lg font-bold text-slate-900">Edit Limits — {tenant.hospitalName}</DialogTitle>
+            <DialogDescription className="text-slate-500 text-xs">
               Override subscription limits for this hospital.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             {limitsError && (
-              <div className="bg-red-900/30 border border-red-800/50 text-red-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+              <div className="bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
                 <AlertCircle className="w-3.5 h-3.5" />
                 {limitsError}
               </div>
             )}
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Max Staff Seats</Label>
+              <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Max Staff Seats</Label>
               <Input
                 type="number" min={0}
                 value={editStaffSeats}
                 onChange={(e) => setEditStaffSeats(parseInt(e.target.value) || 0)}
-                className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25"
+                className="bg-white border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Max Bed Capacity</Label>
+              <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Max Bed Capacity</Label>
               <Input
                 type="number" min={0}
                 value={editBedCapacity}
                 onChange={(e) => setEditBedCapacity(parseInt(e.target.value) || 0)}
-                className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25"
+                className="bg-white border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Module Override</Label>
+                <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Module Override</Label>
                 <button
                   onClick={() => setEditModuleOverride(!editModuleOverride)}
-                  className={`relative w-10 h-5 rounded-full transition-colors ${editModuleOverride ? "bg-[#0088ff]" : "bg-[#1a1a35]"}`}
+                  className={`relative w-10 h-5 rounded-full transition-colors ${editModuleOverride ? "bg-blue-600" : "bg-slate-300"}`}
                 >
                   <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${editModuleOverride ? "translate-x-5" : ""}`} />
                 </button>
@@ -694,7 +694,7 @@ const TenantDetail: React.FC = () => {
               {editModuleOverride && (
                 <div className="grid grid-cols-2 gap-2 pt-2">
                   {ALL_MODULES.map((mod) => (
-                    <label key={mod} className="flex items-center gap-2 text-xs text-[#b0b0cc] cursor-pointer">
+                    <label key={mod} className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={editModules.includes(mod)}
@@ -702,7 +702,7 @@ const TenantDetail: React.FC = () => {
                           if (e.target.checked) setEditModules([...editModules, mod]);
                           else setEditModules(editModules.filter((m) => m !== mod));
                         }}
-                        className="rounded bg-[#0d0d1a] border-[#1a1a35]"
+                        className="rounded border-slate-300 text-blue-600"
                       />
                       {mod.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
                     </label>
@@ -710,15 +710,15 @@ const TenantDetail: React.FC = () => {
                 </div>
               )}
               {!editModuleOverride && (
-                <p className="text-[10px] text-[#666688]">Using tier defaults. Toggle override to customize.</p>
+                <p className="text-[10px] text-slate-400">Using tier defaults. Toggle override to customize.</p>
               )}
             </div>
           </div>
           <DialogFooter className="pt-4">
-            <Button type="button" variant="ghost" onClick={() => { setShowLimitsModal(false); setLimitsError(""); }} className="text-[#8888aa]">
+            <Button type="button" variant="ghost" onClick={() => { setShowLimitsModal(false); setLimitsError(""); }} className="text-slate-500">
               Cancel
             </Button>
-            <Button onClick={handleSaveLimits} disabled={savingLimits} className="bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_12px_rgba(0,136,255,0.15)]">
+            <Button onClick={handleSaveLimits} disabled={savingLimits} className="bg-blue-600 hover:bg-blue-700 shadow-[0_0_12px_rgba(37,99,235,0.15)] text-white">
               {savingLimits ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
               Save Limits
             </Button>
@@ -728,38 +728,38 @@ const TenantDetail: React.FC = () => {
 
       {/* Delete Account Confirmation Modal */}
       <Dialog open={showDeleteModal} onOpenChange={(o) => { if (!o) { setShowDeleteModal(false); setDeleteConfirmInput(""); }}}>
-        <DialogContent className="bg-[#0d0d1a] border-[#1a1a35] text-[#e8e8f0] sm:max-w-sm">
+        <DialogContent className="bg-white border-slate-200 text-slate-900 sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-white flex items-center gap-2">
-              <Trash2 className="w-4 h-4 text-red-400" />
+            <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <Trash2 className="w-4 h-4 text-red-500" />
               Delete Hospital Account
             </DialogTitle>
-            <DialogDescription className="text-[#8888aa] text-xs space-y-2">
-              <p>This will permanently delete <span className="text-white font-bold">{tenant.hospitalName}</span> and <span className="text-red-400 font-bold">all associated data</span> across every module.</p>
-              <p className="text-red-400/80 font-medium">This action cannot be undone.</p>
+            <DialogDescription className="text-slate-500 text-xs space-y-2">
+              <p>This will permanently delete <span className="text-slate-900 font-bold">{tenant.hospitalName}</span> and <span className="text-red-600 font-bold">all associated data</span> across every module.</p>
+              <p className="text-red-600/80 font-medium">This action cannot be undone.</p>
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             {deleteConfirmInput && deleteConfirmInput.startsWith("Failed to delete") && (
-              <div className="bg-red-900/30 border border-red-800/50 text-red-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+              <div className="bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 {deleteConfirmInput}
               </div>
             )}
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-[#8888aa]">
-                Type <span className="text-white">"{tenant.hospitalName}"</span> to confirm
+              <Label className="text-xs font-bold text-slate-700">
+                Type <span className="text-slate-900">"{tenant.hospitalName}"</span> to confirm
               </Label>
               <Input
                 value={deleteConfirmInput}
                 onChange={(e) => setDeleteConfirmInput(e.target.value)}
                 placeholder={tenant.hospitalName}
-                className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-red-500 focus:ring-red-500/25"
+                className="bg-white border-slate-300 text-slate-900 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
               />
             </div>
           </div>
           <DialogFooter className="pt-4">
-            <Button type="button" variant="ghost" onClick={() => { setShowDeleteModal(false); setDeleteConfirmInput(""); }} className="text-[#8888aa]">
+            <Button type="button" variant="ghost" onClick={() => { setShowDeleteModal(false); setDeleteConfirmInput(""); }} className="text-slate-500">
               Cancel
             </Button>
             <Button
@@ -776,16 +776,16 @@ const TenantDetail: React.FC = () => {
 
       {/* Change Plan Modal */}
       <Dialog open={showChangePlanModal} onOpenChange={(o) => { if (!o) { setShowChangePlanModal(false); setChangePlanError(""); }}}>
-        <DialogContent className="bg-[#0d0d1a] border-[#1a1a35] text-[#e8e8f0] sm:max-w-2xl">
+        <DialogContent className="bg-white border-slate-200 text-slate-900 sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-white">Change Plan — {tenant.hospitalName}</DialogTitle>
-            <DialogDescription className="text-[#8888aa] text-xs">
+            <DialogTitle className="text-lg font-bold text-slate-900">Change Plan — {tenant.hospitalName}</DialogTitle>
+            <DialogDescription className="text-slate-500 text-xs">
               Select a new subscription plan. Changing plan will reset module overrides to the new plan's defaults.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
             {changePlanError && (
-              <div className="bg-red-900/30 border border-red-800/50 text-red-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+              <div className="bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 {changePlanError}
               </div>
@@ -807,29 +807,29 @@ const TenantDetail: React.FC = () => {
                     onClick={() => setSelectedTier(tier)}
                     className={`relative text-left p-4 rounded-xl border transition-all cursor-pointer ${
                       isSelected
-                        ? "border-purple-500 bg-purple-900/20 shadow-[0_0_16px_rgba(147,51,234,0.15)]"
-                        : "border-[#1a1a35] bg-[#07070d] hover:border-[#333366]"
+                        ? "border-purple-400 bg-purple-50 shadow-[0_0_16px_rgba(147,51,234,0.1)]"
+                        : "border-slate-200 bg-white hover:border-slate-300"
                     }`}
                   >
                     {isCurrent && (
-                      <span className="absolute top-2 right-2 text-[10px] font-bold text-emerald-400 bg-emerald-900/40 px-2 py-0.5 rounded-full border border-emerald-700/50">
+                      <span className="absolute top-2 right-2 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
                         Current
                       </span>
                     )}
                     <div className="space-y-2">
-                      <h3 className="font-bold text-white text-sm">{displayName}</h3>
-                      <p className="text-[10px] text-[#666688] uppercase tracking-wider font-semibold">{tier}</p>
-                      <p className="text-lg font-bold text-[#0088ff]">
-                        {CURRENCY}{(price || 0).toLocaleString()}<span className="text-xs text-[#8888aa] font-normal">/mo</span>
+                      <h3 className="font-bold text-slate-900 text-sm">{displayName}</h3>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">{tier}</p>
+                      <p className="text-lg font-bold text-blue-600">
+                        {CURRENCY}{(price || 0).toLocaleString()}<span className="text-xs text-slate-500 font-normal">/mo</span>
                       </p>
-                      <div className="text-[11px] text-[#b0b0cc] space-y-1 pt-1 border-t border-[#1a1a35]">
+                      <div className="text-[11px] text-slate-600 space-y-1 pt-1 border-t border-slate-200">
                         <p>{seats >= 99999 ? "Unlimited" : seats} staff seats</p>
                         <p>{beds >= 99999 ? "Unlimited" : beds} bed capacity</p>
-                        <p className="pt-1 text-[10px] text-[#666688] font-semibold uppercase tracking-wider">Modules</p>
+                        <p className="pt-1 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Modules</p>
                         <ul className="space-y-0.5">
                           {modules.map((m) => (
                             <li key={m} className="flex items-center gap-1.5">
-                              <span className="text-emerald-400 text-[10px]">✓</span>
+                              <span className="text-emerald-500 text-[10px]">✓</span>
                               {m.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
                             </li>
                           ))}
@@ -841,7 +841,7 @@ const TenantDetail: React.FC = () => {
               })}
             </div>
             {selectedTier !== tenant?.tier && (
-              <div className="bg-amber-900/20 border border-amber-800/40 text-amber-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+              <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 {tenant?.tier && TIER_MODULE_DEFAULTS[selectedTier] && TIER_MODULE_DEFAULTS[tenant.tier]
                   ? (() => {
@@ -857,10 +857,10 @@ const TenantDetail: React.FC = () => {
             )}
           </div>
           <DialogFooter className="pt-4">
-            <Button type="button" variant="ghost" onClick={() => { setShowChangePlanModal(false); setChangePlanError(""); }} className="text-[#8888aa]">
+            <Button type="button" variant="ghost" onClick={() => { setShowChangePlanModal(false); setChangePlanError(""); }} className="text-slate-500">
               Cancel
             </Button>
-            <Button onClick={handleChangePlan} disabled={changePlanLoading || selectedTier === tenant?.tier} className="bg-purple-600 hover:bg-purple-700 shadow-[0_0_12px_rgba(147,51,234,0.2)]">
+            <Button onClick={handleChangePlan} disabled={changePlanLoading || selectedTier === tenant?.tier} className="bg-purple-600 hover:bg-purple-700 shadow-[0_0_12px_rgba(147,51,234,0.2)] text-white">
               {changePlanLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
               {changePlanLoading ? "Changing..." : "Change Plan"}
             </Button>
@@ -870,23 +870,23 @@ const TenantDetail: React.FC = () => {
 
       {/* Add Features Modal */}
       <Dialog open={showAddFeaturesModal} onOpenChange={(o) => { if (!o) { setShowAddFeaturesModal(false); setAddFeaturesError(""); }}}>
-        <DialogContent className="bg-[#0d0d1a] border-[#1a1a35] text-[#e8e8f0] sm:max-w-md">
+        <DialogContent className="bg-white border-slate-200 text-slate-900 sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-white">Add Features — {tenant.hospitalName}</DialogTitle>
-            <DialogDescription className="text-[#8888aa] text-xs">
+            <DialogTitle className="text-lg font-bold text-slate-900">Add Features — {tenant.hospitalName}</DialogTitle>
+            <DialogDescription className="text-slate-500 text-xs">
               Individually enable or disable modules for this hospital.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
             {addFeaturesError && (
-              <div className="bg-red-900/30 border border-red-800/50 text-red-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+              <div className="bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 {addFeaturesError}
               </div>
             )}
-            <p className="text-[10px] text-[#666688] font-medium">
+            <p className="text-[10px] text-slate-400 font-medium">
               {tenant?.tier && (
-                <>Default modules for {TIER_DISPLAY_NAMES[tenant.tier]}: <span className="text-[#b0b0cc]">{TIER_MODULE_DEFAULTS[tenant.tier]?.map((m) => m.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())).join(", ") || "None"}</span></>
+                <>Default modules for {TIER_DISPLAY_NAMES[tenant.tier]}: <span className="text-slate-600">{TIER_MODULE_DEFAULTS[tenant.tier]?.map((m) => m.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())).join(", ") || "None"}</span></>
               )}
             </p>
             <div className="grid grid-cols-2 gap-2">
@@ -897,8 +897,8 @@ const TenantDetail: React.FC = () => {
                     key={mod}
                     className={`flex items-center gap-2 text-xs rounded-lg border px-3 py-2.5 cursor-pointer transition-colors ${
                       addFeaturesModules.includes(mod)
-                        ? "border-teal-600/60 bg-teal-900/20 text-teal-300"
-                        : "border-[#1a1a35] bg-[#07070d] text-[#b0b0cc] hover:border-[#333366]"
+                        ? "border-teal-400 bg-teal-50 text-teal-700"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                     }`}
                   >
                     <input
@@ -908,12 +908,12 @@ const TenantDetail: React.FC = () => {
                         if (e.target.checked) setAddFeaturesModules([...addFeaturesModules, mod]);
                         else setAddFeaturesModules(addFeaturesModules.filter((m) => m !== mod));
                       }}
-                      className="rounded bg-[#0d0d1a] border-[#1a1a35]"
+                      className="rounded border-slate-300 text-teal-600"
                     />
                     <div className="flex-1">
                       <span>{mod.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</span>
                       {isDefaultForTier && (
-                        <span className="ml-1.5 text-[9px] text-emerald-500/70 font-medium">(included)</span>
+                        <span className="ml-1.5 text-[9px] text-emerald-600 font-medium">(included)</span>
                       )}
                     </div>
                   </label>
@@ -929,16 +929,16 @@ const TenantDetail: React.FC = () => {
                   setAddFeaturesModules(TIER_MODULE_DEFAULTS[tenant.tier] ?? []);
                 }
               }}
-              className="text-[#8888aa] hover:text-white text-xs"
+              className="text-slate-500 hover:text-slate-700 text-xs"
             >
               Reset to {tenant?.tier ? TIER_DISPLAY_NAMES[tenant.tier] : "Tier"} Defaults
             </Button>
           </div>
           <DialogFooter className="pt-4">
-            <Button type="button" variant="ghost" onClick={() => { setShowAddFeaturesModal(false); setAddFeaturesError(""); }} className="text-[#8888aa]">
+            <Button type="button" variant="ghost" onClick={() => { setShowAddFeaturesModal(false); setAddFeaturesError(""); }} className="text-slate-500">
               Cancel
             </Button>
-            <Button onClick={handleAddFeatures} disabled={addFeaturesLoading} className="bg-teal-600 hover:bg-teal-700 shadow-[0_0_12px_rgba(20,184,166,0.2)]">
+            <Button onClick={handleAddFeatures} disabled={addFeaturesLoading} className="bg-teal-600 hover:bg-teal-700 shadow-[0_0_12px_rgba(20,184,166,0.2)] text-white">
               {addFeaturesLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
               {addFeaturesLoading ? "Saving..." : "Save Features"}
             </Button>
@@ -948,8 +948,8 @@ const TenantDetail: React.FC = () => {
 
       {/* Hospital Metrics */}
       <div>
-        <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-[#0088ff]" />
+        <h2 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-blue-600" />
           Hospital Metrics
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

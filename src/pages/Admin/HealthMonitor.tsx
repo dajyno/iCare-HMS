@@ -70,7 +70,7 @@ const HealthMonitor: React.FC = () => {
   }, []);
 
   const statCards = [
-    { icon: Building2, label: "Total Tenants", value: data.totalTenants.toLocaleString(), color: "#0088ff" },
+    { icon: Building2, label: "Total Tenants", value: data.totalTenants.toLocaleString(), color: "#2563eb" },
     { icon: Activity, label: "Active Tenants", value: data.activeTenants.toLocaleString(), color: "#10b981" },
     { icon: Clock, label: "Trial Tenants", value: data.trialTenants.toLocaleString(), color: "#f59e0b" },
     { icon: ShieldAlert, label: "Suspended Tenants", value: data.suspendedTenants.toLocaleString(), color: "#ef4444" },
@@ -79,35 +79,35 @@ const HealthMonitor: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-6 h-6 text-[#0088ff] animate-spin" />
+        <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
       </div>
     );
   }
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-white mb-6">Platform Health</h1>
+      <h1 className="text-xl font-bold text-slate-900 mb-6">Platform Health</h1>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {statCards.map((s) => (
-          <Card key={s.label} className="bg-[#0d0d1a] border-[#1a1a35] transition-all duration-300 hover:border-[#0088ff]/30 hover:shadow-[0_0_20px_rgba(0,136,255,0.04)]">
+          <Card key={s.label} className="bg-white border-slate-200 transition-all duration-300 hover:border-blue-300 hover:shadow-md">
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold text-[#8888aa] uppercase tracking-wider">{s.label}</span>
-                <div className="w-9 h-9 rounded-lg bg-[#0088ff]/10 flex items-center justify-center">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{s.label}</span>
+                <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
                   <s.icon className="w-4 h-4" style={{ color: s.color }} />
                 </div>
               </div>
-              <p className="text-xl font-bold text-white">{s.value}</p>
+              <p className="text-xl font-bold text-slate-900">{s.value}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-[#0d0d1a] border-[#1a1a35]">
+        <Card className="bg-white border-slate-200">
           <CardHeader>
-            <CardTitle className="text-sm font-bold text-white">Tenant Status Distribution</CardTitle>
+            <CardTitle className="text-sm font-bold text-slate-900">Tenant Status Distribution</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -118,12 +118,12 @@ const HealthMonitor: React.FC = () => {
               ].map((m) => (
                 <div key={m.label}>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-[#8888aa]">{m.label}</span>
-                    <span className="text-[#b0b0cc]">{m.value}</span>
+                    <span className="text-slate-500">{m.label}</span>
+                    <span className="text-slate-600">{m.value}</span>
                   </div>
-                  <div className="h-2 bg-[#1a1a35] rounded-full overflow-hidden">
+                  <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
                     <div
-                      className="h-full rounded-full transition-all shadow-[0_0_8px_rgba(0,136,255,0.3)]"
+                      className="h-full rounded-full transition-all"
                       style={{ width: `${(m.value / m.max) * 100}%`, backgroundColor: m.color }}
                     />
                   </div>
@@ -133,28 +133,28 @@ const HealthMonitor: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0d0d1a] border-[#1a1a35]">
+        <Card className="bg-white border-slate-200">
           <CardHeader>
-            <CardTitle className="text-sm font-bold text-white">Subscription Tier Breakdown</CardTitle>
+            <CardTitle className="text-sm font-bold text-slate-900">Subscription Tier Breakdown</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {data.tierDistribution.map((t) => (
                 <div key={t.tier}>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-[#8888aa]">{t.tier}</span>
-                    <span className="text-[#b0b0cc]">{t.count} ({t.pct}%)</span>
+                    <span className="text-slate-500">{t.tier}</span>
+                    <span className="text-slate-600">{t.count} ({t.pct}%)</span>
                   </div>
-                  <div className="h-2 bg-[#1a1a35] rounded-full overflow-hidden">
+                  <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
                     <div
-                      className="h-full rounded-full transition-all shadow-[0_0_8px_rgba(0,136,255,0.3)]"
-                      style={{ width: `${t.pct}%`, backgroundColor: "#0088ff" }}
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${t.pct}%`, backgroundColor: "#2563eb" }}
                     />
                   </div>
                 </div>
               ))}
               {data.tierDistribution.length === 0 && (
-                <p className="text-xs text-[#8888aa]">No tenant data available</p>
+                <p className="text-xs text-slate-400">No tenant data available</p>
               )}
             </div>
           </CardContent>
@@ -162,19 +162,19 @@ const HealthMonitor: React.FC = () => {
       </div>
 
       {data.totalTenants > 0 && (
-        <Card className="bg-[#0d0d1a] border-[#1a1a35] mt-6">
+        <Card className="bg-white border-slate-200 mt-6">
           <CardHeader>
-            <CardTitle className="text-sm font-bold text-white">Aggregate User & Patient Count</CardTitle>
+            <CardTitle className="text-sm font-bold text-slate-900">Aggregate User & Patient Count</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center gap-16 py-4">
               <div className="text-center">
-                <p className="text-3xl font-bold text-white">{data.totalUsers.toLocaleString()}</p>
-                <p className="text-xs text-[#8888aa] mt-1">Total Users</p>
+                <p className="text-3xl font-bold text-slate-900">{data.totalUsers.toLocaleString()}</p>
+                <p className="text-xs text-slate-500 mt-1">Total Users</p>
               </div>
               <div className="text-center">
-                <p className="text-3xl font-bold text-white">{data.totalPatients.toLocaleString()}</p>
-                <p className="text-xs text-[#8888aa] mt-1">Total Patients</p>
+                <p className="text-3xl font-bold text-slate-900">{data.totalPatients.toLocaleString()}</p>
+                <p className="text-xs text-slate-500 mt-1">Total Patients</p>
               </div>
             </div>
           </CardContent>

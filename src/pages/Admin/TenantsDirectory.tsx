@@ -21,11 +21,11 @@ import { getDefaultSettings } from "@/src/lib/globalSettings";
 
 const statusBadge = (status: string) => {
   const colors: Record<string, string> = {
-    Active: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-    Trial: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    Suspended: "bg-red-500/20 text-red-400 border-red-500/30",
+    Active: "bg-emerald-100 text-emerald-700 border-emerald-300",
+    Trial: "bg-amber-100 text-amber-700 border-amber-300",
+    Suspended: "bg-red-100 text-red-700 border-red-300",
   };
-  return colors[status] || "bg-slate-500/20 text-slate-400";
+  return colors[status] || "bg-slate-100 text-slate-600";
 };
 
 const TenantsDirectory: React.FC = () => {
@@ -221,8 +221,8 @@ const TenantsDirectory: React.FC = () => {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-white">Hospital Accounts</h1>
-        <Button onClick={() => setModalOpen(true)} className="bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_12px_rgba(0,136,255,0.15)] text-sm">
+        <h1 className="text-xl font-bold text-slate-900">Hospital Accounts</h1>
+        <Button onClick={() => setModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 shadow-[0_0_12px_rgba(37,99,235,0.15)] text-sm text-white">
           <Plus className="w-4 h-4 mr-1.5" />
           Provision New Hospital
         </Button>
@@ -230,25 +230,25 @@ const TenantsDirectory: React.FC = () => {
 
       {/* Search */}
       <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666688]" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
         <Input
           placeholder="Search by name or slug..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-9 bg-[#0d0d1a] border-[#1a1a35] text-[#e8e8f0] placeholder:text-[#4a4a6a] h-10 focus:border-[#0088ff] focus:ring-[#0088ff]/25"
+          className="pl-9 bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 h-10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
         />
       </div>
 
       {/* Table */}
-      <div className="bg-[#0d0d1a] border border-[#1a1a35] rounded-xl overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1a1a35] bg-[#0d0d1a]/80">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-[#8888aa] uppercase tracking-wider">Hospital Name</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-[#8888aa] uppercase tracking-wider">URL Slug</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-[#8888aa] uppercase tracking-wider">Created</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-[#8888aa] uppercase tracking-wider">Status</th>
+              <tr className="border-b border-slate-200 bg-slate-50">
+                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Hospital Name</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">URL Slug</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Created</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -263,18 +263,18 @@ const TenantsDirectory: React.FC = () => {
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="text-center py-12 text-[#666688]">No hospitals found</td>
+                  <td colSpan={4} className="text-center py-12 text-slate-400">No hospitals found</td>
                 </tr>
               ) : (
                 filtered.map((t) => (
                   <tr
                     key={t.tenantId}
-                    className="border-b border-[#1a1a35]/50 hover:bg-[#0088ff]/[0.02] cursor-pointer transition-colors duration-200"
+                    className="border-b border-slate-100 hover:bg-blue-50/50 cursor-pointer transition-colors duration-200"
                     onClick={() => navigate(`/admin/tenants/${t.tenantId}`)}
                   >
-                    <td className="px-4 py-3 font-medium text-[#d0d0e0]">{t.hospitalName}</td>
-                    <td className="px-4 py-3 text-[#8888aa] font-mono text-xs">{t.urlSlug}</td>
-                    <td className="px-4 py-3 text-[#8888aa] text-xs">{new Date(t.createdAt).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900">{t.hospitalName}</td>
+                    <td className="px-4 py-3 text-slate-400 font-mono text-xs">{t.urlSlug}</td>
+                    <td className="px-4 py-3 text-slate-400 text-xs">{new Date(t.createdAt).toLocaleDateString()}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${statusBadge(t.status)}`}>
                         {t.status}
@@ -290,66 +290,66 @@ const TenantsDirectory: React.FC = () => {
 
       {/* Provision Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="bg-[#0d0d1a] border-[#1a1a35] text-[#e8e8f0] sm:max-w-md">
+        <DialogContent className="bg-white border-slate-200 text-slate-900 sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-white">Provision New Hospital</DialogTitle>
-            <DialogDescription className="text-[#8888aa] text-xs">
+            <DialogTitle className="text-lg font-bold text-slate-900">Provision New Hospital</DialogTitle>
+            <DialogDescription className="text-slate-500 text-xs">
               Create a new tenant workspace on the platform.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleProvision}>
             <div className="space-y-4 py-2">
               {formError && (
-                <div className="bg-red-900/30 border border-red-800/50 text-red-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
-                  <AlertCircle className="w-3.5 h-3.5" />
+                <div className="bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                   {formError}
                 </div>
               )}
               {formSuccess && (
-                <div className="bg-emerald-900/30 border border-emerald-800/50 text-emerald-400 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
-                  <AlertCircle className="w-3.5 h-3.5" />
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium px-3 py-2 rounded-lg flex items-center gap-2">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                   {formSuccess}
                 </div>
               )}
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Hospital Name</Label>
+                <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Hospital Name</Label>
                 <Input
                   required
                   value={form.hospitalName}
                   onChange={(e) => setForm({ ...form, hospitalName: e.target.value })}
-                  className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25"
+                  className="bg-white border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                   placeholder="e.g., City Health Medical Center"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">URL Slug</Label>
+                <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">URL Slug</Label>
                 <Input
                   required
                   value={form.urlSlug}
                   onChange={(e) => setForm({ ...form, urlSlug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
-                  className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] font-mono focus:border-[#0088ff] focus:ring-[#0088ff]/25"
+                  className="bg-white border-slate-300 text-slate-900 font-mono focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                   placeholder="e.g., cityhealth"
                 />
-                <p className="text-[10px] text-[#666688]">URL: icare.ng/<strong className="text-[#0088ff]">{form.urlSlug || "slug"}</strong>/login</p>
+                <p className="text-[10px] text-slate-400">URL: icare.ng/<strong className="text-blue-600">{form.urlSlug || "slug"}</strong>/login</p>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Admin Email</Label>
+                <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Admin Email</Label>
                 <Input
                   type="email"
                   required
                   value={form.adminEmail}
                   onChange={(e) => setForm({ ...form, adminEmail: e.target.value })}
-                  className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25"
+                  className="bg-white border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                   placeholder="admin@hospital.com"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-[#8888aa] uppercase tracking-wider">Plan Tier</Label>
+                <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Plan Tier</Label>
                 <Select value={form.tier} onValueChange={(v) => setForm({ ...form, tier: v })}>
-                  <SelectTrigger className="bg-[#07070d] border-[#1a1a35] text-[#e8e8f0] focus:border-[#0088ff] focus:ring-[#0088ff]/25">
+                  <SelectTrigger className="bg-white border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#0d0d1a] border-[#1a1a35] text-[#b0b0cc]">
+                  <SelectContent className="bg-white border-slate-200 text-slate-700">
                     <SelectItem value="Standard">Standard — {'\u20A6'}199,000/mo (10 seats, 0 beds)</SelectItem>
                     <SelectItem value="Premium">Premium — {'\u20A6'}499,000/mo (50 seats, 40 beds)</SelectItem>
                     <SelectItem value="Enterprise">Enterprise — {'\u20A6'}999,000/mo (unlimited)</SelectItem>
@@ -358,10 +358,10 @@ const TenantsDirectory: React.FC = () => {
               </div>
             </div>
             <DialogFooter className="pt-4">
-              <Button type="button" variant="ghost" onClick={() => setModalOpen(false)} className="text-[#8888aa]">
+              <Button type="button" variant="ghost" onClick={() => setModalOpen(false)} className="text-slate-500">
                 Cancel
               </Button>
-              <Button type="submit" disabled={submitting} className="bg-[#0088ff] hover:bg-[#0077ee] shadow-[0_0_12px_rgba(0,136,255,0.15)]">
+              <Button type="submit" disabled={submitting} className="bg-blue-600 hover:bg-blue-700 shadow-[0_0_12px_rgba(37,99,235,0.15)] text-white">
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
                 Provision
               </Button>

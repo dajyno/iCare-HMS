@@ -85,11 +85,11 @@ const AdminLayout: React.FC = () => {
 
       {/* Mobile Header */}
       <div className="flex flex-col flex-1 min-w-0">
-        <header className="md:hidden flex items-center justify-between px-4 py-3 bg-[#0d0d1a] border-b border-[#1a1a35]">
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="text-[#8888aa]">
+        <header className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200">
+          <button onClick={() => setMobileOpen(!mobileOpen)} className="text-slate-500">
             {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
-          <h1 className="text-sm font-bold text-white">iCare SaaS</h1>
+          <h1 className="text-sm font-bold text-slate-900">iCare SaaS</h1>
           <div className="w-6" />
         </header>
 
@@ -119,7 +119,7 @@ const AdminLayout: React.FC = () => {
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto bg-[#07070d]">
+        <div className="flex-1 overflow-y-auto bg-slate-50">
           <div className="max-w-7xl mx-auto p-6">
             <Outlet />
           </div>
