@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { adminSupabase } from "@/src/lib/adminSupabase";
 import { useAuth } from "@/src/context/AuthContext";
@@ -13,7 +13,6 @@ export function useNotifications() {
   const { settings } = useGlobalSettings();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
-  const seenKeys = useRef<Set<string>>(new Set());
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
@@ -53,36 +52,28 @@ export function useNotifications() {
   }, [user]);
 
   const ensureNotification = useCallback(
-    async (key: string, title: string, message: string, type: "Info" | "Warning" | "Alert", link?: string) => {
+    async (title: string, message: string, type: "Info" | "Warning" | "Alert", link?: string) => {
       if (!user) return;
-      if (seenKeys.current.has(key)) return;
 
       const { data: existing } = await supabase
         .from("notifications")
-        .select("id")
+        .select("id, message")
         .eq("user_id", user.id)
         .eq("title", title)
         .maybeSingle();
 
       if (existing) {
-        await adminSupabase
-          .from("notifications")
-          .update({
-            message,
-            created_at: new Date().toISOString(),
-            is_read: false,
-            ...(link !== undefined && { link }),
-          })
-          .eq("id", existing.id);
-        seenKeys.current.add(key);
-        if (type === "Warning") {
-          toast.warning(message);
-        } else if (type === "Alert") {
-          toast.error(message);
-        } else {
-          toast.info(message);
+        if (existing.message !== message) {
+          await adminSupabase
+            .from("notifications")
+            .update({
+              message,
+              created_at: new Date().toISOString(),
+              ...(link !== undefined && { link }),
+            })
+            .eq("id", existing.id);
+          fetchNotifications();
         }
-        fetchNotifications();
         return;
       }
 
@@ -95,7 +86,6 @@ export function useNotifications() {
       });
 
       if (!error) {
-        seenKeys.current.add(key);
         if (type === "Warning") {
           toast.warning(message);
         } else if (type === "Alert") {
@@ -127,7 +117,6 @@ export function useNotifications() {
 
     const c = count ?? 1;
     ensureNotification(
-      "pending-transactions",
       "Pending Transactions",
       `${c} invoice${c !== 1 ? "s" : ""} awaiting payment`,
       "Info",
@@ -155,7 +144,6 @@ export function useNotifications() {
     const more = lowStock.length > 5 ? ` and ${lowStock.length - 5} more` : "";
 
     ensureNotification(
-      "low-stock",
       "Low Stock Alert",
       `${lowStock.length} item${lowStock.length !== 1 ? "s" : ""} below reorder level: ${names}${more}`,
       "Warning",
