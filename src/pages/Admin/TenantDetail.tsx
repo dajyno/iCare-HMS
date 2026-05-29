@@ -22,15 +22,15 @@ const statusBadge = (status: string) => {
   return colors[status] || "bg-slate-100 text-slate-600";
 };
 
-const MetricCard: React.FC<{ icon: React.ElementType; label: string; value: string }> = ({ icon: Icon, label, value }) => (
-  <div className="bg-white border border-slate-200 rounded-xl p-5 transition-all duration-300 hover:border-blue-300 hover:shadow-md">
-    <div className="flex items-center justify-between mb-3">
-      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</span>
-      <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shadow-[0_0_12px_rgba(37,99,235,0.15)]">
-        <Icon className="w-4 h-4 text-white" />
+const MiniMetricCard: React.FC<{ icon: React.ElementType; label: string; value: string }> = ({ icon: Icon, label, value }) => (
+  <div className="bg-white border border-slate-100 rounded-xl p-3 transition-all duration-300 hover:border-blue-300 hover:shadow-md">
+    <div className="flex items-center justify-between mb-2">
+      <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{label}</span>
+      <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center shadow-[0_0_10px_rgba(37,99,235,0.12)]">
+        <Icon className="w-3.5 h-3.5 text-white" />
       </div>
     </div>
-    <p className="text-2xl font-bold text-slate-900">{value}</p>
+    <p className="text-sm font-semibold text-slate-900">{value}</p>
   </div>
 );
 
@@ -347,7 +347,6 @@ const TenantDetail: React.FC = () => {
     if (!tenantId || !tenant) return;
     setDeletingTenant(true);
 
-    // All tables that may have a tenant_id column
     const dataTables = [
       "users", "departments", "staff_profiles", "staff", "patients",
       "appointments", "consultations", "vital_signs", "prescriptions",
@@ -362,14 +361,12 @@ const TenantDetail: React.FC = () => {
       "inpatient_clinical_notes",
     ];
 
-    // Delete from all data tables first (ignore errors for nonexistent tables)
     await Promise.allSettled(
       dataTables.map((t) =>
         (adminSupabase as any).from(t).delete().eq("tenant_id", tenantId)
       )
     );
 
-    // Delete the tenant row itself
     const { error } = await adminSupabase
       .from("tenants")
       .delete()
@@ -483,7 +480,7 @@ const TenantDetail: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Back + Header */}
+      {/* Master Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/admin/tenants")} className="text-slate-400 hover:text-slate-700">
           <ArrowLeft className="w-5 h-5" />
@@ -508,7 +505,7 @@ const TenantDetail: React.FC = () => {
         </div>
       </div>
 
-      {/* Quick links */}
+      {/* Quick link */}
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"
@@ -521,32 +518,96 @@ const TenantDetail: React.FC = () => {
         </Button>
       </div>
 
-      {/* Admin Management */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5">
-        <h2 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
-          <Mail className="w-4 h-4 text-blue-600" />
-          Admin Management
-        </h2>
-        <div className="flex items-end gap-3">
-          <div className="flex-1 space-y-1.5">
-            <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Admin Email</Label>
-            <Input
-              type="email"
-              value={adminEmail}
-              onChange={(e) => { setAdminEmail(e.target.value); setEmailSaved(false); }}
-              placeholder="admin@hospital.com"
-              className="bg-white border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-            />
-            {emailError && <p className="text-[10px] text-red-500">{emailError}</p>}
+      {/* 2-Column Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Left Column — Configuration */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Card 1: Admin Management */}
+          <div className="bg-white border border-slate-100 rounded-xl p-5">
+            <h2 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <Mail className="w-4 h-4 text-blue-600" />
+              Admin Management
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Admin Email</Label>
+                <Input
+                  type="email"
+                  value={adminEmail}
+                  onChange={(e) => { setAdminEmail(e.target.value); setEmailSaved(false); }}
+                  placeholder="admin@hospital.com"
+                  className="bg-white border-slate-300 text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                />
+                {emailError && <p className="text-[10px] text-red-500">{emailError}</p>}
+              </div>
+              <Button onClick={handleSaveAdminEmail} disabled={savingEmail} className="bg-blue-600 hover:bg-blue-700 shadow-[0_0_12px_rgba(37,99,235,0.15)] text-sm h-10 text-white">
+                {savingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {emailSaved ? "Saved" : "Save"}
+              </Button>
+              <Button onClick={() => setShowResetModal(true)} variant="outline" className="border-slate-300 text-slate-600 hover:text-slate-700 text-sm h-10">
+                <Key className="w-3.5 h-3.5 mr-1.5" />
+                Reset Password
+              </Button>
+            </div>
           </div>
-          <Button onClick={handleSaveAdminEmail} disabled={savingEmail} className="bg-emerald-600 hover:bg-emerald-700 shadow-[0_0_12px_rgba(16,185,129,0.2)] text-sm h-10 min-w-[130px] text-white">
-            {savingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {emailSaved ? "Saved" : "Save"}
-          </Button>
-          <Button onClick={() => setShowResetModal(true)} variant="outline" className="border-blue-300 text-blue-600 hover:text-blue-700 text-sm h-10">
-            <Key className="w-3.5 h-3.5 mr-1.5" />
-            Reset Password
-          </Button>
+
+          {/* Card 2: Hospital Controls */}
+          <div className="bg-white border border-slate-100 rounded-xl">
+            <button
+              onClick={() => setControlsOpen(!controlsOpen)}
+              className="w-full flex items-center justify-between p-5 cursor-pointer hover:bg-slate-50 transition-colors"
+            >
+              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Settings className="w-4 h-4 text-blue-600" />
+                Hospital Controls
+              </h2>
+              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${controlsOpen ? "rotate-180" : ""}`} />
+            </button>
+            {controlsOpen && (
+              <div className="px-5 pb-5 pt-0 border-t border-slate-100">
+                <div className="flex flex-wrap items-center gap-3 pt-4">
+                  <Button onClick={openEditLimits} className="text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-sm shadow-none">
+                    Edit Limits
+                  </Button>
+                  <Button onClick={openChangePlan} className="text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-sm shadow-none">
+                    Change Plan
+                  </Button>
+                  {tenant.status !== "Suspended" ? (
+                    <Button onClick={() => handleStatusAction("Suspended")} className="text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-sm shadow-none">
+                      Suspend Account
+                    </Button>
+                  ) : (
+                    <Button onClick={() => handleStatusAction("Active")} className="text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-sm shadow-none">
+                      Reactivate Account
+                    </Button>
+                  )}
+                  <Button onClick={openAddFeatures} className="text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-sm shadow-none">
+                    Add Features
+                  </Button>
+                  <Button onClick={() => setShowDeleteModal(true)} className="bg-red-600 hover:bg-red-700 text-white text-sm shadow-[0_0_12px_rgba(239,68,68,0.2)]">
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                    Delete Account
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column — Metrics Overview */}
+        <div className="lg:col-span-1 space-y-4">
+          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-blue-600" />
+            Hospital Metrics
+          </h2>
+          <div className="grid grid-cols-2 gap-3">
+            <MiniMetricCard icon={Users} label="System Users" value={String(usersCount)} />
+            <MiniMetricCard icon={Stethoscope} label="Doctors" value={String(doctorsCount)} />
+            <MiniMetricCard icon={UserRound} label="Patients" value={String(patientsCount)} />
+            <MiniMetricCard icon={BedDouble} label="Beds" value={String(bedsCount)} />
+          </div>
+          <MiniMetricCard icon={TrendingUp} label="Monthly Contribution" value={`${CURRENCY}${mrr.toLocaleString()}`} />
+          <MiniMetricCard icon={DollarSign} label="Annual Contribution" value={`${CURRENCY}${(mrr * 12).toLocaleString()}`} />
         </div>
       </div>
 
@@ -604,48 +665,6 @@ const TenantDetail: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Hospital Controls — Collapsible */}
-      <div className="bg-white border border-slate-200 rounded-xl">
-        <button
-          onClick={() => setControlsOpen(!controlsOpen)}
-          className="w-full flex items-center justify-between p-5 cursor-pointer hover:bg-slate-50 transition-colors"
-        >
-          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <Settings className="w-4 h-4 text-blue-600" />
-            Hospital Controls
-          </h2>
-          <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${controlsOpen ? "rotate-180" : ""}`} />
-        </button>
-        {controlsOpen && (
-          <div className="px-5 pb-5 pt-0 border-t border-slate-200">
-            <div className="flex flex-wrap items-center gap-3 pt-4">
-              <Button onClick={openEditLimits} className="bg-blue-600 hover:bg-blue-700 shadow-[0_0_12px_rgba(37,99,235,0.15)] text-sm text-white">
-                Edit Limits
-              </Button>
-              <Button onClick={openChangePlan} className="bg-purple-600 hover:bg-purple-700 text-white text-sm shadow-[0_0_12px_rgba(147,51,234,0.2)]">
-                Change Plan
-              </Button>
-              {tenant.status !== "Suspended" ? (
-                <Button onClick={() => handleStatusAction("Suspended")} className="bg-amber-500 hover:bg-amber-600 text-white text-sm shadow-[0_0_12px_rgba(245,158,11,0.2)]">
-                  Suspend Account
-                </Button>
-              ) : (
-                <Button onClick={() => handleStatusAction("Active")} variant="outline" className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-sm">
-                  Reactivate Account
-                </Button>
-              )}
-              <Button onClick={openAddFeatures} className="bg-teal-600 hover:bg-teal-700 text-white text-sm shadow-[0_0_12px_rgba(20,184,166,0.2)]">
-                Add Features
-              </Button>
-              <Button onClick={() => setShowDeleteModal(true)} className="bg-red-600 hover:bg-red-700 text-white text-sm shadow-[0_0_12px_rgba(239,68,68,0.2)]">
-                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                Delete Account
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Edit Limits Modal */}
       <Dialog open={showLimitsModal} onOpenChange={(o) => { if (!o) { setShowLimitsModal(false); setLimitsError(""); }}}>
@@ -945,22 +964,6 @@ const TenantDetail: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Hospital Metrics */}
-      <div>
-        <h2 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-blue-600" />
-          Hospital Metrics
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard icon={Users} label="System Users" value={String(usersCount)} />
-          <MetricCard icon={Stethoscope} label="Doctors" value={String(doctorsCount)} />
-          <MetricCard icon={UserRound} label="Patients" value={String(patientsCount)} />
-          <MetricCard icon={BedDouble} label="Beds (Capacity)" value={String(bedsCount)} />
-          <MetricCard icon={TrendingUp} label="Monthly Contribution" value={`${CURRENCY}${mrr.toLocaleString()}`} />
-          <MetricCard icon={DollarSign} label="Annual Contribution" value={`${CURRENCY}${(mrr * 12).toLocaleString()}`} />
-        </div>
-      </div>
     </div>
   );
 };
