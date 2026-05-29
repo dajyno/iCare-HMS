@@ -22,7 +22,6 @@ import { getDefaultSettings } from "@/src/lib/globalSettings";
 const statusBadge = (status: string) => {
   const colors: Record<string, string> = {
     Active: "bg-emerald-100 text-emerald-700 border-emerald-300",
-    Trial: "bg-amber-100 text-amber-700 border-amber-300",
     Suspended: "bg-red-100 text-red-700 border-red-300",
   };
   return colors[status] || "bg-slate-100 text-slate-600";
@@ -77,7 +76,7 @@ const TenantsDirectory: React.FC = () => {
       tenant_id: tenantId,
       hospital_name: form.hospitalName,
       url_slug: slug,
-      status: "Trial",
+      status: "Active",
       tier: form.tier,
       admin_email: form.adminEmail || null,
       max_staff_seats: limits.seats,

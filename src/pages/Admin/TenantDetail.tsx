@@ -16,7 +16,6 @@ const CURRENCY = "\u20A6";
 const statusBadge = (status: string) => {
   const colors: Record<string, string> = {
     Active: "bg-emerald-100 text-emerald-700 border-emerald-300",
-    Trial: "bg-amber-100 text-amber-700 border-amber-300",
     Suspended: "bg-red-100 text-red-700 border-red-300",
   };
   return colors[status] || "bg-slate-100 text-slate-600";
@@ -348,6 +347,7 @@ const TenantDetail: React.FC = () => {
     setDeletingTenant(true);
 
     const dataTables = [
+      "global_settings",
       "users", "departments", "staff_profiles", "staff", "patients",
       "appointments", "consultations", "vital_signs", "prescriptions",
       "prescription_items", "medications", "lab_tests", "lab_requests",
@@ -660,7 +660,11 @@ const TenantDetail: React.FC = () => {
                   <Button onClick={openChangePlan} className="text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-sm shadow-none">
                     Change Plan
                   </Button>
-                  {tenant.status !== "Suspended" ? (
+                  {tenant.status === "Trial" ? (
+                    <Button onClick={() => handleStatusAction("Active")} className="text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-sm shadow-none">
+                      Activate Account
+                    </Button>
+                  ) : tenant.status !== "Suspended" ? (
                     <Button onClick={() => handleStatusAction("Suspended")} className="text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-sm shadow-none">
                       Suspend Account
                     </Button>

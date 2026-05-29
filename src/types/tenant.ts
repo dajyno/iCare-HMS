@@ -13,7 +13,7 @@ export interface Tenant {
   tenantId: string;
   hospitalName: string;
   urlSlug: string;
-  status: "Active" | "Trial" | "Suspended";
+  status: "Active" | "Suspended";
   tier: "Standard" | "Premium" | "Enterprise";
   maxStaffSeats: number;
   maxBedCapacity: number;

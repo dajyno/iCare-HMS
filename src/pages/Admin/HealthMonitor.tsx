@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { adminSupabase } from "../../lib/adminSupabase";
-import { Building2, Activity, Clock, ShieldAlert, Loader2 } from "lucide-react";
+import { Building2, Activity, ShieldAlert, Loader2 } from "lucide-react";
 
 interface HealthData {
   totalTenants: number;
   activeTenants: number;
-  trialTenants: number;
   suspendedTenants: number;
   totalUsers: number;
   totalPatients: number;
@@ -16,7 +15,6 @@ interface HealthData {
 const initialData: HealthData = {
   totalTenants: 0,
   activeTenants: 0,
-  trialTenants: 0,
   suspendedTenants: 0,
   totalUsers: 0,
   totalPatients: 0,
@@ -43,7 +41,6 @@ const HealthMonitor: React.FC = () => {
       const all = tenants || [];
       const total = all.length;
       const active = all.filter((t: any) => t.status === "Active").length;
-      const trial = all.filter((t: any) => t.status === "Trial").length;
       const suspended = all.filter((t: any) => t.status === "Suspended").length;
 
       const tierGroups: Record<string, number> = {};
@@ -58,7 +55,6 @@ const HealthMonitor: React.FC = () => {
       setData({
         totalTenants: total,
         activeTenants: active,
-        trialTenants: trial,
         suspendedTenants: suspended,
         totalUsers: userCount || 0,
         totalPatients: patientCount || 0,
@@ -72,7 +68,6 @@ const HealthMonitor: React.FC = () => {
   const statCards = [
     { icon: Building2, label: "Total Tenants", value: data.totalTenants.toLocaleString(), color: "#2563eb" },
     { icon: Activity, label: "Active Tenants", value: data.activeTenants.toLocaleString(), color: "#10b981" },
-    { icon: Clock, label: "Trial Tenants", value: data.trialTenants.toLocaleString(), color: "#f59e0b" },
     { icon: ShieldAlert, label: "Suspended Tenants", value: data.suspendedTenants.toLocaleString(), color: "#ef4444" },
   ];
 
@@ -113,7 +108,6 @@ const HealthMonitor: React.FC = () => {
             <div className="space-y-4">
               {[
                 { label: "Active", value: data.activeTenants, max: data.totalTenants || 1, color: "#10b981" },
-                { label: "Trial", value: data.trialTenants, max: data.totalTenants || 1, color: "#f59e0b" },
                 { label: "Suspended", value: data.suspendedTenants, max: data.totalTenants || 1, color: "#ef4444" },
               ].map((m) => (
                 <div key={m.label}>
