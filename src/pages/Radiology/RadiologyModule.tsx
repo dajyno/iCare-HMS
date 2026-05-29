@@ -129,7 +129,7 @@ const RadiologyModule = () => {
 
   return (
     <div className="flex flex-col h-full animate-in fade-in duration-500">
-      <div className="flex-1 p-6 overflow-y-auto">
+      <div className="flex-1 p-3 sm:p-4 lg:p-6 overflow-y-auto">
         <AnimatePresence mode="wait">
           {showNewExam ? (
             <motion.div

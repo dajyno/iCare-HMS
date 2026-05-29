@@ -14,7 +14,6 @@ import {
   ArrowUp,
   ArrowDown,
   Search,
-  ListOrdered,
   Plus,
   FolderEdit,
 } from "lucide-react";
@@ -195,23 +194,18 @@ const RadiologyLedger = ({
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-indigo-50">
-            <Scan className="w-5 h-5 text-indigo-500" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900">Examination Ledger</h1>
-            <p className="text-xs text-slate-500">
-              {filteredData.length} examination{filteredData.length !== 1 ? "s" : ""}
-            </p>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-bold text-slate-900">Examination Ledger</h1>
+          <p className="text-xs text-slate-500">
+            {filteredData.length} examination{filteredData.length !== 1 ? "s" : ""}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <Button
             size="sm"
             variant="outline"
-            className="h-9 px-4 gap-1.5 text-xs font-semibold border-slate-200"
+            className="h-9 px-4 gap-1.5 text-xs font-semibold border-slate-200 w-full sm:w-auto"
             onClick={onManageCategories}
           >
             <FolderEdit className="w-3.5 h-3.5" />
@@ -219,7 +213,7 @@ const RadiologyLedger = ({
           </Button>
           <Button
             size="sm"
-            className="bg-[#005EB8] hover:bg-[#004d9a] text-white h-9 px-4 gap-2 font-semibold text-xs"
+            className="bg-[#005EB8] hover:bg-[#004d9a] text-white h-9 px-4 gap-2 font-semibold text-xs w-full sm:w-auto"
             onClick={onNewExam}
           >
             <Plus className="w-3.5 h-3.5" />
@@ -228,16 +222,14 @@ const RadiologyLedger = ({
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="relative w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-          <Input
-            value={globalFilter}
-            onChange={(e) => setGlobalFilter(e.target.value)}
-            placeholder="Filter examinations..."
-            className="pl-9 h-9 text-sm bg-slate-50 border-slate-200"
-          />
-        </div>
+      <div className="relative w-full sm:w-64">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+        <Input
+          value={globalFilter}
+          onChange={(e) => setGlobalFilter(e.target.value)}
+          placeholder="Filter examinations..."
+          className="pl-9 h-9 text-sm bg-slate-50 border-slate-200"
+        />
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
