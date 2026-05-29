@@ -522,12 +522,12 @@ const TenantDetail: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Left Column — Configuration */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Card 1: Admin Management */}
+          {/* Section: Admin Management */}
+          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <Mail className="w-4 h-4 text-blue-600" />
+            Admin Management
+          </h2>
           <div className="bg-white border border-slate-100 rounded-xl p-5">
-            <h2 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <Mail className="w-4 h-4 text-blue-600" />
-              Admin Management
-            </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Admin Email</Label>
@@ -551,16 +551,19 @@ const TenantDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* Card 2: Hospital Controls */}
+          {/* Section: Hospital Controls */}
+          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <Settings className="w-4 h-4 text-blue-600" />
+            Hospital Controls
+          </h2>
           <div className="bg-white border border-slate-100 rounded-xl">
             <button
               onClick={() => setControlsOpen(!controlsOpen)}
               className="w-full flex items-center justify-between p-5 cursor-pointer hover:bg-slate-50 transition-colors"
             >
-              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Settings className="w-4 h-4 text-blue-600" />
-                Hospital Controls
-              </h2>
+              <span className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                Actions
+              </span>
               <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${controlsOpen ? "rotate-180" : ""}`} />
             </button>
             {controlsOpen && (
