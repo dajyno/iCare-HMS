@@ -459,6 +459,8 @@ const TenantDetail: React.FC = () => {
     if (!tenant) return;
     const slug = tenant.urlSlug;
     const fallback = () => window.open(`/${slug}/login`, "_blank");
+    const supabaseUrl = (window as any).ENV?.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL;
+    const anonKey = (window as any).ENV?.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
     try {
       // 1. Look for an existing HospitalAdmin user for this tenant
@@ -470,13 +472,14 @@ const TenantDetail: React.FC = () => {
         .limit(1);
 
       let adminUser: any = admins?.[0] || null;
+      let knownPassword = "";
 
       // 2. If no admin user found but admin_email is set, auto-provision one
       if (!adminUser && (tenant as any).adminEmail) {
-        const tempPw = Math.random().toString(36).slice(2, 10) + "A1!";
+        knownPassword = Math.random().toString(36).slice(2, 10) + "A1!";
         const { data: newAuth, error: createErr } = await (adminSupabase as any).auth.admin.createUser({
           email: (tenant as any).adminEmail,
-          password: tempPw,
+          password: knownPassword,
           email_confirm: true,
           user_metadata: { full_name: `${tenant.hospitalName} Admin`, role: "HospitalAdmin" },
         });
@@ -499,18 +502,30 @@ const TenantDetail: React.FC = () => {
         }
       }
 
-      // 3. If we have an admin email, generate a magic link
-      if (adminUser?.email) {
-        const { data: linkData, error: linkErr } = await adminSupabase.auth.admin.generateLink({
-          type: "magiclink",
-          email: adminUser.email,
-          options: {
-            redirectTo: `${window.location.origin}/${slug}/dashboard`,
-          },
+      // 3. For existing users, set a temporary password to sign in
+      if (adminUser?.id && !knownPassword) {
+        knownPassword = Math.random().toString(36).slice(2, 10) + "A1!";
+        const { error: updateErr } = await (adminSupabase as any).auth.admin.updateUserById(adminUser.id, {
+          password: knownPassword,
+        });
+        if (updateErr) {
+          fallback();
+          return;
+        }
+      }
+
+      // 4. Sign in via Supabase Auth REST API and pass tokens to new tab
+      if (adminUser?.email && knownPassword) {
+        const res = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: anonKey },
+          body: JSON.stringify({ email: adminUser.email, password: knownPassword }),
         });
 
-        if (!linkErr && linkData?.properties?.action_link) {
-          window.open(linkData.properties.action_link, "_blank");
+        if (res.ok) {
+          const session = await res.json();
+          const hash = `access_token=${encodeURIComponent(session.access_token)}&refresh_token=${encodeURIComponent(session.refresh_token)}&expires_in=${session.expires_in}&token_type=bearer`;
+          window.open(`${window.location.origin}/${slug}/dashboard#${hash}`, "_blank");
           return;
         }
       }
