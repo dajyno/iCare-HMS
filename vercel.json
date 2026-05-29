@@ -4,6 +4,9 @@
   "outputDirectory": "dist",
   "installCommand": "npm install --legacy-peer-deps --no-package-lock",
   "rewrites": [
+    { "source": "/sw.js", "destination": "/sw.js" },
+    { "source": "/workbox-:id.js", "destination": "/workbox-:id.js" },
+    { "source": "/manifest.webmanifest", "destination": "/manifest.webmanifest" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

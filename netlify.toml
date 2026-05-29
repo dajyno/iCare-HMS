@@ -3,6 +3,21 @@
   publish = "dist"
 
 [[redirects]]
+  from = "/sw.js"
+  to = "/sw.js"
+  status = 200
+
+[[redirects]]
+  from = "/workbox-:id.js"
+  to = "/workbox-:id.js"
+  status = 200
+
+[[redirects]]
+  from = "/manifest.webmanifest"
+  to = "/manifest.webmanifest"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
