@@ -138,13 +138,13 @@ const ModuleCard = ({
 }) => (
   <button
     onClick={() => onClick(href)}
-    className="group relative flex flex-col items-start gap-3 rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition-all hover:border-blue-300 hover:shadow-lg hover:-translate-y-1 hover:bg-blue-50/30"
+    className="group relative flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-center shadow-sm transition-all hover:border-blue-300 hover:shadow-lg hover:-translate-y-1 hover:bg-blue-50/30 sm:p-4"
   >
-    <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${bg} ${color}`}>
-      <Icon className="h-5 w-5" strokeWidth={2} />
+    <div className={`flex w-9 h-9 items-center justify-center rounded-lg ${bg} ${color} sm:w-10 sm:h-10`}>
+      <Icon className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2} />
     </div>
     <div className="flex flex-col gap-0.5">
-      <span className="text-sm font-semibold text-slate-800">{label}</span>
+      <span className="text-xs font-semibold text-slate-800 break-words w-full sm:text-sm">{label}</span>
       <span className="text-xs text-slate-500">{metric}</span>
     </div>
   </button>
@@ -399,7 +399,7 @@ const Overview = () => {
       <div className="flex flex-col gap-6 lg:flex-row">
         {/* Main workspace — module cards */}
         <div className="flex-1 lg:w-3/4">
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {modules.map((m) => (
               <ModuleCard key={m.label} icon={m.icon} label={m.label} metric={m.metric} href={m.href} color={m.color} bg={m.bg} onClick={handleNav} />
             ))}
