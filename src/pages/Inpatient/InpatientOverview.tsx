@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Plus, Settings, Bed } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useInpatientState } from "./useInpatientState";
@@ -96,18 +96,13 @@ const InpatientOverview = () => {
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Module Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-sky-100">
-            <Bed className="w-5 h-5 text-sky-700" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">
-              Inpatient & Ward Operations
-            </h1>
-            <p className="text-sm text-slate-500">
-              Active ward board, admissions, and patient diagnostics
-            </p>
-          </div>
+        <div>
+          <h1 className="text-xl font-bold text-slate-900">
+            Inpatient & Ward Operations
+          </h1>
+          <p className="text-sm text-slate-500">
+            Active ward board, admissions, and patient diagnostics
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button

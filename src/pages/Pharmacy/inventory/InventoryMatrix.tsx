@@ -233,16 +233,11 @@ const InventoryMatrix = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-sky-100">
-            <Package className="w-5 h-5 text-sky-600" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">Inventory Matrix</h1>
-            <p className="text-xs text-slate-500">
-              {filteredData.length} item{filteredData.length !== 1 ? "s" : ""} in stock ledger
-            </p>
-          </div>
+        <div>
+          <h1 className="text-xl font-bold text-slate-900">Inventory Matrix</h1>
+          <p className="text-xs text-slate-500">
+            {filteredData.length} item{filteredData.length !== 1 ? "s" : ""} in stock ledger
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button

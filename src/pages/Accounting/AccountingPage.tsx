@@ -53,12 +53,9 @@ const AccountingPage = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Calculator className="w-8 h-8 text-emerald-500" />
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Accounting Hub</h1>
-            <p className="text-sm text-slate-500">Financial command center</p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Accounting Hub</h1>
+          <p className="text-sm text-slate-500">Financial command center</p>
         </div>
       </div>
 

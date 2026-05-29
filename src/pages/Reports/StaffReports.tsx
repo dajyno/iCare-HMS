@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, ClipboardCheck, BarChart3, UserCheck, Clock } from "lucide-react";
+import { Users, ClipboardCheck, BarChart3, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   LineChart,
@@ -77,14 +77,9 @@ export default function StaffReports() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-xl bg-violet-100">
-          <UserCheck className="w-5 h-5 text-violet-600" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Staff Reports</h1>
-          <p className="text-xs text-slate-500">Personnel performance, attendance & consultation load analytics</p>
-        </div>
+      <div>
+        <h1 className="text-xl font-bold text-slate-900">Staff Reports</h1>
+        <p className="text-xs text-slate-500">Personnel performance, attendance & consultation load analytics</p>
       </div>
 
       <GlobalFilterBar filters={filters} onChange={setFilters} />

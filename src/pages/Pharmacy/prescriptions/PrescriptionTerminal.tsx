@@ -187,16 +187,11 @@ const PrescriptionTerminal = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-sky-100">
-            <Pill className="w-5 h-5 text-sky-600" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">Prescription Terminal</h1>
-            <p className="text-xs text-slate-500">
-              {filteredData.length} prescription{filteredData.length !== 1 ? "s" : ""} in queue
-            </p>
-          </div>
+        <div>
+          <h1 className="text-xl font-bold text-slate-900">Prescription Terminal</h1>
+          <p className="text-xs text-slate-500">
+            {filteredData.length} prescription{filteredData.length !== 1 ? "s" : ""} in queue
+          </p>
         </div>
         <Button
           size="sm"

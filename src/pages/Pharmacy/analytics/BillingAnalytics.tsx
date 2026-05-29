@@ -8,14 +8,9 @@ const BillingAnalytics = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-xl bg-sky-100">
-          <BarChart3 className="w-5 h-5 text-sky-600" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Analytics</h1>
-          <p className="text-xs text-slate-500">Revenue performance and drug demand insights</p>
-        </div>
+      <div>
+        <h1 className="text-xl font-bold text-slate-900">Analytics</h1>
+        <p className="text-xs text-slate-500">Revenue performance and drug demand insights</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
