@@ -302,7 +302,7 @@ const BillingOverview = () => {
             {tab === "All" ? "All Sources" : tab}
           </button>
         ))}
-        <div className="w-px h-6 bg-slate-200 mx-1" />
+        <div className="w-px h-6 bg-slate-200 mx-1 hidden sm:block" />
         <button
           onClick={() => { setStatusFilter(statusFilter === "unpaid" ? "all" : "unpaid"); setActiveFilter("All"); clearSelection(); }}
           className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -329,8 +329,8 @@ const BillingOverview = () => {
 
       {/* Invoice Table */}
       <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-        <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
-          <div className="relative w-80">
+        <div className="p-4 border-b bg-slate-50/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="relative w-full sm:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input
               value={searchTerm}
