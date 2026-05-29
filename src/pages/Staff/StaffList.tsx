@@ -154,35 +154,30 @@ export default function StaffList() {
 
   return (
     <>
-      <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500">
         {/* Module Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-sky-100">
-              <UserPlus className="w-5 h-5 text-sky-700" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">
-                Staff & HR Management
-              </h1>
-              <p className="text-sm text-slate-500">
-                Centralized roster, identity, and permissions controller
-              </p>
-            </div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">
+              Staff & HR Management
+            </h1>
+            <p className="text-sm text-slate-500">
+              Centralized roster, identity, and permissions controller
+            </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Button
               onClick={() => setShowUploadModal(true)}
               variant="outline"
               size="sm"
-              className="h-9 gap-2 border-slate-300 text-slate-600"
+              className="h-9 gap-2 border-slate-300 text-slate-600 w-full sm:w-auto"
             >
               <Upload className="w-4 h-4" />
               Import
             </Button>
             <Button
               onClick={() => setShowAddModal(true)}
-              className="bg-sky-600 hover:bg-sky-700 text-white h-9 px-4 gap-2 font-semibold text-xs shadow-lg shadow-sky-200"
+              className="bg-sky-600 hover:bg-sky-700 text-white h-9 px-4 gap-2 font-semibold text-xs shadow-lg shadow-sky-200 w-full sm:w-auto"
             >
               <Plus className="w-4 h-4" />
               Add New Staff
@@ -193,7 +188,7 @@ export default function StaffList() {
         {/* Search + Filter Bar */}
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
           <div className="p-4 pb-3 border-b border-slate-100">
-            <div className="relative max-w-xs">
+            <div className="relative w-full sm:max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
                 value={searchTerm}

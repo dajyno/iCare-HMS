@@ -51,41 +51,41 @@ const RegistriesPage = () => {
   const paginatedExpenses = filteredExpenses.slice((expensePage - 1) * PAGE_SIZE, expensePage * PAGE_SIZE);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Income & Expenses</h1>
-          <p className="text-sm text-slate-500">Register and manage financial entries</p>
-        </div>
-        <div className="flex gap-2">
-          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5" onClick={() => setShowNewIncome(true)}>
-            <Plus className="w-3.5 h-3.5" /> New Income
-          </Button>
-          <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5" onClick={() => setShowNewExpense(true)}>
-            <Plus className="w-3.5 h-3.5" /> New Expense
-          </Button>
-        </div>
-      </div>
-
-      <Tabs
-        value={tab}
-        onValueChange={(v) => { setTab(v); setIncomePage(1); setExpensePage(1); }}
-      >
-        <div className="flex items-center justify-between">
-          <TabsList>
-            <TabsTrigger value="income">Income</TabsTrigger>
-            <TabsTrigger value="expenses">Expenses</TabsTrigger>
-          </TabsList>
-          <div className="relative w-60">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <Input
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setIncomePage(1); setExpensePage(1); }}
-              placeholder="Search entries..."
-              className="pl-9 h-8 text-xs"
-            />
+      <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Income & Expenses</h1>
+            <p className="text-sm text-slate-500">Register and manage financial entries</p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 w-full sm:w-auto" onClick={() => setShowNewIncome(true)}>
+              <Plus className="w-3.5 h-3.5" /> New Income
+            </Button>
+            <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5 w-full sm:w-auto" onClick={() => setShowNewExpense(true)}>
+              <Plus className="w-3.5 h-3.5" /> New Expense
+            </Button>
           </div>
         </div>
+
+        <Tabs
+          value={tab}
+          onValueChange={(v) => { setTab(v); setIncomePage(1); setExpensePage(1); }}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <TabsList>
+              <TabsTrigger value="income">Income</TabsTrigger>
+              <TabsTrigger value="expenses">Expenses</TabsTrigger>
+            </TabsList>
+            <div className="relative w-full sm:w-60">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setIncomePage(1); setExpensePage(1); }}
+                placeholder="Search entries..."
+                className="pl-9 h-8 text-xs"
+              />
+            </div>
+          </div>
 
         <TabsContent value="income" className="mt-4">
           <Card className="border-none shadow-sm ring-1 ring-slate-200">
