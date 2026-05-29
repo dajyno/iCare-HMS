@@ -660,11 +660,7 @@ const TenantDetail: React.FC = () => {
                   <Button onClick={openChangePlan} className="text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-sm shadow-none">
                     Change Plan
                   </Button>
-                  {tenant.status === "Trial" ? (
-                    <Button onClick={() => handleStatusAction("Active")} className="text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-sm shadow-none">
-                      Activate Account
-                    </Button>
-                  ) : tenant.status !== "Suspended" ? (
+                  {tenant.status === "Active" ? (
                     <Button onClick={() => handleStatusAction("Suspended")} className="text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-sm shadow-none">
                       Suspend Account
                     </Button>
