@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import SearchableSelect from "@/components/ui/searchable-select";
 import NewAppointmentModal from "@/src/pages/Appointments/NewAppointmentModal";
+import { useDoctors } from "@/src/pages/Appointments/hooks";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
@@ -90,41 +91,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
     },
   });
 
-  const { data: doctors } = useQuery({
-    queryKey: ["doctors"],
-    queryFn: async () => {
-      const ids = new Set<string>();
-      const result: Array<{ id: string; fullName: string }> = [];
-
-      const { data: users, error: usersError } = await supabase
-        .from("users")
-        .select("id, full_name")
-        .eq("role", "Doctor")
-        .eq("status", "active");
-      if (!usersError && users) {
-        for (const u of users as any[]) {
-          ids.add(u.id);
-          result.push({ id: u.id, fullName: u.full_name });
-        }
-      }
-
-      const { data: staff, error: staffError } = await supabase
-        .from("staff")
-        .select("staff_id, name, auth_user_id")
-        .eq("is_clinician", true);
-      if (!staffError && staff) {
-        for (const s of staff as any[]) {
-          const sid = s.auth_user_id || s.staff_id;
-          if (!ids.has(sid)) {
-            ids.add(sid);
-            result.push({ id: sid, fullName: s.name });
-          }
-        }
-      }
-
-      return result;
-    },
-  });
+  const { data: doctors = [] } = useDoctors();
 
   const createMutation = useMutation({
     mutationFn: async (formData: any) => {
@@ -725,7 +692,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
             firstName: apptPatient.firstName,
             lastName: apptPatient.lastName,
           } : null}
-          doctors={(Array.isArray(doctors) ? doctors : []).map((d: any) => ({ id: d.id, name: d.fullName }))}
+          doctors={doctors}
           appointments={[]}
         />
       )}
