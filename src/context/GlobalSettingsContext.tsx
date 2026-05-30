@@ -50,7 +50,7 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
       }
 
       setLoading(true);
-      const db = await fetchSettings(supabase);
+      const db = await fetchSettings(supabase, user?.tenantId);
       if (cancelled) return;
 
       if (db) {
@@ -61,9 +61,8 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // No settings for this tenant yet — create defaults
+      // No settings found — use defaults locally (DB row created during provisioning)
       const defaults = getDefaultSettings();
-      await upsertSettings(supabase, defaults, user.id);
       setSettings(defaults);
       saveLocalCache(defaults, user.tenantId);
       setLoading(false);
@@ -74,7 +73,7 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
     // Poll for changes (e.g., hospital name edited by admin)
     intervalId = setInterval(async () => {
       if (cancelled || !user?.tenantId) return;
-      const db = await fetchSettings(supabase);
+      const db = await fetchSettings(supabase, user?.tenantId);
       if (cancelled || !db) return;
       const merged = { ...getDefaultSettings(), ...db };
       setSettings(merged);

@@ -1,11 +1,12 @@
 import type { GlobalSettings } from "@/src/types/globalSettings";
 
-export async function fetchSettings(supabase: any): Promise<GlobalSettings | null> {
-  const { data, error } = await supabase
+export async function fetchSettings(supabase: any, tenantId?: string | null): Promise<GlobalSettings | null> {
+  let query = supabase
     .from("global_settings")
     .select("settings")
-    .eq("id", 1)
-    .single();
+    .eq("id", 1);
+  if (tenantId) query = query.eq("tenant_id", tenantId);
+  const { data, error } = await query.single();
 
   if (error || !data) return null;
   return data.settings as GlobalSettings;
