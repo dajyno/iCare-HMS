@@ -34,6 +34,28 @@ function saveLocalCache(settings: GlobalSettings, tenantId?: string | null): voi
   } catch { /* ignore */ }
 }
 
+/** Reads hospital_name from the tenants table (canonical source). */
+async function fetchTenantHospitalName(tenantId: string): Promise<string | null> {
+  const { data } = await (supabase as any)
+    .from("tenants")
+    .select("hospital_name")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+  if (!data) return null;
+  return data.hospital_name ?? null;
+}
+
+/** Merges global_settings DB data with the canonical hospital_name from tenants table. */
+async function buildSettings(tenantId: string): Promise<GlobalSettings> {
+  const [db, hospitalName] = await Promise.all([
+    fetchSettings(supabase, tenantId),
+    fetchTenantHospitalName(tenantId),
+  ]);
+  const merged = { ...getDefaultSettings(), ...(db || {}) };
+  if (hospitalName) merged.hospitalName = hospitalName;
+  return merged;
+}
+
 export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [settings, setSettings] = useState<GlobalSettings>(getDefaultSettings());
@@ -50,21 +72,10 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
       }
 
       setLoading(true);
-      const db = await fetchSettings(supabase, user?.tenantId);
+      const merged = await buildSettings(user.tenantId);
       if (cancelled) return;
-
-      if (db) {
-        const merged = { ...getDefaultSettings(), ...db };
-        setSettings(merged);
-        saveLocalCache(merged, user.tenantId);
-        setLoading(false);
-        return;
-      }
-
-      // No settings found — use defaults locally (DB row created during provisioning)
-      const defaults = getDefaultSettings();
-      setSettings(defaults);
-      saveLocalCache(defaults, user.tenantId);
+      setSettings(merged);
+      saveLocalCache(merged, user.tenantId);
       setLoading(false);
     }
 
@@ -73,9 +84,8 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
     // Poll for changes (e.g., hospital name edited by admin)
     intervalId = setInterval(async () => {
       if (cancelled || !user?.tenantId) return;
-      const db = await fetchSettings(supabase, user?.tenantId);
-      if (cancelled || !db) return;
-      const merged = { ...getDefaultSettings(), ...db };
+      const merged = await buildSettings(user.tenantId);
+      if (cancelled) return;
       setSettings(merged);
       saveLocalCache(merged, user.tenantId);
     }, 30000);
