@@ -211,7 +211,7 @@ const InpatientSettings = ({
                         <h4 className="text-xs font-bold text-sky-800">
                           New Ward Details
                         </h4>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div className="space-y-1">
                             <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
                               Ward ID
@@ -245,7 +245,7 @@ const InpatientSettings = ({
                             />
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div className="space-y-1">
                             <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
                               Ward Type
@@ -331,7 +331,7 @@ const InpatientSettings = ({
                       >
                         {editingWard === ward.wardId ? (
                           <div className="p-4 rounded-xl border-2 border-sky-300 bg-sky-50 space-y-3">
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                               <div className="space-y-1">
                                 <Label className="text-[10px] font-semibold text-slate-500">
                                   Ward Name
@@ -479,7 +479,7 @@ const InpatientSettings = ({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {["Available", "Occupied", "Maintenance/Sanitizing"].map(
                         (status) => {
                           const count = selectedWard.beds.filter(

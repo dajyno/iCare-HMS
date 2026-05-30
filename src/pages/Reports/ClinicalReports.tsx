@@ -130,7 +130,7 @@ export default function ClinicalReports() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="h-72">
+            <div className="min-h-[220px] h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={occupancyTrendData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -155,7 +155,7 @@ export default function ClinicalReports() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="h-72">
+            <div className="min-h-[220px] h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={alosDeptData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />

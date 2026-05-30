@@ -388,7 +388,7 @@ const Profile = () => {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-600">Full Name</Label>
                 <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-9 text-sm" />
@@ -398,7 +398,7 @@ const Profile = () => {
                 <Input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="h-9 text-sm" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-600">Phone</Label>
                 <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="h-9 text-sm" />
@@ -417,7 +417,7 @@ const Profile = () => {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-600">Department Category</Label>
                 <Select value={editDepartment} onValueChange={(v) => { setEditDepartment(v); setEditPosition(""); }}>

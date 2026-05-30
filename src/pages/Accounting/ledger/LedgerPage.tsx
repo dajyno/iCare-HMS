@@ -219,7 +219,7 @@ const LedgerPage = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-none shadow-sm ring-1 ring-slate-200 p-4">
           <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Total Entries</p>
           <p className="text-xl font-extrabold text-slate-900">{filteredEntries.length}</p>
@@ -287,7 +287,7 @@ const LedgerPage = () => {
                       {expandedRow === entry.id && (
                         <tr className="bg-slate-50/50">
                           <td colSpan={7} className="px-4 py-3">
-                            <div className="grid grid-cols-3 gap-4 text-xs">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
                               <div>
                                 <span className="font-semibold text-slate-500">Payment Method</span>
                                 <p className="text-slate-800 mt-0.5">{entry.payment_method || "—"}</p>

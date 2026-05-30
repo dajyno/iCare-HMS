@@ -76,7 +76,7 @@ const NewExpenseModal = ({ open, onClose, banks }: Props) => {
             <DialogDescription>Record a new expense. It will be saved as Pending until verified.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="exp-amount">Amount (₦)</Label>
                 <Input id="exp-amount" type="number" step="0.01" min="0" placeholder="10000" value={amount} onChange={(e) => setAmount(e.target.value)} required />
@@ -100,7 +100,7 @@ const NewExpenseModal = ({ open, onClose, banks }: Props) => {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="exp-method">Payment Method</Label>
                 <select
@@ -119,7 +119,7 @@ const NewExpenseModal = ({ open, onClose, banks }: Props) => {
                 <Input id="exp-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="exp-bank">Bank Account</Label>
                 <SearchableSelect

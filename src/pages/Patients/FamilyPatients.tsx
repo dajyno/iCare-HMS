@@ -256,7 +256,7 @@ const FamilyPatients = () => {
             <DialogDescription>Create a new family patient record.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleNewSubmit} className="space-y-5">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <Label>First Name *</Label>
                 <Input required value={newForm.firstName || ""} onChange={(e) => {
@@ -314,7 +314,7 @@ const FamilyPatients = () => {
               </div>
               <div className="col-span-3 border-t pt-4">
                 <h4 className="text-sm font-bold text-slate-700 mb-3">Next of Kin</h4>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-1.5"><Label>Name</Label><Input value={newForm.nextOfKinName || ""} onChange={(e) => setNewForm({ ...newForm, nextOfKinName: e.target.value })} /></div>
                   <div className="space-y-1.5"><Label>Phone</Label><Input value={newForm.nextOfKinPhone || ""} onChange={(e) => setNewForm({ ...newForm, nextOfKinPhone: e.target.value })} /></div>
                   <div className="space-y-1.5"><Label>Relation</Label><Input value={newForm.nextOfKinRelation || ""} onChange={(e) => setNewForm({ ...newForm, nextOfKinRelation: e.target.value })} /></div>

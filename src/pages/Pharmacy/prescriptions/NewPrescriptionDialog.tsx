@@ -334,7 +334,7 @@ const NewPrescriptionDialog = ({ open, onOpenChange, initialPatientId }: { open:
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Label className="text-[10px] font-semibold text-slate-500">Dosage</Label>
                       <Input value={item.dosage} onChange={(e) => updateItem(idx, "dosage", e.target.value)} placeholder="e.g. 2 tablets" className="h-8 text-xs" />
@@ -344,7 +344,7 @@ const NewPrescriptionDialog = ({ open, onOpenChange, initialPatientId }: { open:
                       <Input value={item.frequency} onChange={(e) => updateItem(idx, "frequency", e.target.value)} placeholder="e.g. 2x daily" className="h-8 text-xs" />
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="space-y-1">
                       <Label className="text-[10px] font-semibold text-slate-500">Duration</Label>
                       <Input value={item.duration} onChange={(e) => updateItem(idx, "duration", e.target.value)} placeholder="e.g. 7 days" className="h-8 text-xs" />

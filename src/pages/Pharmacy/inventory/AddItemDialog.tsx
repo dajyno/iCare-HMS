@@ -80,7 +80,7 @@ const AddItemDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (o
               {errors.root.message}
             </div>
           )}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="name" className="text-xs font-semibold text-slate-600">Item Name</Label>
               <Input id="name" {...register("name")} placeholder="e.g. Paracetamol" className="h-9 text-sm" />
@@ -93,7 +93,7 @@ const AddItemDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (o
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="strength" className="text-xs font-semibold text-slate-600">Strength</Label>
               <Input id="strength" {...register("strength")} placeholder="e.g. 500mg, 250mg/5ml" className="h-9 text-sm" />
@@ -106,7 +106,7 @@ const AddItemDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (o
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="packageType" className="text-xs font-semibold text-slate-600">Package Type</Label>
               <Input id="packageType" {...register("packageType")} placeholder="e.g. Bottle, Box" className="h-9 text-sm" />
@@ -125,7 +125,7 @@ const AddItemDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (o
             {errors.category && <p className="text-[10px] text-red-500">{errors.category.message}</p>}
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="unitPrice" className="text-xs font-semibold text-slate-600">Unit Price (₦)</Label>
               <Input id="unitPrice" type="number" step="0.01" {...register("unitPrice", { valueAsNumber: true })} className="h-9 text-sm font-mono tabular-nums" />

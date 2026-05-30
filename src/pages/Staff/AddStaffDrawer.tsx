@@ -98,7 +98,7 @@ export default function AddStaffModal({ open, onClose }: Props) {
           onSubmit={handleSubmit}
           className="flex flex-col gap-4 py-2"
         >
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="afn">First Name</Label>
               <Input
@@ -121,7 +121,7 @@ export default function AddStaffModal({ open, onClose }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="aemail">Contact Email</Label>
               <Input
@@ -144,7 +144,7 @@ export default function AddStaffModal({ open, onClose }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="astaffId">Staff ID</Label>
               <Input
@@ -172,7 +172,7 @@ export default function AddStaffModal({ open, onClose }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="agender">Gender</Label>
               <Select value={gender} onValueChange={setGender}>

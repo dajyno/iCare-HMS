@@ -58,14 +58,14 @@ const InventoryList = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Hospital Inventory</h1>
           <p className="text-sm text-slate-500">Manage medical supplies, stock levels and suppliers</p>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline"><Truck className="w-4 h-4 mr-2" /> Suppliers</Button>
-          <Button className="bg-blue-600 hover:bg-blue-700 font-bold"><Plus className="w-4 h-4 mr-2" /> Add Item</Button>
+        <div className="flex flex-wrap gap-3">
+          <Button variant="outline" className="w-full sm:w-auto"><Truck className="w-4 h-4 mr-2" /> Suppliers</Button>
+          <Button className="bg-blue-600 hover:bg-blue-700 font-bold w-full sm:w-auto"><Plus className="w-4 h-4 mr-2" /> Add Item</Button>
         </div>
       </div>
 
@@ -101,7 +101,7 @@ const InventoryList = () => {
 
       <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
         <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
-          <div className="relative w-80">
+          <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search items, SKU, category..." className="pl-9 bg-white h-9" />
           </div>

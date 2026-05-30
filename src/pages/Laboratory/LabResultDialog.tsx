@@ -147,14 +147,14 @@ const LabResultDialog = ({
           {resultLoading ? (
             <div className="space-y-4 py-4">
               <Skeleton className="h-10 w-48" />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Skeleton className="h-16 rounded-lg" />
                 <Skeleton className="h-16 rounded-lg" />
               </div>
             </div>
           ) : result ? (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                     Result Value

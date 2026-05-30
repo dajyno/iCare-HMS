@@ -1104,7 +1104,7 @@ const PatientProfile = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div className="p-3 rounded-lg bg-slate-50">
                     <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">Amount Paid</p>
                     <p className="text-lg font-bold text-emerald-600">₦{selectedInvoice.amountPaid?.toLocaleString() || "0"}</p>
@@ -1139,7 +1139,7 @@ const PatientProfile = () => {
             <DialogDescription>Folder number cannot be changed. Fields from other categories will be cleared on save.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditSubmit} className="space-y-5">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5"><Label>Folder No.</Label><Input value={editForm.patientId || ""} disabled className="bg-slate-100" /></div>
               <div className="space-y-1.5">
                 <Label>Status</Label>
@@ -1168,7 +1168,7 @@ const PatientProfile = () => {
             {editForm.category === "Corporate" && (
               <div className="border-t pt-4">
                 <h4 className="text-sm font-bold text-slate-700 mb-3">Company Information</h4>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-1.5"><Label>Company Name</Label><SearchableSelect value={editForm.companyName || ""} onValueChange={(v) => setEditForm({ ...editForm, companyName: v })} placeholder="Search or type company name..." options={companySuggestions.map((name) => ({value: name, label: name}))} /></div>
                   <div className="space-y-1.5"><Label>Company Phone</Label><Input value={editForm.companyPhone || ""} onChange={(e) => setEditForm({ ...editForm, companyPhone: e.target.value })} /></div>
                   <div className="space-y-1.5"><Label>Company Address</Label><Input value={editForm.companyAddress || ""} onChange={(e) => setEditForm({ ...editForm, companyAddress: e.target.value })} /></div>
@@ -1179,7 +1179,7 @@ const PatientProfile = () => {
             {editForm.category === "HMO" && (
               <div className="border-t pt-4">
                 <h4 className="text-sm font-bold text-slate-700 mb-3">Insurance / HMO Details</h4>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5"><Label>HMO Provider</Label><SearchableSelect value={editForm.insuranceProvider || ""} onValueChange={(v) => setEditForm({ ...editForm, insuranceProvider: v })} placeholder="Search or type HMO provider..." options={hmoSuggestions.map((name) => ({value: name, label: name}))} /></div>
                   <div className="space-y-1.5"><Label>Insurance ID / Registration Number</Label><Input value={editForm.insuranceId || ""} onChange={(e) => setEditForm({ ...editForm, insuranceId: e.target.value })} /></div>
                 </div>
@@ -1253,12 +1253,12 @@ const PatientProfile = () => {
           </DialogHeader>
           <form onSubmit={handleConsultSubmit} className="space-y-4">
             <div className="space-y-1.5"><Label>Chief Complaint *</Label><Textarea required value={consultForm.chiefComplaint || ""} onChange={(e) => setConsultForm({ ...consultForm, chiefComplaint: e.target.value })} /></div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5"><Label>Symptoms</Label><Textarea value={consultForm.symptoms || ""} onChange={(e) => setConsultForm({ ...consultForm, symptoms: e.target.value })} /></div>
               <div className="space-y-1.5"><Label>Diagnosis</Label><Textarea value={consultForm.diagnosis || ""} onChange={(e) => setConsultForm({ ...consultForm, diagnosis: e.target.value })} /></div>
             </div>
             <div className="space-y-1.5"><Label>Clinical Notes</Label><Textarea value={consultForm.clinicalNotes || ""} onChange={(e) => setConsultForm({ ...consultForm, clinicalNotes: e.target.value })} /></div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5"><Label>Treatment Plan</Label><Textarea value={consultForm.treatmentPlan || ""} onChange={(e) => setConsultForm({ ...consultForm, treatmentPlan: e.target.value })} /></div>
               <div className="space-y-1.5"><Label>Follow-up Date</Label><Input type="date" value={consultForm.followUpDate || ""} onChange={(e) => setConsultForm({ ...consultForm, followUpDate: e.target.value })} /></div>
             </div>
@@ -1328,7 +1328,7 @@ const PatientProfile = () => {
               <Label>Medication *</Label>
               <SearchableSelect value={rxForm.medicationId || ""} onValueChange={(v) => setRxForm({ ...rxForm, medicationId: v })} placeholder="Select medication" options={(Array.isArray(medications) ? medications : []).map((m: any) => ({value: m.id, label: `${m.name} ${m.strength || ""}`.trim()}))} />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1.5"><Label>Dosage *</Label><Input required placeholder="e.g. 500mg" value={rxForm.dosage || ""} onChange={(e) => setRxForm({ ...rxForm, dosage: e.target.value })} /></div>
               <div className="space-y-1.5"><Label>Frequency *</Label><Input required placeholder="e.g. 3x/day" value={rxForm.frequency || ""} onChange={(e) => setRxForm({ ...rxForm, frequency: e.target.value })} /></div>
               <div className="space-y-1.5"><Label>Duration *</Label><Input required placeholder="e.g. 7 days" value={rxForm.duration || ""} onChange={(e) => setRxForm({ ...rxForm, duration: e.target.value })} /></div>
@@ -1353,7 +1353,7 @@ const PatientProfile = () => {
           </DialogHeader>
           <form onSubmit={handleBillSubmit} className="space-y-4">
             <div className="space-y-1.5"><Label>Description *</Label><Input required placeholder="e.g. Consultation fee" value={billForm.description || ""} onChange={(e) => setBillForm({ ...billForm, description: e.target.value })} /></div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5"><Label>Quantity</Label><Input type="number" min="1" value={billForm.quantity || "1"} onChange={(e) => setBillForm({ ...billForm, quantity: e.target.value })} /></div>
               <div className="space-y-1.5"><Label>Unit Price (₦) *</Label><Input required type="number" step="0.01" min="0" value={billForm.unitPrice || ""} onChange={(e) => setBillForm({ ...billForm, unitPrice: e.target.value })} /></div>
             </div>
@@ -1395,7 +1395,7 @@ const PatientProfile = () => {
               </div>
               {selectedLabResult.results && (
                 <div className="space-y-3 p-4 bg-slate-50 rounded-lg">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-[10px] font-bold uppercase text-slate-400">Result</span>
                       <p className="font-semibold text-slate-900 mt-0.5">{selectedLabResult.results.resultValue}</p>
@@ -1474,7 +1474,7 @@ const PatientProfile = () => {
             </div>
           )}
           <form onSubmit={handleDependantSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>First Name *</Label>
                 <Input required value={dependantForm.firstName} onChange={(e) => setDependantForm({ ...dependantForm, firstName: e.target.value })} />

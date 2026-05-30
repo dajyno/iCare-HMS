@@ -58,7 +58,7 @@ const NewBankModal = ({ open, onClose }: Props) => {
             <Label htmlFor="bnk-acct-name">Account Name</Label>
             <Input id="bnk-acct-name" placeholder="Operations" value={accountName} onChange={(e) => setAccountName(e.target.value)} required />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="bnk-acct-no">Account Number</Label>
               <Input id="bnk-acct-no" placeholder="0123456789" value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} required />

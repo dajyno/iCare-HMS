@@ -737,7 +737,7 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                       <h3 className="text-sm font-semibold text-slate-700">Inpatient Admission</h3>
                     </div>
                     <div className="bg-rose-50 rounded-xl p-4 space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label className={LABEL_CLS}>Admission Days</Label>
                           <Input

@@ -123,7 +123,7 @@ export default function StaffReports() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="h-72">
+            <div className="min-h-[220px] h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={consultationTrendData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -148,7 +148,7 @@ export default function StaffReports() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="h-72">
+            <div className="min-h-[220px] h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={attendanceData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />

@@ -293,7 +293,7 @@ const InventoryMatrix = () => {
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between gap-3">
-          <div className="relative w-72 shrink-0">
+          <div className="relative w-full sm:max-w-xs shrink-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <Input
               value={globalFilter}

@@ -43,7 +43,7 @@ const AnalyticsBoard = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="h-64">
+          <div className="min-h-[200px] h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.revenueByMonth} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -80,7 +80,7 @@ const AnalyticsBoard = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="h-64">
+          <div className="min-h-[200px] h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.topDrugs} margin={{ top: 5, right: 10, left: 0, bottom: 5 }} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />

@@ -206,14 +206,14 @@ const BillingOverview = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Billing & Invoices</h1>
           <p className="text-sm text-slate-500">
             Track payments, invoices and hospital revenue
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
           <Button
             variant="outline"
             size="sm"
@@ -330,7 +330,7 @@ const BillingOverview = () => {
       {/* Invoice Table */}
       <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
         <div className="p-4 border-b bg-slate-50/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div className="relative w-full sm:w-80">
+          <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input
               value={searchTerm}

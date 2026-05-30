@@ -99,7 +99,7 @@ const NewIncomeModal = ({ open, onClose, banks }: Props) => {
             <DialogDescription>Record a new income transaction. It will be saved as Pending until verified.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="inc-amount">Amount (₦)</Label>
                 <Input id="inc-amount" type="number" step="0.01" min="0" placeholder="25000" value={amount} onChange={(e) => setAmount(e.target.value)} required />
@@ -123,7 +123,7 @@ const NewIncomeModal = ({ open, onClose, banks }: Props) => {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="inc-method">Payment Method</Label>
                 <select
@@ -143,7 +143,7 @@ const NewIncomeModal = ({ open, onClose, banks }: Props) => {
                 <Input id="inc-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="inc-bank">Bank Account</Label>
                 <SearchableSelect
