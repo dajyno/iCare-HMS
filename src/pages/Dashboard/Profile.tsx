@@ -1,5 +1,7 @@
 import { useState, useRef, type ChangeEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { supabase } from "@/src/lib/supabase";
 import { adminSupabase } from "@/src/lib/adminSupabase";
 import { useAuth } from "@/src/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,7 +58,7 @@ function formatDate(ts: string | null | undefined) {
 }
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [profilePicture, setProfilePicture] = useState(() =>
     localStorage.getItem("staff_profile_picture") || ""
@@ -187,8 +189,9 @@ const Profile = () => {
         if (staffErr) throw new Error(staffErr.message || "Failed to update staff record");
       }
 
+      await refreshUser();
       setEditOpen(false);
-      window.location.reload();
+      toast.success("Profile updated successfully");
     } catch (err: any) {
       setEditError(err.message);
     } finally {
