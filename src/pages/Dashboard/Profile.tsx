@@ -227,9 +227,7 @@ const Profile = () => {
             <span className="text-slate-400">•</span>
             <span className="text-slate-500 text-sm font-medium">Healthcare Professional</span>
           </div>
-          <p className="text-slate-500 text-sm max-w-xl mx-auto md:mx-0">
-            Dedicated hospital staff member committed to providing exceptional care and operational excellence within the iCare system.
-          </p>
+
           <div className="flex items-center justify-center md:justify-start gap-3 pt-2">
             <div
               onClick={() => fileInputRef.current?.click()}
