@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, useRef, type FormEvent } from "react";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +41,12 @@ export default function AddStaffModal({ open, onClose }: Props) {
   const [gender, setGender] = useState("");
   const [address, setAddress] = useState("");
   const [position, setPosition] = useState("");
+  const dialogRef = useRef<HTMLDivElement>(null!);
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setPortalContainer(dialogRef.current?.parentElement ?? null);
+  }, [open]);
 
   const positionOptions = department ? getPositionsForDepartment(department) : [];
 
@@ -86,7 +92,7 @@ export default function AddStaffModal({ open, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+      <DialogContent ref={dialogRef} className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Staff</DialogTitle>
           <DialogDescription>
@@ -161,7 +167,7 @@ export default function AddStaffModal({ open, onClose }: Props) {
                 <SelectTrigger className="w-full h-10" id="adepartment">
                   <SelectValue placeholder="Select department..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent container={portalContainer}>
                   {DEPARTMENT_CATEGORIES.map((cat) => (
                     <SelectItem key={cat} value={cat}>
                       {cat}
@@ -179,7 +185,7 @@ export default function AddStaffModal({ open, onClose }: Props) {
                 <SelectTrigger className="w-full h-10" id="agender">
                   <SelectValue placeholder="Select gender..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent container={portalContainer}>
                   <SelectItem value="Male">Male</SelectItem>
                   <SelectItem value="Female">Female</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
@@ -196,7 +202,7 @@ export default function AddStaffModal({ open, onClose }: Props) {
                 <SelectTrigger className="w-full h-10" id="aposition">
                   <SelectValue placeholder={department ? "Select a position..." : "Pick a department first"} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent container={portalContainer}>
                   {positionOptions.map((opt) => (
                     <SelectItem key={opt} value={opt}>
                       {opt}
