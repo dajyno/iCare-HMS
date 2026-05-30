@@ -223,6 +223,27 @@ const TenantDetail: React.FC = () => {
         .eq("tenant_id", tenantId);
     }
 
+    // Sync name into users' full_name for this tenant
+    if (tenant && tenant.hospitalName !== editHospitalName.trim()) {
+      const { data: tenantUsers } = await (adminSupabase as any)
+        .from("users")
+        .select("id, full_name")
+        .eq("tenant_id", tenantId);
+
+      if (tenantUsers) {
+        await Promise.allSettled(
+          (tenantUsers as any[])
+            .filter((u: any) => u.full_name?.startsWith(tenant.hospitalName))
+            .map((u: any) =>
+              (adminSupabase as any)
+                .from("users")
+                .update({ full_name: u.full_name.replace(tenant.hospitalName, editHospitalName.trim()) })
+                .eq("id", u.id)
+            )
+        );
+      }
+    }
+
     setSavingIdentity(false);
     setIdentitySuccess("Saved");
     setEditUrlSlug(sanitizedSlug);
