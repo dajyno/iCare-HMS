@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Building2, Users, UserRound, Stethoscope, BedDouble, TrendingUp, DollarSign, Mail, Key, Loader2, AlertCircle, ExternalLink, CheckCircle2, Settings, Save, ChevronDown, Trash2 } from "lucide-react";
 import { adminSupabase } from "../../lib/adminSupabase";
-import { toCamel } from "../../lib/supabase";
+import { toCamel, getCurrentTenantId, setCurrentTenantId } from "../../lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -90,6 +90,12 @@ const TenantDetail: React.FC = () => {
   const [savingIdentity, setSavingIdentity] = useState(false);
   const [identityError, setIdentityError] = useState("");
   const [identitySuccess, setIdentitySuccess] = useState("");
+
+  useEffect(() => {
+    const prev = getCurrentTenantId();
+    setCurrentTenantId(null);
+    return () => setCurrentTenantId(prev);
+  }, []);
 
   useEffect(() => {
     if (!tenantId) { setNotFound(true); setLoading(false); return; }
