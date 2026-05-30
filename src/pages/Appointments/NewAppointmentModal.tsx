@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion } from "motion/react";
 import { Search, X, User, Loader2, ChevronRight, Clock, AlertTriangle } from "lucide-react";
 import { usePatients, useCreateAppointment, findConflicts, type DoctorSlot } from "./hooks";
@@ -10,6 +10,12 @@ interface NewAppointmentModalProps {
   onClose: () => void;
   prefillDoctor?: DoctorSlot;
   prefillTime?: string;
+  prefillPatient?: {
+    id: string;
+    patientId: string;
+    firstName: string;
+    lastName: string;
+  } | null;
   doctors: DoctorSlot[];
   appointments: Appointment[];
 }
@@ -19,6 +25,7 @@ export default function NewAppointmentModal({
   onClose,
   prefillDoctor,
   prefillTime,
+  prefillPatient,
   doctors,
   appointments,
 }: NewAppointmentModalProps) {
@@ -41,6 +48,12 @@ export default function NewAppointmentModal({
     prefillTime ? prefillTime.split("T")[0] : new Date().toISOString().split("T")[0]
   );
   const searchTimeout = useRef<any>(null);
+
+  useEffect(() => {
+    if (open && prefillPatient) {
+      setSelectedPatient(prefillPatient);
+    }
+  }, [open, prefillPatient]);
 
   const { data: patientResults, isLoading: searchingPatients } = usePatients(patientQuery);
 
