@@ -1011,89 +1011,167 @@ function PharmacyLabContent({
 
   const renderItemTable = () => (
     <div className="space-y-4" style={{ position: "static" }}>
-      <div className="border border-slate-200 rounded-xl" style={{ overflow: "visible" }}>
-        <table className="w-full text-sm" style={{ minWidth: 0 }}>
-          <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
-            <tr>
-              <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider w-14">Code</th>
-              <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider">Item / Search</th>
-              <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-36">Price (₦)</th>
-              <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-20">Qty</th>
-              <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-28">Amount (₦)</th>
-              <th className="px-3 py-2.5 text-center w-8" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {form.lineItems.map((item, idx) => (
-              <tr key={`${item.code}-${idx}`} className="hover:bg-slate-50/50">
-                <td className="px-3 py-2">
-                  <span className="font-mono text-[11px] text-slate-400">{item.code}</span>
-                </td>
-                <td className="px-3 py-2 min-w-[200px]">
-                  {renderCatalogSearchRow(idx, searchQueries[idx] || "", (v) => {
-                    const q = [...searchQueries];
-                    q[idx] = v;
-                    setSearchQueries(q);
-                  }, showResultsList[idx] || false, (v) => {
-                    const s = [...showResultsList];
-                    s[idx] = v;
-                    setShowResultsList(s);
-                  })}
-                </td>
-                <td className="px-3 py-2">
-                  <Input
-                    type="text" inputMode="decimal"
-                    value={item.price === 0 && priceTexts[idx] === "" ? "" : (priceTexts[idx] || String(item.price || ""))}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (v === "" || /^\d*\.?\d*$/.test(v)) {
-                        syncPriceText(idx, v);
-                        updateLineItem(idx, "price", v === "" ? 0 : parseFloat(v));
-                      }
-                    }}
-                    onBlur={() => {
-                      syncPriceText(idx, "");
-                      const p = form.lineItems[idx]?.price;
-                      if (isNaN(p) || p < 0) updateLineItem(idx, "price", 0);
-                    }}
-                    placeholder="0.00"
-                    className="h-8 text-xs text-right bg-transparent border-0 px-1 focus:bg-white focus:border font-mono"
-                  />
-                </td>
-                <td className="px-3 py-2">
-                  <Input
-                    type="text" inputMode="numeric"
-                    value={qtyTexts[idx] || String(item.qty)}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (v === "" || /^\d+$/.test(v)) {
-                        syncQtyText(idx, v);
-                        updateLineItem(idx, "qty", v === "" ? 0 : parseInt(v, 10));
-                      }
-                    }}
-                    onBlur={() => {
-                      syncQtyText(idx, "");
-                      const q = form.lineItems[idx]?.qty;
-                      if (isNaN(q) || q < 1) updateLineItem(idx, "qty", 1);
-                    }}
-                    className="h-8 text-xs text-right bg-transparent border-0 px-1 focus:bg-white focus:border font-mono"
-                  />
-                </td>
-                <td className="px-3 py-2 text-right font-mono text-sm font-semibold text-slate-900 tabular-nums whitespace-nowrap">
-                  ₦{item.amount.toFixed(2)}
-                </td>
-                <td className="px-3 py-2 text-center">
-                  {form.lineItems.length > 1 && (
-                    <button onClick={() => removeRow(idx)} className="text-slate-300 hover:text-red-400 transition-colors p-1">
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Mobile cards */}
+      <div className="block sm:hidden space-y-3">
+        {form.lineItems.map((item, idx) => (
+          <div key={`${item.code}-${idx}`} className="border border-slate-200 rounded-xl p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] text-slate-400">{item.code}</span>
+              {form.lineItems.length > 1 && (
+                <button onClick={() => removeRow(idx)} className="text-slate-300 hover:text-red-400 transition-colors">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            <div>
+              {renderCatalogSearchRow(idx, searchQueries[idx] || "", (v) => {
+                const q = [...searchQueries];
+                q[idx] = v;
+                setSearchQueries(q);
+              }, showResultsList[idx] || false, (v) => {
+                const s = [...showResultsList];
+                s[idx] = v;
+                setShowResultsList(s);
+              })}
+            </div>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">Price (₦)</Label>
+                <Input
+                  type="text" inputMode="decimal"
+                  value={item.price === 0 && priceTexts[idx] === "" ? "" : (priceTexts[idx] || String(item.price || ""))}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "" || /^\d*\.?\d*$/.test(v)) {
+                      syncPriceText(idx, v);
+                      updateLineItem(idx, "price", v === "" ? 0 : parseFloat(v));
+                    }
+                  }}
+                  onBlur={() => {
+                    syncPriceText(idx, "");
+                    const p = form.lineItems[idx]?.price;
+                    if (isNaN(p) || p < 0) updateLineItem(idx, "price", 0);
+                  }}
+                  placeholder="0.00"
+                  className="h-9 text-sm bg-slate-50/50 border-slate-200"
+                />
+              </div>
+              <div>
+                <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">Quantity</Label>
+                <Input
+                  type="text" inputMode="numeric"
+                  value={qtyTexts[idx] || String(item.qty)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "" || /^\d+$/.test(v)) {
+                      syncQtyText(idx, v);
+                      updateLineItem(idx, "qty", v === "" ? 0 : parseInt(v, 10));
+                    }
+                  }}
+                  onBlur={() => {
+                    syncQtyText(idx, "");
+                    const q = form.lineItems[idx]?.qty;
+                    if (isNaN(q) || q < 1) updateLineItem(idx, "qty", 1);
+                  }}
+                  className="h-9 text-sm bg-slate-50/50 border-slate-200"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Amount</span>
+              <span className="font-mono text-sm font-bold text-slate-900 tabular-nums">₦{item.amount.toFixed(2)}</span>
+            </div>
+          </div>
+        ))}
       </div>
+
+      {/* Desktop table */}
+      <div className="hidden sm:block overflow-x-auto">
+        <div className="border border-slate-200 rounded-xl" style={{ overflow: "visible" }}>
+          <table className="w-full text-sm" style={{ minWidth: 0 }}>
+            <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+              <tr>
+                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider w-14">Code</th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider">Item / Search</th>
+                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-36">Price (₦)</th>
+                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-20">Qty</th>
+                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-28">Amount (₦)</th>
+                <th className="px-3 py-2.5 text-center w-8" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {form.lineItems.map((item, idx) => (
+                <tr key={`${item.code}-${idx}`} className="hover:bg-slate-50/50">
+                  <td className="px-3 py-2">
+                    <span className="font-mono text-[11px] text-slate-400">{item.code}</span>
+                  </td>
+                  <td className="px-3 py-2 min-w-[140px] sm:min-w-[200px]">
+                    {renderCatalogSearchRow(idx, searchQueries[idx] || "", (v) => {
+                      const q = [...searchQueries];
+                      q[idx] = v;
+                      setSearchQueries(q);
+                    }, showResultsList[idx] || false, (v) => {
+                      const s = [...showResultsList];
+                      s[idx] = v;
+                      setShowResultsList(s);
+                    })}
+                  </td>
+                  <td className="px-3 py-2">
+                    <Input
+                      type="text" inputMode="decimal"
+                      value={item.price === 0 && priceTexts[idx] === "" ? "" : (priceTexts[idx] || String(item.price || ""))}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === "" || /^\d*\.?\d*$/.test(v)) {
+                          syncPriceText(idx, v);
+                          updateLineItem(idx, "price", v === "" ? 0 : parseFloat(v));
+                        }
+                      }}
+                      onBlur={() => {
+                        syncPriceText(idx, "");
+                        const p = form.lineItems[idx]?.price;
+                        if (isNaN(p) || p < 0) updateLineItem(idx, "price", 0);
+                      }}
+                      placeholder="0.00"
+                      className="h-8 text-xs text-right bg-transparent border-0 px-1 focus:bg-white focus:border font-mono"
+                    />
+                  </td>
+                  <td className="px-3 py-2">
+                    <Input
+                      type="text" inputMode="numeric"
+                      value={qtyTexts[idx] || String(item.qty)}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === "" || /^\d+$/.test(v)) {
+                          syncQtyText(idx, v);
+                          updateLineItem(idx, "qty", v === "" ? 0 : parseInt(v, 10));
+                        }
+                      }}
+                      onBlur={() => {
+                        syncQtyText(idx, "");
+                        const q = form.lineItems[idx]?.qty;
+                        if (isNaN(q) || q < 1) updateLineItem(idx, "qty", 1);
+                      }}
+                      className="h-8 text-xs text-right bg-transparent border-0 px-1 focus:bg-white focus:border font-mono"
+                    />
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono text-sm font-semibold text-slate-900 tabular-nums whitespace-nowrap">
+                    ₦{item.amount.toFixed(2)}
+                  </td>
+                  <td className="px-3 py-2 text-center">
+                    {form.lineItems.length > 1 && (
+                      <button onClick={() => removeRow(idx)} className="text-slate-300 hover:text-red-400 transition-colors p-1">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <Button variant="ghost" size="sm" className="h-8 text-xs gap-1 text-sky-600 hover:text-sky-700 hover:bg-sky-50" onClick={addRow}>
         <Plus className="w-3 h-3" />
         Add Item Row
@@ -1169,7 +1247,7 @@ function GeneralContent({
             <tr>
               <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider w-14">Code</th>
               <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider">Item Name</th>
-              <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider w-24">Type</th>
+              <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider w-32">Type</th>
               <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider w-28">Date</th>
               <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-36">Price (₦)</th>
               <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider w-20">Qty</th>
