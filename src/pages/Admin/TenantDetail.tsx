@@ -207,6 +207,22 @@ const TenantDetail: React.FC = () => {
       return;
     }
 
+    // Sync the hospital name into global_settings so the dashboard shows it too
+    const { data: curSettings } = await (adminSupabase as any)
+      .from("global_settings")
+      .select("settings")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+
+    if (curSettings) {
+      await (adminSupabase as any)
+        .from("global_settings")
+        .update({
+          settings: { ...((curSettings as any).settings || {}), hospitalName: editHospitalName.trim() },
+        })
+        .eq("tenant_id", tenantId);
+    }
+
     setSavingIdentity(false);
     setIdentitySuccess("Saved");
     setEditUrlSlug(sanitizedSlug);
