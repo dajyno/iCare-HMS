@@ -190,13 +190,15 @@ const LedgerPage = () => {
               <option value="Expense">Expense</option>
             </select>
           </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">From</label>
-            <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setCurrentPage(1); }} className="h-8 text-xs w-36" />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">To</label>
-            <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setCurrentPage(1); }} className="h-8 text-xs w-36" />
+          <div className="grid grid-cols-2 sm:flex gap-3">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">From</label>
+              <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setCurrentPage(1); }} className="h-8 text-xs w-full sm:w-36" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">To</label>
+              <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setCurrentPage(1); }} className="h-8 text-xs w-full sm:w-36" />
+            </div>
           </div>
           <div className="space-y-1 flex-1 min-w-[180px]">
             <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Search</label>
