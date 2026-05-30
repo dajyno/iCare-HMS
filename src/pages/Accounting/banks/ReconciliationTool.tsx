@@ -120,7 +120,7 @@ const ReconciliationTool = ({ bank, onBack }: Props) => {
           <CardContent className="p-0">
             <div className="p-4 border-b border-slate-100 bg-slate-50/50 space-y-3">
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Add Statement Entry</p>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div>
                   <Label className="text-[10px]">Date</Label>
                   <Input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="h-8 text-xs" />

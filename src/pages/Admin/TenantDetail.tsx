@@ -870,7 +870,7 @@ const TenantDetail: React.FC = () => {
             <TrendingUp className="w-4 h-4 text-blue-600" />
             Hospital Metrics
           </h2>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <MiniMetricCard icon={Users} label="System Users" value={String(usersCount)} />
             <MiniMetricCard icon={Stethoscope} label="Doctors" value={String(doctorsCount)} />
             <MiniMetricCard icon={UserRound} label="Patients" value={String(patientsCount)} />
@@ -981,7 +981,7 @@ const TenantDetail: React.FC = () => {
                 </button>
               </div>
               {editModuleOverride && (
-                <div className="grid grid-cols-2 gap-2 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
                   {ALL_MODULES.map((mod) => (
                     <label key={mod} className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
                       <input
@@ -1178,7 +1178,7 @@ const TenantDetail: React.FC = () => {
                 <>Default modules for {TIER_DISPLAY_NAMES[tenant.tier]}: <span className="text-slate-600">{TIER_MODULE_DEFAULTS[tenant.tier]?.map((m) => m.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())).join(", ") || "None"}</span></>
               )}
             </p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {ALL_MODULES.map((mod) => {
                 const isDefaultForTier = tenant?.tier && (TIER_MODULE_DEFAULTS[tenant.tier] ?? []).includes(mod);
                 return (

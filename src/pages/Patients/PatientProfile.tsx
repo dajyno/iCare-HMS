@@ -1148,7 +1148,8 @@ const PatientProfile = () => {
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
             <p className="text-xs text-slate-500">Folder number cannot be changed. Fields from other categories will be cleared on save.</p>
             <form id="edit-patient-form" onSubmit={handleEditSubmit} className="space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* 2-col grid for paired fields */}
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr] gap-x-6 gap-y-4">
                 <div>
                   <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Folder No.</Label>
                   <Input value={editForm.patientId || ""} disabled className="w-full bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed rounded-xl px-3.5 py-2.5 text-sm outline-none" />
@@ -1185,15 +1186,20 @@ const PatientProfile = () => {
                   <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Phone</Label>
                   <Input value={editForm.phone || ""} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none" />
                 </div>
+                <div></div>
+              </div>
+
+              {/* Full-width fields */}
+              <div className="space-y-4">
                 <div>
                   <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Email</Label>
                   <Input type="email" value={editForm.email || ""} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none" />
                 </div>
-                <div className="sm:col-span-2">
+                <div>
                   <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Address</Label>
                   <Input value={editForm.address || ""} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none" />
                 </div>
-                <div className="sm:col-span-2">
+                <div>
                   <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Allergies / Medical History</Label>
                   <Textarea value={editForm.allergies || ""} onChange={(e) => setEditForm({ ...editForm, allergies: e.target.value })} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none min-h-[80px]" />
                 </div>

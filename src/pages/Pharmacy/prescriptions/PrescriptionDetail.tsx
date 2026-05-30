@@ -99,7 +99,7 @@ const PrescriptionDetail = ({
       </div>
 
       <div className="px-6 py-4 space-y-5">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <Hash className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <span className="font-mono text-xs">{prescription.id.slice(0, 8).toUpperCase()}</span>

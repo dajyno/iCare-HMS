@@ -454,7 +454,7 @@ const LabDetailView = ({
 
                 {viewMode === "view" && existingResults?.length ? (
                   <div className="p-5 space-y-3">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Result</p>
                         <p className="text-lg font-bold font-mono text-slate-900">

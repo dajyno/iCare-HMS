@@ -227,7 +227,7 @@ const LicensingManager: React.FC = () => {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Included Modules</Label>
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                 {ALL_MODULES.map((mod) => (
                   <label key={mod} className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
                     <input

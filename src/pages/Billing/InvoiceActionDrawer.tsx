@@ -318,7 +318,7 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
                       <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
                         Payment Method
                       </Label>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {PAYMENT_METHODS.map((method) => (
                           <button
                             key={method}

@@ -757,7 +757,7 @@ export default function Settings() {
                     <p className="text-xs text-emerald-600">Supabase PostgreSQL instance is reachable</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                   <div className="rounded-lg bg-slate-50 p-3">
                     <p className="text-xs text-slate-500">Latency</p>
                     <p className="font-mono font-medium text-slate-800">{dbTestResult.latency} ms</p>

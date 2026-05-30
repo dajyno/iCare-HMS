@@ -208,7 +208,7 @@ const JournalVitalsFeed = ({
             <span className="font-semibold uppercase tracking-wider">Recording Staff:</span>
             <span className="text-slate-700 font-medium">{staffName}</span>
           </div>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="space-y-1.5">
               <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                 BP (mmHg)
