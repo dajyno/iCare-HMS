@@ -257,20 +257,28 @@ const TenantDetail: React.FC = () => {
       }
 
       if (tenantUsers) {
+        const toUpdate = (tenantUsers as any[]).filter((u: any) => u.full_name?.startsWith(tenant.hospitalName));
         const results = await Promise.allSettled(
-          (tenantUsers as any[])
-            .filter((u: any) => u.full_name?.startsWith(tenant.hospitalName))
-            .map((u: any) =>
-              (adminSupabase as any)
-                .from("users")
-                .update({ full_name: u.full_name.replace(tenant.hospitalName, editHospitalName.trim()) })
-                .eq("id", u.id)
-            )
+          toUpdate.map((u: any) =>
+            (adminSupabase as any)
+              .from("users")
+              .update({ full_name: u.full_name.replace(tenant.hospitalName, editHospitalName.trim()) })
+              .eq("id", u.id)
+          )
         );
 
-        const rejected = results.filter((r) => r.status === "rejected");
-        if (rejected.length > 0) {
-          setIdentityError(`Failed to update ${rejected.length} user(s)`);
+        // Supabase queries never reject — check fulfilled results for errors
+        const errors: string[] = [];
+        for (const r of results) {
+          if (r.status === "rejected") {
+            errors.push(r.reason?.message || String(r.reason));
+          } else if ((r.value as any)?.error) {
+            errors.push((r.value as any).error.message);
+          }
+        }
+        if (errors.length > 0) {
+          console.error("Users update errors:", errors);
+          setIdentityError(`Failed to update ${errors.length} user(s): ${errors[0]}`);
           setSavingIdentity(false);
           return;
         }
