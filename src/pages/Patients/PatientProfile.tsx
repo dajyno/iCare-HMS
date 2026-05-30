@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import SearchableSelect from "@/components/ui/searchable-select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import ConsultationDetailCard from "@/src/components/ConsultationDetailCard";
 import { ProfileSkeleton } from "@/src/components/skeletons/ProfileSkeleton";
 import { toast } from "sonner";
@@ -1135,66 +1135,117 @@ const PatientProfile = () => {
 
       {/* ======== EDIT MODAL ======== */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Patient</DialogTitle>
-            <DialogDescription>Folder number cannot be changed. Fields from other categories will be cleared on save.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleEditSubmit} className="space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5"><Label>Folder No.</Label><Input value={editForm.patientId || ""} disabled className="bg-slate-100" /></div>
-              <div className="space-y-1.5">
-                <Label>Status</Label>
-                <SearchableSelect value={editForm.status || "active"} onValueChange={(v) => setEditForm({ ...editForm, status: v })} options={[{value:"active",label:"Active"},{value:"inactive",label:"Inactive"}]} />
-              </div>
-              <div className="space-y-1.5"><Label>First Name <span className="text-red-500">*</span></Label><Input required value={editForm.firstName || ""} onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} /></div>
-              <div className="space-y-1.5"><Label>Last Name <span className="text-red-500">*</span></Label><Input required value={editForm.lastName || ""} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} /></div>
-              <div className="space-y-1.5">
-                <Label>Gender</Label>
-                <SearchableSelect value={editForm.gender || ""} onValueChange={(v) => setEditForm({ ...editForm, gender: v })} placeholder="Select" options={[{value:"Male",label:"Male"},{value:"Female",label:"Female"}]} />
-              </div>
-              <div className="space-y-1.5"><Label>Date of Birth</Label><Input type="date" value={editForm.dateOfBirth || ""} onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })} /></div>
-              <div className="space-y-1.5">
-                <Label>Category <span className="text-red-500">*</span></Label>
-                <SearchableSelect value={editForm.category || "Individual"} onValueChange={(v) => setEditForm({ ...editForm, category: v })} options={[{value:"Individual",label:"Individual"},{value:"Family",label:"Family"},{value:"Corporate",label:"Corporate"},{value:"HMO",label:"HMO"}]} />
-              </div>
-              <div className="space-y-1.5"><Label>Phone</Label><Input value={editForm.phone || ""} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} /></div>
-              <div className="space-y-1.5"><Label>Email</Label><Input type="email" value={editForm.email || ""} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} /></div>
-              <div className="col-span-2 space-y-1.5"><Label>Address</Label><Input value={editForm.address || ""} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} /></div>
-              <div className="space-y-1.5"><Label>Blood Group</Label>
-                <SearchableSelect value={editForm.bloodGroup || ""} onValueChange={(v) => setEditForm({ ...editForm, bloodGroup: v })} placeholder="Select" options={["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(b => ({value:b,label:b}))} />
-              </div>
-              <div className="col-span-2 space-y-1.5"><Label>Allergies / Medical History</Label><Textarea value={editForm.allergies || ""} onChange={(e) => setEditForm({ ...editForm, allergies: e.target.value })} /></div>
-            </div>
+        <DialogContent showCloseButton={false} className="fixed bottom-0 left-0 right-0 md:top-1/2 md:left-1/2 z-50 w-full max-w-lg mx-auto md:-translate-x-1/2 md:-translate-y-1/2 flex flex-col max-h-[90vh] rounded-t-2xl md:rounded-2xl bg-white shadow-2xl overflow-hidden p-0 gap-0">
+          {/* Sticky Header */}
+          <div className="sticky top-0 bg-white px-5 py-4 border-b border-slate-100 flex items-center justify-between z-10">
+            <DialogTitle className="text-base font-bold">Edit Patient</DialogTitle>
+            <DialogClose className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors">
+              <X className="w-4 h-4" />
+            </DialogClose>
+          </div>
 
-            {editForm.category === "Corporate" && (
-              <div className="border-t pt-4">
-                <h4 className="text-sm font-bold text-slate-700 mb-3">Company Information</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-1.5"><Label>Company Name</Label><SearchableSelect value={editForm.companyName || ""} onValueChange={(v) => setEditForm({ ...editForm, companyName: v })} placeholder="Search or type company name..." options={companySuggestions.map((name) => ({value: name, label: name}))} /></div>
-                  <div className="space-y-1.5"><Label>Company Phone</Label><Input value={editForm.companyPhone || ""} onChange={(e) => setEditForm({ ...editForm, companyPhone: e.target.value })} /></div>
-                  <div className="space-y-1.5"><Label>Company Address</Label><Input value={editForm.companyAddress || ""} onChange={(e) => setEditForm({ ...editForm, companyAddress: e.target.value })} /></div>
+          {/* Scrollable Form Body */}
+          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            <p className="text-xs text-slate-500">Folder number cannot be changed. Fields from other categories will be cleared on save.</p>
+            <form id="edit-patient-form" onSubmit={handleEditSubmit} className="space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Folder No.</Label>
+                  <Input value={editForm.patientId || ""} disabled className="w-full bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed rounded-xl px-3.5 py-2.5 text-sm outline-none" />
+                </div>
+                <div>
+                  <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Status</Label>
+                  <SearchableSelect value={editForm.status || "active"} onValueChange={(v) => setEditForm({ ...editForm, status: v })} options={[{value:"active",label:"Active"},{value:"inactive",label:"Inactive"}]} triggerClassName="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none text-left justify-start font-normal h-auto" />
+                </div>
+                <div>
+                  <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">First Name <span className="text-red-500">*</span></Label>
+                  <Input required value={editForm.firstName || ""} onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none" />
+                </div>
+                <div>
+                  <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Last Name <span className="text-red-500">*</span></Label>
+                  <Input required value={editForm.lastName || ""} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none" />
+                </div>
+                <div>
+                  <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Gender</Label>
+                  <SearchableSelect value={editForm.gender || ""} onValueChange={(v) => setEditForm({ ...editForm, gender: v })} placeholder="Select" options={[{value:"Male",label:"Male"},{value:"Female",label:"Female"}]} triggerClassName="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none text-left justify-start font-normal h-auto" />
+                </div>
+                <div>
+                  <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Blood Group</Label>
+                  <SearchableSelect value={editForm.bloodGroup || ""} onValueChange={(v) => setEditForm({ ...editForm, bloodGroup: v })} placeholder="Select" options={["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(b => ({value:b,label:b}))} triggerClassName="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none text-left justify-start font-normal h-auto" />
+                </div>
+                <div>
+                  <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Date of Birth</Label>
+                  <Input type="date" value={editForm.dateOfBirth || ""} onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none" />
+                </div>
+                <div>
+                  <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Category <span className="text-red-500">*</span></Label>
+                  <SearchableSelect value={editForm.category || "Individual"} onValueChange={(v) => setEditForm({ ...editForm, category: v })} options={[{value:"Individual",label:"Individual"},{value:"Family",label:"Family"},{value:"Corporate",label:"Corporate"},{value:"HMO",label:"HMO"}]} triggerClassName="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none text-left justify-start font-normal h-auto" />
+                </div>
+                <div>
+                  <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Phone</Label>
+                  <Input value={editForm.phone || ""} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none" />
+                </div>
+                <div>
+                  <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Email</Label>
+                  <Input type="email" value={editForm.email || ""} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none" />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Address</Label>
+                  <Input value={editForm.address || ""} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none" />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Allergies / Medical History</Label>
+                  <Textarea value={editForm.allergies || ""} onChange={(e) => setEditForm({ ...editForm, allergies: e.target.value })} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none min-h-[80px]" />
                 </div>
               </div>
-            )}
 
-            {editForm.category === "HMO" && (
-              <div className="border-t pt-4">
-                <h4 className="text-sm font-bold text-slate-700 mb-3">Insurance / HMO Details</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5"><Label>HMO Provider</Label><SearchableSelect value={editForm.insuranceProvider || ""} onValueChange={(v) => setEditForm({ ...editForm, insuranceProvider: v })} placeholder="Search or type HMO provider..." options={hmoSuggestions.map((name) => ({value: name, label: name}))} /></div>
-                  <div className="space-y-1.5"><Label>Insurance ID / Registration Number</Label><Input value={editForm.insuranceId || ""} onChange={(e) => setEditForm({ ...editForm, insuranceId: e.target.value })} /></div>
+              {editForm.category === "Corporate" && (
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-bold text-slate-700 mb-3">Company Information</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Company Name</Label>
+                      <SearchableSelect value={editForm.companyName || ""} onValueChange={(v) => setEditForm({ ...editForm, companyName: v })} placeholder="Search or type company name..." options={companySuggestions.map((name) => ({value: name, label: name}))} triggerClassName="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none text-left justify-start font-normal h-auto" />
+                    </div>
+                    <div>
+                      <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Company Phone</Label>
+                      <Input value={editForm.companyPhone || ""} onChange={(e) => setEditForm({ ...editForm, companyPhone: e.target.value })} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none" />
+                    </div>
+                    <div>
+                      <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Company Address</Label>
+                      <Input value={editForm.companyAddress || ""} onChange={(e) => setEditForm({ ...editForm, companyAddress: e.target.value })} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none" />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowEditModal(false)}>Cancel</Button>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={updateMutation.isPending}>
-                {updateMutation.isPending ? "Saving..." : "Save Changes"}
-              </Button>
-            </DialogFooter>
-          </form>
+              {editForm.category === "HMO" && (
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-bold text-slate-700 mb-3">Insurance / HMO Details</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">HMO Provider</Label>
+                      <SearchableSelect value={editForm.insuranceProvider || ""} onValueChange={(v) => setEditForm({ ...editForm, insuranceProvider: v })} placeholder="Search or type HMO provider..." options={hmoSuggestions.map((name) => ({value: name, label: name}))} triggerClassName="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none text-left justify-start font-normal h-auto" />
+                    </div>
+                    <div>
+                      <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Insurance ID / Registration Number</Label>
+                      <Input value={editForm.insuranceId || ""} onChange={(e) => setEditForm({ ...editForm, insuranceId: e.target.value })} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none" />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </form>
+          </div>
+
+          {/* Sticky Footer */}
+          <div className="sticky bottom-0 bg-slate-50/80 backdrop-blur-md px-5 py-3.5 border-t border-slate-100 flex items-center justify-end gap-3 z-10">
+            <Button type="button" variant="outline" onClick={() => setShowEditModal(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 rounded-xl">
+              Cancel
+            </Button>
+            <Button type="submit" form="edit-patient-form" className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm shadow-blue-100 transition-colors" disabled={updateMutation.isPending}>
+              {updateMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
