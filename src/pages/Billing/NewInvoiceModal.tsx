@@ -1241,7 +1241,91 @@ function GeneralContent({
         <h3 className="text-sm font-semibold text-slate-700">General Billings Ledger</h3>
       </div>
 
-      <div className="overflow-x-auto border border-slate-200 rounded-xl">
+      {/* Mobile cards */}
+      <div className="block sm:hidden space-y-3">
+        {form.lineItems.map((item, idx) => (
+          <div key={`${item.code}-${idx}`} className="border border-slate-200 rounded-xl p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[11px] text-slate-400">{item.code}</span>
+              {form.lineItems.length > 1 && (
+                <button onClick={() => removeRow(idx)} className="text-slate-300 hover:text-red-400 transition-colors">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            <div>
+              <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">Item Name</Label>
+              <Input
+                value={item.name}
+                onChange={(e) => updateLineItem(idx, "name", e.target.value)}
+                placeholder="Item name"
+                className="h-9 text-sm bg-slate-50/50 border-slate-200"
+              />
+            </div>
+            <div>
+              <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">Type</Label>
+              <select
+                value={item.type}
+                onChange={(e) => updateLineItem(idx, "type", e.target.value)}
+                className="h-9 text-sm bg-slate-50/50 border border-slate-200 rounded-lg px-3 w-full text-slate-900"
+              >
+                <option value="Service">Service</option>
+                <option value="Product">Product</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">Date</Label>
+              <Input
+                type="date"
+                value={item.date}
+                onChange={(e) => updateLineItem(idx, "date", e.target.value)}
+                className="h-9 text-sm bg-slate-50/50 border-slate-200"
+              />
+            </div>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">Price (₦)</Label>
+                <Input
+                  type="text" inputMode="decimal"
+                  value={item.price === 0 && priceTexts[idx] === "" ? "" : (priceTexts[idx] || String(item.price || ""))}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "" || /^\d*\.?\d*$/.test(v)) {
+                      syncPriceText(idx, v);
+                      updateLineItem(idx, "price", v === "" ? 0 : parseFloat(v));
+                    }
+                  }}
+                  placeholder="0.00"
+                  className="h-9 text-sm bg-slate-50/50 border-slate-200"
+                />
+              </div>
+              <div>
+                <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">Quantity</Label>
+                <Input
+                  type="text" inputMode="numeric"
+                  value={qtyTexts[idx] || String(item.qty)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "" || /^\d+$/.test(v)) {
+                      syncQtyText(idx, v);
+                      updateLineItem(idx, "qty", v === "" ? 0 : parseInt(v, 10));
+                    }
+                  }}
+                  className="h-9 text-sm bg-slate-50/50 border-slate-200"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Amount</span>
+              <span className="font-mono text-sm font-bold text-slate-900 tabular-nums">₦{item.amount.toFixed(2)}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden sm:block overflow-x-auto border border-slate-200 rounded-xl">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
             <tr>
