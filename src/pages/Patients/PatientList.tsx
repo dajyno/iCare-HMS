@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import SearchableSelect from "@/components/ui/searchable-select";
+import NewAppointmentModal from "@/src/pages/Appointments/NewAppointmentModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
@@ -166,23 +167,9 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
     },
   });
 
-  const apptMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const { error } = await supabase.from("appointments").insert(data);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Appointment booked successfully");
-      queryClient.invalidateQueries({ queryKey: ["appointments"] });
-      setShowApptModal(false);
-      setApptPatient(null);
-    },
-  });
-
   const [newForm, setNewForm] = useState<any>({});
   const [patientIdManuallySet, setPatientIdManuallySet] = useState(false);
   const [editForm, setEditForm] = useState<any>({});
-  const [apptForm, setApptForm] = useState<any>({});
 
   const openEdit = (p: any) => {
     setEditPatient(p);
@@ -192,7 +179,6 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
 
   const openAppt = (p: any) => {
     setApptPatient(p);
-    setApptForm({ patient_id: p.id, date: "", time: "", doctor_id: "", reason: "" });
     setShowApptModal(true);
   };
 
@@ -260,18 +246,6 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
     }
     payload.status = editForm.status || "active";
     updateMutation.mutate({ id: editPatient.id, ...payload });
-  };
-
-  const handleApptSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    apptMutation.mutate({
-      patient_id: apptForm.patient_id,
-      doctor_id: apptForm.doctor_id,
-      date: apptForm.date,
-      time: apptForm.time,
-      reason: apptForm.reason || null,
-      status: "Scheduled",
-    });
   };
 
   const filteredPatients = useMemo(() => {
@@ -738,40 +712,23 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
       </Dialog>
 
       {/* Book Appointment Modal */}
-      <Dialog open={showApptModal} onOpenChange={setShowApptModal}>
-        <DialogContent className="w-[95vw] max-w-md">
-          <DialogHeader>
-            <DialogTitle>Book Appointment</DialogTitle>
-            <DialogDescription>
-              {apptPatient ? `Schedule for ${apptPatient.firstName} ${apptPatient.lastName}` : "Select a patient first"}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleApptSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Date *</Label>
-              <Input type="date" required value={apptForm.date || ""} onChange={(e) => setApptForm({ ...apptForm, date: e.target.value })} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Time *</Label>
-              <Input type="time" required value={apptForm.time || ""} onChange={(e) => setApptForm({ ...apptForm, time: e.target.value })} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Doctor *</Label>
-              <SearchableSelect value={apptForm.doctor_id || ""} onValueChange={(v) => setApptForm({ ...apptForm, doctor_id: v })} placeholder="Select doctor" options={(Array.isArray(doctors) ? doctors : []).map((d: any) => ({value: d.id, label: d.fullName}))} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Reason / Notes</Label>
-              <Textarea value={apptForm.reason || ""} onChange={(e) => setApptForm({ ...apptForm, reason: e.target.value })} placeholder="Reason for visit..." />
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowApptModal(false)}>Cancel</Button>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={apptMutation.isPending}>
-                {apptMutation.isPending ? "Booking..." : "Book Appointment"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {showApptModal && (
+        <NewAppointmentModal
+          open={showApptModal}
+          onClose={() => {
+            setShowApptModal(false);
+            setApptPatient(null);
+          }}
+          prefillPatient={apptPatient ? {
+            id: apptPatient.id,
+            patientId: apptPatient.patientId,
+            firstName: apptPatient.firstName,
+            lastName: apptPatient.lastName,
+          } : null}
+          doctors={(Array.isArray(doctors) ? doctors : []).map((d: any) => ({ id: d.id, name: d.fullName }))}
+          appointments={[]}
+        />
+      )}
     </div>
   );
 };
