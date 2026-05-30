@@ -214,30 +214,50 @@ const TenantDetail: React.FC = () => {
     }
 
     // Sync the hospital name into global_settings so the dashboard shows it too
-    const { data: curSettings } = await (adminSupabase as any)
+    const { data: curSettings, error: gsFetchError } = await (adminSupabase as any)
       .from("global_settings")
       .select("settings")
+      .eq("id", 1)
       .eq("tenant_id", tenantId)
       .maybeSingle();
 
+    if (gsFetchError) {
+      setIdentityError(`Failed to read settings: ${gsFetchError.message}`);
+      setSavingIdentity(false);
+      return;
+    }
+
     if (curSettings) {
-      await (adminSupabase as any)
+      const { error: gsUpdateError } = await (adminSupabase as any)
         .from("global_settings")
         .update({
           settings: { ...((curSettings as any).settings || {}), hospitalName: editHospitalName.trim() },
         })
+        .eq("id", 1)
         .eq("tenant_id", tenantId);
+
+      if (gsUpdateError) {
+        setIdentityError(`Failed to sync settings: ${gsUpdateError.message}`);
+        setSavingIdentity(false);
+        return;
+      }
     }
 
     // Sync name into users' full_name for this tenant
     if (tenant && tenant.hospitalName !== editHospitalName.trim()) {
-      const { data: tenantUsers } = await (adminSupabase as any)
+      const { data: tenantUsers, error: usersFetchError } = await (adminSupabase as any)
         .from("users")
         .select("id, full_name")
         .eq("tenant_id", tenantId);
 
+      if (usersFetchError) {
+        setIdentityError(`Failed to fetch users: ${usersFetchError.message}`);
+        setSavingIdentity(false);
+        return;
+      }
+
       if (tenantUsers) {
-        await Promise.allSettled(
+        const results = await Promise.allSettled(
           (tenantUsers as any[])
             .filter((u: any) => u.full_name?.startsWith(tenant.hospitalName))
             .map((u: any) =>
@@ -247,6 +267,13 @@ const TenantDetail: React.FC = () => {
                 .eq("id", u.id)
             )
         );
+
+        const rejected = results.filter((r) => r.status === "rejected");
+        if (rejected.length > 0) {
+          setIdentityError(`Failed to update ${rejected.length} user(s)`);
+          setSavingIdentity(false);
+          return;
+        }
       }
     }
 
