@@ -743,7 +743,7 @@ const PatientProfile = () => {
 
       {/* Tabs */}
       <Tabs defaultValue="overview">
-        <TabsList style={{ height: 'auto' }} className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-1.5 mb-4 w-full bg-slate-50 p-1.5 rounded-xl border border-slate-100">
+        <TabsList style={{ height: 'auto' }} className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-1.5 mb-2 w-full bg-slate-50 p-1.5 rounded-xl border border-slate-100">
           <TabsTrigger value="overview" className="text-center py-2 px-1 text-[11px] sm:text-xs font-medium rounded-lg border transition-all whitespace-normal data-active:bg-white data-active:text-blue-600 data-active:border-slate-200 data-active:shadow-sm data-active:font-semibold text-slate-600 border-transparent hover:text-slate-900"><Activity className="size-3.5 sm:size-4" /> Overview</TabsTrigger>
           <TabsTrigger value="vitals" className="text-center py-2 px-1 text-[11px] sm:text-xs font-medium rounded-lg border transition-all whitespace-normal data-active:bg-white data-active:text-blue-600 data-active:border-slate-200 data-active:shadow-sm data-active:font-semibold text-slate-600 border-transparent hover:text-slate-900"><HeartPulse className="size-3.5 sm:size-4" /> Vital Signs</TabsTrigger>
           <TabsTrigger value="consultations" className="text-center py-2 px-1 text-[11px] sm:text-xs font-medium rounded-lg border transition-all whitespace-normal data-active:bg-white data-active:text-blue-600 data-active:border-slate-200 data-active:shadow-sm data-active:font-semibold text-slate-600 border-transparent hover:text-slate-900"><Stethoscope className="size-3.5 sm:size-4" /> Consultations</TabsTrigger>
