@@ -674,12 +674,12 @@ const PatientProfile = () => {
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Button variant="outline" onClick={() => setShowDependantModal(true)} className="flex-1 sm:flex-none px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border-slate-200 justify-center" aria-label="Add Dependant">
-            <Users className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">Add Dependant</span>
+            <Users className="w-4 h-4 mr-2" />
+            <span className="inline">Add Dependant</span>
           </Button>
           <Button onClick={openEdit} className="flex-1 sm:flex-none px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 justify-center" aria-label="Edit Profile">
-            <Edit className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">Edit</span>
+            <Edit className="w-4 h-4 mr-2" />
+            <span className="inline">Edit</span>
           </Button>
         </div>
       </div>
@@ -743,7 +743,7 @@ const PatientProfile = () => {
 
       {/* Tabs */}
       <Tabs defaultValue="overview">
-        <TabsList className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-1.5 w-full bg-slate-50 p-1.5 rounded-xl border border-slate-100 h-auto">
+        <TabsList style={{ height: 'auto' }} className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-1.5 mb-4 w-full bg-slate-50 p-1.5 rounded-xl border border-slate-100">
           <TabsTrigger value="overview" className="text-center py-2 px-1 text-[11px] sm:text-xs font-medium rounded-lg border transition-all whitespace-normal data-active:bg-white data-active:text-blue-600 data-active:border-slate-200 data-active:shadow-sm data-active:font-semibold text-slate-600 border-transparent hover:text-slate-900"><Activity className="size-3.5 sm:size-4" /> Overview</TabsTrigger>
           <TabsTrigger value="vitals" className="text-center py-2 px-1 text-[11px] sm:text-xs font-medium rounded-lg border transition-all whitespace-normal data-active:bg-white data-active:text-blue-600 data-active:border-slate-200 data-active:shadow-sm data-active:font-semibold text-slate-600 border-transparent hover:text-slate-900"><HeartPulse className="size-3.5 sm:size-4" /> Vital Signs</TabsTrigger>
           <TabsTrigger value="consultations" className="text-center py-2 px-1 text-[11px] sm:text-xs font-medium rounded-lg border transition-all whitespace-normal data-active:bg-white data-active:text-blue-600 data-active:border-slate-200 data-active:shadow-sm data-active:font-semibold text-slate-600 border-transparent hover:text-slate-900"><Stethoscope className="size-3.5 sm:size-4" /> Consultations</TabsTrigger>
