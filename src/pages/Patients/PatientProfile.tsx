@@ -662,20 +662,24 @@ const PatientProfile = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-5xl mx-auto">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/patients")} className="h-9 w-9">
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Patient Profile</h1>
-          <p className="text-sm text-slate-500">{patient.patientId}</p>
-        </div>
-        <div className="ml-auto flex gap-2">
-          <Button variant="outline" onClick={() => setShowDependantModal(true)} className="border-slate-200">
-            <Users className="w-4 h-4 mr-2" /> Add Dependant
+      <div className="flex flex-wrap items-center justify-between gap-3 w-full">
+        <div className="flex items-center gap-3 min-w-0">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/patients")} className="h-9 w-9 shrink-0">
+            <ArrowLeft className="w-5 h-5" />
           </Button>
-          <Button onClick={openEdit} className="bg-blue-600 hover:bg-blue-700">
-            <Edit className="w-4 h-4 mr-2" /> Edit
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-2xl font-bold text-slate-900 truncate">Patient Profile</h1>
+            <p className="text-xs sm:text-sm text-slate-500 truncate">{patient.patientId}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" onClick={() => setShowDependantModal(true)} className="flex-1 sm:flex-none px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border-slate-200 justify-center" aria-label="Add Dependant">
+            <Users className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Add Dependant</span>
+          </Button>
+          <Button onClick={openEdit} className="flex-1 sm:flex-none px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 justify-center" aria-label="Edit Profile">
+            <Edit className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Edit</span>
           </Button>
         </div>
       </div>
@@ -739,17 +743,15 @@ const PatientProfile = () => {
 
       {/* Tabs */}
       <Tabs defaultValue="overview">
-        <div className="overflow-x-auto -mx-1 px-1">
-          <TabsList className="bg-white border p-1 h-auto w-max min-w-full">
-            <TabsTrigger value="overview" className="gap-2 px-4 py-2 whitespace-nowrap"><Activity className="w-4 h-4" /> Overview</TabsTrigger>
-            <TabsTrigger value="vitals" className="gap-2 px-4 py-2 whitespace-nowrap"><HeartPulse className="w-4 h-4" /> Vital Signs</TabsTrigger>
-            <TabsTrigger value="consultations" className="gap-2 px-4 py-2 whitespace-nowrap"><Stethoscope className="w-4 h-4" /> Consultations</TabsTrigger>
-            <TabsTrigger value="labs" className="gap-2 px-4 py-2 whitespace-nowrap"><FlaskConical className="w-4 h-4" /> Lab Results</TabsTrigger>
-            <TabsTrigger value="radiology" className="gap-2 px-4 py-2 whitespace-nowrap"><Bone className="w-4 h-4" /> Radiology</TabsTrigger>
-            <TabsTrigger value="prescriptions" className="gap-2 px-4 py-2 whitespace-nowrap"><Pill className="w-4 h-4" /> Prescriptions</TabsTrigger>
-            <TabsTrigger value="billing" className="gap-2 px-4 py-2 whitespace-nowrap"><Receipt className="w-4 h-4" /> Billing</TabsTrigger>
-          </TabsList>
-        </div>
+        <TabsList className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-1.5 w-full bg-slate-50 p-1.5 rounded-xl border border-slate-100 h-auto">
+          <TabsTrigger value="overview" className="text-center py-2 px-1 text-[11px] sm:text-xs font-medium rounded-lg border transition-all whitespace-normal data-active:bg-white data-active:text-blue-600 data-active:border-slate-200 data-active:shadow-sm data-active:font-semibold text-slate-600 border-transparent hover:text-slate-900"><Activity className="size-3.5 sm:size-4" /> Overview</TabsTrigger>
+          <TabsTrigger value="vitals" className="text-center py-2 px-1 text-[11px] sm:text-xs font-medium rounded-lg border transition-all whitespace-normal data-active:bg-white data-active:text-blue-600 data-active:border-slate-200 data-active:shadow-sm data-active:font-semibold text-slate-600 border-transparent hover:text-slate-900"><HeartPulse className="size-3.5 sm:size-4" /> Vital Signs</TabsTrigger>
+          <TabsTrigger value="consultations" className="text-center py-2 px-1 text-[11px] sm:text-xs font-medium rounded-lg border transition-all whitespace-normal data-active:bg-white data-active:text-blue-600 data-active:border-slate-200 data-active:shadow-sm data-active:font-semibold text-slate-600 border-transparent hover:text-slate-900"><Stethoscope className="size-3.5 sm:size-4" /> Consultations</TabsTrigger>
+          <TabsTrigger value="labs" className="text-center py-2 px-1 text-[11px] sm:text-xs font-medium rounded-lg border transition-all whitespace-normal data-active:bg-white data-active:text-blue-600 data-active:border-slate-200 data-active:shadow-sm data-active:font-semibold text-slate-600 border-transparent hover:text-slate-900"><FlaskConical className="size-3.5 sm:size-4" /> Lab Results</TabsTrigger>
+          <TabsTrigger value="radiology" className="text-center py-2 px-1 text-[11px] sm:text-xs font-medium rounded-lg border transition-all whitespace-normal data-active:bg-white data-active:text-blue-600 data-active:border-slate-200 data-active:shadow-sm data-active:font-semibold text-slate-600 border-transparent hover:text-slate-900"><Bone className="size-3.5 sm:size-4" /> Radiology</TabsTrigger>
+          <TabsTrigger value="prescriptions" className="text-center py-2 px-1 text-[11px] sm:text-xs font-medium rounded-lg border transition-all whitespace-normal data-active:bg-white data-active:text-blue-600 data-active:border-slate-200 data-active:shadow-sm data-active:font-semibold text-slate-600 border-transparent hover:text-slate-900"><Pill className="size-3.5 sm:size-4" /> Prescriptions</TabsTrigger>
+          <TabsTrigger value="billing" className="text-center py-2 px-1 text-[11px] sm:text-xs font-medium rounded-lg border transition-all whitespace-normal data-active:bg-white data-active:text-blue-600 data-active:border-slate-200 data-active:shadow-sm data-active:font-semibold text-slate-600 border-transparent hover:text-slate-900"><Receipt className="size-3.5 sm:size-4" /> Billing</TabsTrigger>
+        </TabsList>
 
         {/* ========== OVERVIEW ========== */}
         <TabsContent value="overview" className="space-y-6 mt-6">
