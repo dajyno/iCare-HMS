@@ -664,7 +664,7 @@ const PatientProfile = () => {
     <div className="space-y-6 animate-in fade-in duration-500 max-w-5xl mx-auto">
       <div className="flex flex-wrap items-center justify-between gap-3 w-full">
         <div className="flex items-center gap-3 min-w-0">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/patients")} className="h-9 w-9 shrink-0">
+          <Button variant="ghost" size="icon" onClick={() => navigate(`/${hospital_slug}/patients`)} className="h-9 w-9 shrink-0">
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="min-w-0">
