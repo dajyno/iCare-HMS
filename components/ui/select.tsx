@@ -69,7 +69,7 @@ function SelectContent({
     SelectPrimitive.Positioner.Props,
     "align" | "alignOffset" | "side" | "sideOffset" | "alignItemWithTrigger"
   > & {
-    container?: HTMLElement | null
+    container?: HTMLElement
   }) {
   return (
     <SelectPrimitive.Portal container={container}>

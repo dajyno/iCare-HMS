@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import {
   Dialog,
   DialogContent,
@@ -41,11 +41,15 @@ export default function AddStaffModal({ open, onClose }: Props) {
   const [gender, setGender] = useState("");
   const [address, setAddress] = useState("");
   const [position, setPosition] = useState("");
-  const dialogRef = useRef<HTMLDivElement>(null!);
-  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | undefined>(undefined);
 
   useEffect(() => {
-    setPortalContainer(dialogRef.current?.parentElement ?? null);
+    if (open) {
+      const el = document.querySelector<HTMLElement>('[data-slot="dialog-content"]');
+      setPortalContainer(el?.parentElement ?? undefined);
+    } else {
+      setPortalContainer(undefined);
+    }
   }, [open]);
 
   const positionOptions = department ? getPositionsForDepartment(department) : [];
@@ -92,7 +96,7 @@ export default function AddStaffModal({ open, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent ref={dialogRef} className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Staff</DialogTitle>
           <DialogDescription>
