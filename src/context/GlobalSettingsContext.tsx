@@ -41,6 +41,7 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval> | undefined;
 
     async function init() {
       if (!user?.tenantId) {
@@ -69,7 +70,21 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
     }
 
     init();
-    return () => { cancelled = true; };
+
+    // Poll for changes (e.g., hospital name edited by admin)
+    intervalId = setInterval(async () => {
+      if (cancelled || !user?.tenantId) return;
+      const db = await fetchSettings(supabase);
+      if (cancelled || !db) return;
+      const merged = { ...getDefaultSettings(), ...db };
+      setSettings(merged);
+      saveLocalCache(merged, user.tenantId);
+    }, 30000);
+
+    return () => {
+      cancelled = true;
+      if (intervalId !== undefined) clearInterval(intervalId);
+    };
   }, [user?.tenantId, user?.id]);
 
   const updateSettings = useCallback((partial: Partial<GlobalSettings>) => {
