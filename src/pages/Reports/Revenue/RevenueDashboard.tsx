@@ -2,6 +2,7 @@ import { Download, ArrowRightLeft } from "lucide-react";
 import RevenueKPICards from "./components/RevenueKPICards";
 import TransactionLedger from "./components/TransactionLedger";
 import PaymentChannelSplit from "./components/PaymentChannelSplit";
+import UnreconciledDiscrepancyCard from "./components/UnreconciledDiscrepancyCard";
 import { useRevenueDashboard } from "./hooks";
 
 export default function RevenueDashboard() {
@@ -32,8 +33,9 @@ export default function RevenueDashboard() {
         <div className="lg:col-span-2">
           <TransactionLedger transactions={data?.transactions} loading={isLoading} />
         </div>
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 space-y-6">
           <PaymentChannelSplit channels={data?.channels} loading={isLoading} />
+          <UnreconciledDiscrepancyCard value={data?.summary.unreconciledDiscrepancy} />
         </div>
       </div>
     </div>

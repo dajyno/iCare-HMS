@@ -4,6 +4,7 @@ export interface RevenueSummary {
   totalGrossCollected: number;
   digitalChannelTotal: number;
   cashAtHand: number;
+  hmoTotal: number;
   unreconciledDiscrepancy: number;
 }
 

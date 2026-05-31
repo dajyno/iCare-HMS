@@ -3,7 +3,7 @@ import { supabase } from "@/src/lib/supabase";
 import type { RevenueDashboardData, PaymentMethod, CashierTransaction, PaymentChannel } from "./types";
 
 const EMPTY_STATE: RevenueDashboardData = {
-  summary: { totalGrossCollected: 0, digitalChannelTotal: 0, cashAtHand: 0, unreconciledDiscrepancy: 0 },
+  summary: { totalGrossCollected: 0, digitalChannelTotal: 0, cashAtHand: 0, hmoTotal: 0, unreconciledDiscrepancy: 0 },
   transactions: [],
   channels: [
     { method: "POS", percentage: 0, amount: 0 },
@@ -98,6 +98,7 @@ async function fetchRevenueData(): Promise<RevenueDashboardData> {
   let totalGrossCollected = 0;
   let digitalChannelTotal = 0;
   let cashAtHand = 0;
+  let hmoTotal = 0;
   const methodTotals: Record<string, number> = {};
   let partialBalanceSum = 0;
 
@@ -109,6 +110,8 @@ async function fetchRevenueData(): Promise<RevenueDashboardData> {
         digitalChannelTotal += t.amount;
       } else if (t.paymentMethod === "Cash") {
         cashAtHand += t.amount;
+      } else if (t.paymentMethod === "HMO") {
+        hmoTotal += t.amount;
       }
     } else if (t.status === "Pending" && newInvoices) {
       const inv = newInvoices.find(
@@ -144,7 +147,7 @@ async function fetchRevenueData(): Promise<RevenueDashboardData> {
   const hasRealData = channels.some((c) => c.amount > 0);
 
   return {
-    summary: { totalGrossCollected, digitalChannelTotal, cashAtHand, unreconciledDiscrepancy },
+    summary: { totalGrossCollected, digitalChannelTotal, cashAtHand, hmoTotal, unreconciledDiscrepancy },
     transactions,
     channels: hasRealData ? channels : EMPTY_STATE.channels,
   };

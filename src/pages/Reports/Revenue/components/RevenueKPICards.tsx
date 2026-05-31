@@ -1,7 +1,6 @@
-import { Wallet, CreditCard, Banknote, AlertTriangle } from "lucide-react";
+import { Wallet, CreditCard, Banknote, ShieldCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 import type { RevenueSummary } from "../types";
 
 interface RevenueKPICardsProps {
@@ -34,8 +33,6 @@ export default function RevenueKPICards({ data, loading }: RevenueKPICardsProps)
     );
   }
 
-  const hasDiscrepancy = (data?.unreconciledDiscrepancy ?? 0) > 0;
-
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <Card className="border-none shadow-sm ring-1 ring-slate-200">
@@ -58,7 +55,7 @@ export default function RevenueKPICards({ data, loading }: RevenueKPICardsProps)
         <CardContent className="p-5">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Digital / POS Channels</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Bank / POS Channels</p>
               <p className="text-2xl font-extrabold text-slate-900 tabular-nums">
                 ₦{data?.digitalChannelTotal.toLocaleString()}
               </p>
@@ -86,17 +83,17 @@ export default function RevenueKPICards({ data, loading }: RevenueKPICardsProps)
         </CardContent>
       </Card>
 
-      <Card className={cn("border-none shadow-sm ring-1", hasDiscrepancy ? "ring-red-200 bg-red-50/30" : "ring-slate-200")}>
+      <Card className="border-none shadow-sm ring-1 ring-slate-200">
         <CardContent className="p-5">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Unreconciled Discrepancies</p>
-              <p className={cn("text-2xl font-extrabold tabular-nums", hasDiscrepancy ? "text-amber-700" : "text-slate-900")}>
-                ₦{data?.unreconciledDiscrepancy.toLocaleString()}
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">HMO / Insurance</p>
+              <p className="text-2xl font-extrabold text-slate-900 tabular-nums">
+                ₦{data?.hmoTotal.toLocaleString()}
               </p>
             </div>
-            <div className={cn("p-2.5 rounded-xl shrink-0", hasDiscrepancy ? "bg-red-100" : "bg-slate-50")}>
-              <AlertTriangle className={cn("w-5 h-5", hasDiscrepancy ? "text-amber-600" : "text-slate-400")} />
+            <div className="p-2.5 rounded-xl bg-amber-50 shrink-0">
+              <ShieldCheck className="w-5 h-5 text-amber-600" />
             </div>
           </div>
         </CardContent>
