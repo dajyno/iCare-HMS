@@ -344,6 +344,7 @@ export function useUpdateInvoiceStatus() {
           invoiceNumber: currentInvoice.invoiceNumber,
         });
         queryClient.invalidateQueries({ queryKey: ["accounting"] });
+        queryClient.invalidateQueries({ queryKey: ["revenue"] });
       }
 
       if (status === "Paid") {

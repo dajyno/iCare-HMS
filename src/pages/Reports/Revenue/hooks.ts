@@ -30,28 +30,71 @@ function normalizeStatus(raw: string | null | undefined): CashierTransaction["st
 
 async function fetchRevenueData(): Promise<RevenueDashboardData> {
   const today = new Date().toISOString().slice(0, 10);
+  const todayStart = `${today}T00:00:00.000Z`;
+  const todayEnd = `${today}T23:59:59.999Z`;
 
-  const { data: invoices, error } = await supabase
-    .from("invoices")
-    .select("id, total_amount, amount_paid, balance, payment_method, status, paid_at, created_at, patient:patients!inner(patient_id, first_name, last_name), department, source_type")
-    .or(`and(paid_at.gte.${today}T00:00:00.000Z,paid_at.lte.${today}T23:59:59.999Z),and(created_at.gte.${today}T00:00:00.000Z,created_at.lte.${today}T23:59:59.999Z)`)
-    .order("created_at", { ascending: false })
-    .limit(50);
+  const [paymentsResult, invoicesResult] = await Promise.all([
+    supabase
+      .from("accounting_income")
+      .select("id, amount, payment_method, patient_id, patient_name, description, category, created_at")
+      .eq("date", today)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("invoices")
+      .select("id, total_amount, amount_paid, balance, payment_method, status, created_at, invoice_number, patient:patients!inner(patient_id, first_name, last_name), department")
+      .gte("created_at", todayStart)
+      .lte("created_at", todayEnd)
+      .order("created_at", { ascending: false })
+      .limit(50),
+  ]);
 
-  if (error || !invoices || invoices.length === 0) return EMPTY_STATE;
+  const payments = paymentsResult.data as any[] | null;
+  const newInvoices = invoicesResult.data as any[] | null;
+  if (paymentsResult.error && invoicesResult.error) return EMPTY_STATE;
 
-  const transactions: CashierTransaction[] = (invoices as any[]).map((inv: any) => ({
-    id: typeof inv.id === "string" ? inv.id.slice(0, 8).toUpperCase() : `TXN-${Math.random().toString(36).slice(2, 6)}`,
-    patientName: inv.patient
-      ? `${inv.patient.first_name ?? ""} ${inv.patient.last_name ?? ""}`.trim() || "Unknown"
-      : "Unknown",
-    patientId: inv.patient?.patient_id ?? "—",
-    department: inv.department ?? inv.source_type ?? "General",
-    paymentMethod: normalizePaymentMethod(inv.payment_method),
-    amount: inv.total_amount ?? 0,
-    status: normalizeStatus(inv.status),
-    timestamp: inv.paid_at ?? inv.created_at,
-  }));
+  const paidInvoiceNumbers = new Set<string>();
+  if (payments) {
+    for (const p of payments) {
+      const m = (p.description ?? "").match(/Payment for\s+(\S+)/);
+      if (m) paidInvoiceNumbers.add(m[1]);
+    }
+  }
+
+  const transactions: CashierTransaction[] = [];
+
+  if (payments) {
+    for (const p of payments) {
+      transactions.push({
+        id: typeof p.id === "string" ? p.id.slice(0, 8).toUpperCase() : `TXN-${Math.random().toString(36).slice(2, 6)}`,
+        patientName: p.patient_name ?? "Unknown",
+        patientId: p.patient_id ?? "—",
+        department: p.category ?? "General",
+        paymentMethod: normalizePaymentMethod(p.payment_method),
+        amount: p.amount ?? 0,
+        status: "Completed",
+        timestamp: p.created_at,
+      });
+    }
+  }
+
+  if (newInvoices) {
+    for (const inv of newInvoices) {
+      if (paidInvoiceNumbers.has(inv.invoice_number ?? "")) continue;
+      transactions.push({
+        id: typeof inv.id === "string" ? inv.id.slice(0, 8).toUpperCase() : `TXN-${Math.random().toString(36).slice(2, 6)}`,
+        patientName: inv.patient
+          ? `${inv.patient.first_name ?? ""} ${inv.patient.last_name ?? ""}`.trim() || "Unknown"
+          : "Unknown",
+        patientId: inv.patient?.patient_id ?? "—",
+        department: inv.department ?? "General",
+        paymentMethod: normalizePaymentMethod(inv.payment_method),
+        amount: inv.total_amount ?? 0,
+        status: normalizeStatus(inv.status),
+        timestamp: inv.created_at,
+      });
+    }
+  }
 
   let totalGrossCollected = 0;
   let digitalChannelTotal = 0;
@@ -68,9 +111,9 @@ async function fetchRevenueData(): Promise<RevenueDashboardData> {
       } else if (t.paymentMethod === "Cash") {
         cashAtHand += t.amount;
       }
-    } else if (t.status === "Pending") {
-      const inv = (invoices as any[]).find(
-        (i: any) => typeof i.id === "string" && i.id.slice(0, 8).toUpperCase() === t.id
+    } else if (t.status === "Pending" && newInvoices) {
+      const inv = newInvoices.find(
+        (i: any) => i.patient?.patient_id === t.patientId && typeof i.id === "string" && i.id.slice(0, 8).toUpperCase() === t.id
       );
       partialBalanceSum += inv?.balance ?? 0;
     }
