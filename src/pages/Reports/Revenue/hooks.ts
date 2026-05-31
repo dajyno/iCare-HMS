@@ -2,61 +2,63 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/src/lib/supabase";
 import type { RevenueDashboardData, PaymentMethod, CashierTransaction, PaymentChannel } from "./types";
 
-const MOCK_DATA: RevenueDashboardData = {
-  summary: {
-    totalGrossCollected: 135000,
-    digitalChannelTotal: 98750,
-    cashAtHand: 28750,
-    unreconciledDiscrepancy: 2750,
-  },
-  transactions: [
-    { id: "TXN-001", patientName: "Amara Okafor", patientId: "PAT-001", department: "Internal Medicine", paymentMethod: "POS", amount: 12500, status: "Completed", timestamp: "2026-05-31T09:15:00" },
-    { id: "TXN-002", patientName: "Chidi Nwosu", patientId: "PAT-002", department: "Pediatrics", paymentMethod: "Transfer", amount: 8400, status: "Completed", timestamp: "2026-05-31T09:32:00" },
-    { id: "TXN-003", patientName: "Folake Adeleke", patientId: "PAT-003", department: "OB/GYN", paymentMethod: "Cash", amount: 3200, status: "Completed", timestamp: "2026-05-31T09:48:00" },
-    { id: "TXN-004", patientName: "Emeka Eze", patientId: "PAT-004", department: "Surgery", paymentMethod: "HMO", amount: 22000, status: "Pending", timestamp: "2026-05-31T10:05:00" },
-    { id: "TXN-005", patientName: "Ngozi Obi", patientId: "PAT-005", department: "Cardiology", paymentMethod: "POS", amount: 18750, status: "Completed", timestamp: "2026-05-31T10:22:00" },
-    { id: "TXN-006", patientName: "Tunde Balogun", patientId: "PAT-006", department: "Orthopedics", paymentMethod: "Transfer", amount: 5600, status: "Completed", timestamp: "2026-05-31T10:40:00" },
-    { id: "TXN-007", patientName: "Chioma Edeh", patientId: "PAT-007", department: "Internal Medicine", paymentMethod: "Cash", amount: 4800, status: "Refunded", timestamp: "2026-05-31T11:00:00" },
-    { id: "TXN-008", patientName: "Kayode Akinwande", patientId: "PAT-008", department: "Pediatrics", paymentMethod: "POS", amount: 9200, status: "Completed", timestamp: "2026-05-31T11:18:00" },
-    { id: "TXN-009", patientName: "Yetunde Adeyemi", patientId: "PAT-009", department: "OB/GYN", paymentMethod: "Transfer", amount: 15000, status: "Completed", timestamp: "2026-05-31T11:35:00" },
-    { id: "TXN-010", patientName: "Babatunde Lawal", patientId: "PAT-010", department: "Cardiology", paymentMethod: "POS", amount: 33500, status: "Failed", timestamp: "2026-05-31T11:52:00" },
-  ],
+const EMPTY_STATE: RevenueDashboardData = {
+  summary: { totalGrossCollected: 0, digitalChannelTotal: 0, cashAtHand: 0, unreconciledDiscrepancy: 0 },
+  transactions: [],
   channels: [
-    { method: "POS", percentage: 55, amount: 74250 },
-    { method: "Transfer", percentage: 30, amount: 40500 },
-    { method: "Cash", percentage: 10, amount: 13500 },
-    { method: "HMO", percentage: 5, amount: 6750 },
+    { method: "POS", percentage: 0, amount: 0 },
+    { method: "Transfer", percentage: 0, amount: 0 },
+    { method: "Cash", percentage: 0, amount: 0 },
+    { method: "HMO", percentage: 0, amount: 0 },
   ],
 };
 
-async function fetchRevenueData(): Promise<RevenueDashboardData | null> {
+function normalizePaymentMethod(raw: string | null | undefined): PaymentMethod {
+  if (raw === "Card" || raw === "POS") return "POS";
+  if (raw === "Bank Transfer" || raw === "Transfer") return "Transfer";
+  if (raw === "Cash") return "Cash";
+  if (raw === "HMO" || raw === "Insurance Split") return "HMO";
+  return "POS";
+}
+
+function normalizeStatus(raw: string | null | undefined): CashierTransaction["status"] {
+  if (raw === "Paid") return "Completed";
+  if (raw === "Refunded") return "Refunded";
+  if (raw === "PartiallyPaid") return "Pending";
+  return "Pending";
+}
+
+async function fetchRevenueData(): Promise<RevenueDashboardData> {
   const today = new Date().toISOString().slice(0, 10);
 
   const { data: invoices, error } = await supabase
     .from("invoices")
-    .select("id, total_amount, amount_paid, payment_method, status, created_at, patient:patients!inner(patient_id, first_name, last_name), department")
+    .select("id, total_amount, amount_paid, balance, payment_method, status, paid_at, created_at, patient:patients!inner(patient_id, first_name, last_name), department, source_type")
     .gte("created_at", `${today}T00:00:00.000Z`)
     .lte("created_at", `${today}T23:59:59.999Z`)
     .order("created_at", { ascending: false })
     .limit(50);
 
-  if (error || !invoices || invoices.length === 0) return null;
+  if (error || !invoices || invoices.length === 0) return EMPTY_STATE;
 
   const transactions: CashierTransaction[] = (invoices as any[]).map((inv: any) => ({
-    id: inv.id?.slice(0, 8).toUpperCase() ?? `TXN-${Math.random().toString(36).slice(2, 6)}`,
-    patientName: inv.patient ? `${inv.patient.first_name ?? ""} ${inv.patient.last_name ?? ""}`.trim() || "Unknown" : "Unknown",
+    id: typeof inv.id === "string" ? inv.id.slice(0, 8).toUpperCase() : `TXN-${Math.random().toString(36).slice(2, 6)}`,
+    patientName: inv.patient
+      ? `${inv.patient.first_name ?? ""} ${inv.patient.last_name ?? ""}`.trim() || "Unknown"
+      : "Unknown",
     patientId: inv.patient?.patient_id ?? "—",
-    department: inv.department ?? "General",
-    paymentMethod: (inv.payment_method === "Card" ? "POS" : inv.payment_method === "Bank Transfer" ? "Transfer" : inv.payment_method) as PaymentMethod,
+    department: inv.department ?? inv.source_type ?? "General",
+    paymentMethod: normalizePaymentMethod(inv.payment_method),
     amount: inv.total_amount ?? 0,
-    status: inv.status === "Paid" ? "Completed" : inv.status === "Refunded" ? "Refunded" : "Pending",
-    timestamp: inv.created_at,
+    status: normalizeStatus(inv.status),
+    timestamp: inv.paid_at ?? inv.created_at,
   }));
 
   let totalGrossCollected = 0;
   let digitalChannelTotal = 0;
   let cashAtHand = 0;
   const methodTotals: Record<string, number> = {};
+  let partialBalanceSum = 0;
 
   for (const t of transactions) {
     if (t.status === "Completed") {
@@ -67,7 +69,28 @@ async function fetchRevenueData(): Promise<RevenueDashboardData | null> {
       } else if (t.paymentMethod === "Cash") {
         cashAtHand += t.amount;
       }
+    } else if (t.status === "Pending") {
+      const inv = (invoices as any[]).find(
+        (i: any) => typeof i.id === "string" && i.id.slice(0, 8).toUpperCase() === t.id
+      );
+      partialBalanceSum += inv?.balance ?? 0;
     }
+  }
+
+  let unreconciledDiscrepancy = partialBalanceSum;
+
+  try {
+    const { data: pendingIncome } = await supabase
+      .from("accounting_income")
+      .select("amount")
+      .eq("status", "Pending")
+      .gte("date", today);
+    if (pendingIncome) {
+      const pendingSum = (pendingIncome as any[]).reduce((s: number, r: any) => s + (r.amount ?? 0), 0);
+      unreconciledDiscrepancy += pendingSum;
+    }
+  } catch {
+    // accounting_income table may not exist yet
   }
 
   const totalFromMethods = Object.values(methodTotals).reduce((a, b) => a + b, 0) || 1;
@@ -77,15 +100,12 @@ async function fetchRevenueData(): Promise<RevenueDashboardData | null> {
     amount: methodTotals[method] ?? 0,
   }));
 
+  const hasRealData = channels.some((c) => c.amount > 0);
+
   return {
-    summary: {
-      totalGrossCollected,
-      digitalChannelTotal,
-      cashAtHand,
-      unreconciledDiscrepancy: Math.round(totalGrossCollected * 0.02),
-    },
+    summary: { totalGrossCollected, digitalChannelTotal, cashAtHand, unreconciledDiscrepancy },
     transactions,
-    channels,
+    channels: hasRealData ? channels : EMPTY_STATE.channels,
   };
 }
 
@@ -94,10 +114,9 @@ export function useRevenueDashboard() {
     queryKey: ["revenue", "dashboard"],
     queryFn: async () => {
       try {
-        const data = await fetchRevenueData();
-        return data ?? MOCK_DATA;
+        return await fetchRevenueData();
       } catch {
-        return MOCK_DATA;
+        return EMPTY_STATE;
       }
     },
     staleTime: 30_000,
