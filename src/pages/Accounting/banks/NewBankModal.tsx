@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCreateBankAccount } from "../hooks";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface Props {
   open: boolean;
@@ -29,17 +30,21 @@ const NewBankModal = ({ open, onClose }: Props) => {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!bankName || !accountName || !accountNumber) return;
-    await createBank.mutateAsync({
-      bank_name: bankName,
-      account_name: accountName,
-      account_number: accountNumber,
-      balance: parseFloat(balance) || 0,
-    });
-    setBankName("");
-    setAccountName("");
-    setAccountNumber("");
-    setBalance("");
-    onClose();
+    try {
+      await createBank.mutateAsync({
+        bank_name: bankName,
+        account_name: accountName,
+        account_number: accountNumber,
+        balance: parseFloat(balance) || 0,
+      });
+      setBankName("");
+      setAccountName("");
+      setAccountNumber("");
+      setBalance("");
+      onClose();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to add bank account");
+    }
   };
 
   return (

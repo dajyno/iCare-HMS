@@ -57,5 +57,21 @@
   },
   "engines": {
     "node": "20.x"
-  }
+  },
+  "description": "<div align=\"center\">   <img src=\"./logo.png\" alt=\"iCare HIMS\" width=\"120\" />   <h1>iCare HIMS</h1>   <p><strong>Multi-Tenant Hospital Information Management System</strong></p>   <p>A comprehensive hospital operations platform built with React 19, TypeScript, Supabase, and Express.</p>   <p>     <img src=\"https://img.shields.io/badge/React-19-61DAFB?logo=react\" alt=\"React 19\" />     <img src=\"https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript\" alt=\"TypeScript 5.8\" />     <img src=\"https://img.shields.io/badge/Vite-6-646CFF?logo=vite\" alt=\"Vite 6\" />     <img src=\"https://img.shields.io/badge/Supabase-FF4438?logo=supabase\" alt=\"Supabase\" />     <img src=\"https://img.shields.io/badge/Prisma-2D3748?logo=prisma\" alt=\"Prisma\" />     <img src=\"https://img.shields.io/badge/License-TBD-lightgrey\" alt=\"License\" />   </p> </div>",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dajyno/iCare-HMS.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dajyno/iCare-HMS/issues"
+  },
+  "homepage": "https://github.com/dajyno/iCare-HMS#readme"
 }
