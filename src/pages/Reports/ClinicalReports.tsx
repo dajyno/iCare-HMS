@@ -51,10 +51,10 @@ export default function ClinicalReports() {
     drillDown.metricKey,
     drillDown.open ? filters : undefined
   );
-  const { data: occupancyTrendData, isLoading: chartLoading1 } = useOccupancyTrend();
-  const { data: alosDeptData, isLoading: chartLoading2 } = useAlosDeptData();
-  const { data: consultationTrendData, isLoading: chartLoading3 } = useConsultationTrend();
-  const { data: attendanceData, isLoading: chartLoading4 } = useStaffAvailability();
+  const { data: occupancyTrendData, isLoading: chartLoading1 } = useOccupancyTrend(filters);
+  const { data: alosDeptData, isLoading: chartLoading2 } = useAlosDeptData(filters);
+  const { data: consultationTrendData, isLoading: chartLoading3 } = useConsultationTrend(filters);
+  const { data: attendanceData, isLoading: chartLoading4 } = useStaffAvailability(filters);
 
   const handleMetricClick = (key: MetricKey, label: string) => {
     setDrillDown({ open: true, metricKey: key, label });

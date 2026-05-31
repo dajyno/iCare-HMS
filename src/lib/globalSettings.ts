@@ -24,7 +24,6 @@ const ALL_ROUTES = [
   "/staff",
   "/reports",
   "/reports/clinical",
-  "/reports/staff",
   "/settings",
   "/profile",
 ] as const;

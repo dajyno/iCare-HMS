@@ -442,18 +442,19 @@ function getMonthLabel(key: string): string {
   return months[parseInt(key.split("-")[1], 10) - 1] || key;
 }
 
-export function useOccupancyTrend() {
+export function useOccupancyTrend(filters?: GlobalFilters) {
+  const f = filters ?? getDefaultFilters();
   return useQuery({
-    queryKey: ["reports", "occupancy-trend"],
+    queryKey: ["reports", "occupancy-trend", f],
     queryFn: async () => {
-      const twelveMonthsAgo = new Date();
-      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11);
-      twelveMonthsAgo.setDate(1);
+      const dateFrom = f.dateFrom ?? getDefaultFilters().dateFrom!;
+      const dateTo = f.dateTo ?? getDefaultFilters().dateTo!;
 
       const { data: admissions } = await supabase
         .from("admissions")
         .select("admission_date")
-        .gte("admission_date", twelveMonthsAgo.toISOString());
+        .gte("admission_date", `${dateFrom}T00:00:00.000Z`)
+        .lte("admission_date", `${dateTo}T23:59:59.999Z`);
 
       const monthAdmissions: Record<string, number> = {};
       for (const a of (admissions as any[]) || []) {
@@ -465,14 +466,20 @@ export function useOccupancyTrend() {
         .from("beds")
         .select("*", { count: "exact", head: true });
 
+      // Iterate months from start to end of filter range
+      const start = new Date(dateFrom);
+      start.setDate(1);
+      const end = new Date(dateTo);
+      end.setDate(1);
+
       const result: { month: string; rate: number; admissions: number }[] = [];
-      for (let i = 11; i >= 0; i--) {
-        const d = new Date();
-        d.setMonth(d.getMonth() - i);
-        const key = getMonthKey(d);
+      const iter = new Date(start);
+      while (iter <= end) {
+        const key = getMonthKey(iter);
         const admCount = monthAdmissions[key] || 0;
         const rate = totalBeds && totalBeds > 0 ? Math.round((admCount / totalBeds) * 100) : 0;
         result.push({ month: getMonthLabel(key), rate, admissions: admCount });
+        iter.setMonth(iter.getMonth() + 1);
       }
       return result;
     },
@@ -480,14 +487,20 @@ export function useOccupancyTrend() {
   });
 }
 
-export function useAlosDeptData() {
+export function useAlosDeptData(filters?: GlobalFilters) {
+  const f = filters ?? getDefaultFilters();
   return useQuery({
-    queryKey: ["reports", "alos-dept"],
+    queryKey: ["reports", "alos-dept", f],
     queryFn: async () => {
+      const dateFrom = f.dateFrom ?? getDefaultFilters().dateFrom!;
+      const dateTo = f.dateTo ?? getDefaultFilters().dateTo!;
+
       const { data: rows } = await supabase
         .from("admissions")
         .select("admission_date, discharge:discharges(discharge_date)")
         .eq("status", "Discharged")
+        .gte("admission_date", `${dateFrom}T00:00:00.000Z`)
+        .lte("admission_date", `${dateTo}T23:59:59.999Z`)
         .limit(200);
 
       if (!rows || rows.length === 0) return [];
@@ -512,46 +525,63 @@ export function useAlosDeptData() {
   });
 }
 
-export function useConsultationTrend() {
+export function useConsultationTrend(filters?: GlobalFilters) {
+  const f = filters ?? getDefaultFilters();
   return useQuery({
-    queryKey: ["reports", "consultation-trend"],
+    queryKey: ["reports", "consultation-trend", f],
     queryFn: async () => {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-      sevenDaysAgo.setHours(0, 0, 0, 0);
+      const dateFrom = f.dateFrom ?? getDefaultFilters().dateFrom!;
+      const dateTo = f.dateTo ?? getDefaultFilters().dateTo!;
 
       const { data: consults } = await supabase
         .from("consultations")
         .select("doctor_id, created_at")
-        .gte("created_at", sevenDaysAgo.toISOString());
+        .gte("created_at", `${dateFrom}T00:00:00.000Z`)
+        .lte("created_at", `${dateTo}T23:59:59.999Z`);
 
       const dayMap: Record<string, { consultations: number; doctors: Set<string> }> = {};
       for (const c of (consults as any[]) || []) {
         const d = new Date(c.created_at);
-        const key = d.toLocaleDateString("en-US", { weekday: "short" });
+        const key = d.toISOString().slice(0, 10);
         if (!dayMap[key]) dayMap[key] = { consultations: 0, doctors: new Set() };
         dayMap[key].consultations++;
         if (c.doctor_id) dayMap[key].doctors.add(c.doctor_id);
       }
 
-      const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-      return days.map((day) => ({
-        day,
-        consultations: dayMap[day]?.consultations || 0,
-        doctors: dayMap[day]?.doctors.size || 0,
-      }));
+      const start = new Date(`${dateFrom}T00:00:00Z`);
+      const end = new Date(`${dateTo}T00:00:00Z`);
+      const result: { day: string; consultations: number; doctors: number }[] = [];
+      const iter = new Date(start);
+      while (iter <= end) {
+        const key = iter.toISOString().slice(0, 10);
+        const label = iter.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        result.push({
+          day: label,
+          consultations: dayMap[key]?.consultations || 0,
+          doctors: dayMap[key]?.doctors.size || 0,
+        });
+        iter.setDate(iter.getDate() + 1);
+      }
+      return result;
     },
     staleTime: 60_000,
   });
 }
 
-export function useStaffAvailability() {
+export function useStaffAvailability(filters?: GlobalFilters) {
+  const f = filters ?? getDefaultFilters();
   return useQuery({
-    queryKey: ["reports", "staff-availability"],
+    queryKey: ["reports", "staff-availability", f],
     queryFn: async () => {
-      const { data: staff } = await adminSupabase
+      let query = adminSupabase
         .from("staff")
         .select("availability_status");
+
+      if (f.department && f.department !== "all") {
+        query = query.eq("department", f.department);
+      }
+
+      const { data: staff } = await query;
 
       const statusCount: Record<string, number> = {};
       for (const s of (staff as any[]) || []) {

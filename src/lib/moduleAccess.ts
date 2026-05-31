@@ -65,7 +65,6 @@ const UNGATED_ROUTES = [
   "/profile",
   "/reports",
   "/reports/clinical",
-  "/reports/staff",
   "/inventory",
   "/radiology",
   "/inpatient",
