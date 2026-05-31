@@ -20,7 +20,7 @@ export function useBankAccounts() {
         .select("*")
         .order("bank_name");
       if (error) return [];
-      return (toCamel(data) as BankAccount[]) || [];
+      return (data as BankAccount[]) || [];
     },
   });
 }
@@ -34,7 +34,7 @@ export function useIncome() {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) return [];
-      return (toCamel(data) as IncomeRecord[]) || [];
+      return (data as IncomeRecord[]) || [];
     },
   });
 }
@@ -48,7 +48,7 @@ export function useExpenses() {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) return [];
-      return (toCamel(data) as ExpenseRecord[]) || [];
+      return (data as ExpenseRecord[]) || [];
     },
   });
 }
