@@ -16,7 +16,7 @@ import {
 import MetricCard from "./components/MetricCard";
 import GlobalFilterBar from "./components/GlobalFilterBar";
 import DrillDownModal from "./components/DrillDownModal";
-import { useClinicalMetrics, useDrillDownData, getMetricColumns, useOccupancyTrend, useAlosDeptData } from "./hooks";
+import { useClinicalMetrics, useDrillDownData, getMetricColumns, useOccupancyTrend, useAlosDeptData, useConsultationTrend, useStaffAvailability } from "./hooks";
 import type { GlobalFilters, MetricKey } from "./types";
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -53,12 +53,14 @@ export default function ClinicalReports() {
   );
   const { data: occupancyTrendData, isLoading: chartLoading1 } = useOccupancyTrend();
   const { data: alosDeptData, isLoading: chartLoading2 } = useAlosDeptData();
+  const { data: consultationTrendData, isLoading: chartLoading3 } = useConsultationTrend();
+  const { data: attendanceData, isLoading: chartLoading4 } = useStaffAvailability();
 
   const handleMetricClick = (key: MetricKey, label: string) => {
     setDrillDown({ open: true, metricKey: key, label });
   };
 
-  const chartColors = { sky: "#0ea5e9", emerald: "#10b981", amber: "#f59e0b" };
+  const chartColors = { sky: "#0ea5e9", emerald: "#10b981", amber: "#f59e0b", violet: "#8b5cf6", rose: "#f43f5e" };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -148,6 +150,61 @@ export default function ClinicalReports() {
                   <YAxis dataKey="department" type="category" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} width={100} />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="alos" name="Avg Days" fill={chartColors.amber} radius={[0, 4, 4, 0]} animationDuration={1200} barSize={18} />
+                </BarChart>
+              </ResponsiveContainer>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-sm ring-1 ring-slate-200">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-violet-500" />
+              <CardTitle className="text-sm font-bold text-slate-700">Consultation Load Trend</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="min-h-[220px] h-72">
+              {chartLoading3 ? (
+                <div className="flex items-center justify-center h-full text-xs text-slate-400">Loading...</div>
+              ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={consultationTrendData ?? []} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="day" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="left" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                  <Line yAxisId="left" type="monotone" dataKey="consultations" name="Consultations" stroke={chartColors.violet} strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} animationDuration={1500} />
+                  <Line yAxisId="right" type="monotone" dataKey="doctors" name="Active Doctors" stroke={chartColors.emerald} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} animationDuration={1500} />
+                </LineChart>
+              </ResponsiveContainer>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-sm ring-1 ring-slate-200">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-rose-500" />
+              <CardTitle className="text-sm font-bold text-slate-700">Staff Availability Distribution</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="min-h-[220px] h-72">
+              {chartLoading4 ? (
+                <div className="flex items-center justify-center h-full text-xs text-slate-400">Loading...</div>
+              ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={attendanceData ?? []} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="value" name="Percentage" fill={chartColors.violet} radius={[4, 4, 0, 0]} animationDuration={1200} barSize={40} />
                 </BarChart>
               </ResponsiveContainer>
               )}

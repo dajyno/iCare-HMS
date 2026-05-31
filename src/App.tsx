@@ -50,7 +50,6 @@ import StaffList from "./pages/Staff/StaffList";
 import StaffProfile from "./pages/Staff/StaffProfile";
 import ReportsHub from "./pages/Reports/ReportsHub";
 import ClinicalReports from "./pages/Reports/ClinicalReports";
-import StaffReports from "./pages/Reports/StaffReports";
 
 const IndividualPatients = () => <PatientList defaultCategory="Individual" />;
 const CorporatePatients = () => <PatientList defaultCategory="Corporate" />;
@@ -137,7 +136,6 @@ export default function App() {
                   </Route>
                   <Route path="reports" element={<ReportsHub />} />
                   <Route path="reports/clinical" element={<ClinicalReports />} />
-                  <Route path="reports/staff" element={<StaffReports />} />
                   <Route path="settings" element={<Settings />} />
                   <Route path="profile" element={<Profile />} />
                   <Route index element={<Navigate to="dashboard" replace />} />
