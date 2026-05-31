@@ -13,6 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import { useBankAccounts, usePendingVerifications, useIncome, useExpenses, useVerifyTransaction } from "./hooks";
 import { STATUS_STYLES } from "./types";
 import VerificationModal from "./VerificationModal";
@@ -41,13 +42,17 @@ const AccountingPage = () => {
 
   const handleVerify = async () => {
     if (!verifyTarget) return;
-    await verifyTx.mutateAsync({
-      id: verifyTarget.id,
-      type: verifyTarget._type,
-      bank_id: verifyTarget.bank_id || "CASH",
-      amount: verifyTarget.amount,
-    });
-    setVerifyTarget(null);
+    try {
+      await verifyTx.mutateAsync({
+        id: verifyTarget.id,
+        type: verifyTarget._type,
+        bank_id: verifyTarget.bank_id || "CASH",
+        amount: verifyTarget.amount,
+      });
+      setVerifyTarget(null);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to verify transaction");
+    }
   };
 
   return (

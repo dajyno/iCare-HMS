@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Settings2 } from "lucide-react";
+import { toast } from "sonner";
 import SearchableSelect from "@/components/ui/searchable-select";
 import { useCreateExpense, useExpenseCategories } from "../hooks";
 import ManageCategoriesModal from "../ManageCategoriesModal";
@@ -53,18 +54,22 @@ const NewExpenseModal = ({ open, onClose, banks }: Props) => {
     if (!amount || !category || !date) return;
     if (!isCash && !bankId) return;
     const selectedBank = banks.find((b) => b.bank_id === bankId);
-    await createExpense.mutateAsync({
-      amount: parseFloat(amount),
-      category,
-      bank_id: isCash ? "CASH" : bankId,
-      bank_name: isCash ? "Cash on Hand" : (selectedBank?.bank_name || ""),
-      status: "Pending",
-      date,
-      description,
-      payee,
-      payment_method: paymentMethod,
-    });
-    onClose();
+    try {
+      await createExpense.mutateAsync({
+        amount: parseFloat(amount),
+        category,
+        bank_id: isCash ? "CASH" : bankId,
+        bank_name: isCash ? "Cash on Hand" : (selectedBank?.bank_name || ""),
+        status: "Pending",
+        date,
+        description,
+        payee,
+        payment_method: paymentMethod,
+      });
+      onClose();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to create expense entry");
+    }
   };
 
   return (

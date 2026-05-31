@@ -46,7 +46,8 @@ insert into public.bank_accounts (bank_id, bank_name, account_name, account_numb
 values
   ('B-01', 'GTBank', 'Operations', '0123456789', 1500000, 'T-DEMO-01'),
   ('B-02', 'First Bank', 'Payroll', '2012345678', 850000, 'T-DEMO-01'),
-  ('B-03', 'Access Bank', 'Reserve', '3012345678', 2100000, 'T-DEMO-01')
+  ('B-03', 'Access Bank', 'Reserve', '3012345678', 2100000, 'T-DEMO-01'),
+  ('CASH', 'Cash on Hand', 'Petty Cash', '0000000000', 500000, 'T-DEMO-01')
 on conflict (bank_id) do nothing;
 
 insert into public.accounting_income (id, amount, category, bank_id, status, date, description, patient_id, patient_name, payment_method, tenant_id)
