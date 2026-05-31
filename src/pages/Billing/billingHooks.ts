@@ -334,7 +334,7 @@ export function useUpdateInvoiceStatus() {
         const patientName = currentInvoice.patient
           ? `${currentInvoice.patient.firstName} ${currentInvoice.patient.lastName}`
           : undefined;
-        createIncomeFromPayment({
+        await createIncomeFromPayment({
           amount: amountPaid,
           category: currentInvoice.sourceType,
           bankAccountId: bankAccountId ?? null,

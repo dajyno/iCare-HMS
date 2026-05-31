@@ -285,7 +285,7 @@ export function usePatients(query: string) {
   });
 }
 
-export function createIncomeFromPayment(params: {
+export async function createIncomeFromPayment(params: {
   amount: number;
   category: string;
   bankAccountId: string | null;
@@ -293,13 +293,32 @@ export function createIncomeFromPayment(params: {
   patientId: string | undefined;
   patientName: string | undefined;
   invoiceNumber: string;
-}): IncomeRecord {
+}): Promise<IncomeRecord> {
+  let bankId = params.bankAccountId;
+
+  if (!bankId) {
+    const { data: fallbackBank } = await (supabase as any)
+      .from("bank_accounts")
+      .select("bank_id")
+      .limit(1)
+      .maybeSingle();
+    if (fallbackBank) {
+      bankId = fallbackBank.bank_id;
+    }
+  }
+
+  if (!bankId) {
+    throw new Error(
+      "Cannot record payment: no bank account configured. Please create a bank account in Accounting settings."
+    );
+  }
+
   const record: IncomeRecord = {
     id: generateId("INC"),
     amount: params.amount,
     category: params.category,
-    bank_id: params.bankAccountId || "CASH",
-    bank_name: params.bankAccountId || "",
+    bank_id: bankId,
+    bank_name: "",
     status: "Verified",
     date: new Date().toISOString().split("T")[0],
     description: `Payment for ${params.invoiceNumber}`,
@@ -309,7 +328,7 @@ export function createIncomeFromPayment(params: {
     created_at: new Date().toISOString(),
   };
 
-  (supabase as any)
+  const { error } = await (supabase as any)
     .from("accounting_income")
     .insert({
       id: record.id,
@@ -322,9 +341,8 @@ export function createIncomeFromPayment(params: {
       patient_id: record.patient_id || null,
       patient_name: record.patient_name || null,
       payment_method: record.payment_method,
-    })
-    .then(() => {})
-    .catch(() => {});
+    });
+  if (error) throw error;
 
   return record;
 }

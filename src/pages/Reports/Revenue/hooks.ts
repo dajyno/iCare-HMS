@@ -42,16 +42,15 @@ async function fetchRevenueData(): Promise<RevenueDashboardData> {
       .limit(50),
     supabase
       .from("invoices")
-      .select("id, total_amount, amount_paid, balance, payment_method, status, created_at, invoice_number, patient:patients!inner(patient_id, first_name, last_name), department")
-      .gte("created_at", todayStart)
-      .lte("created_at", todayEnd)
-      .order("created_at", { ascending: false })
+      .select("id, total_amount, amount_paid, balance, payment_method, status, created_at, paid_at, invoice_number, source_type, patient:patients!inner(patient_id, first_name, last_name)")
+      .or(`paid_at.gte.${todayStart},and(status.eq.PartiallyPaid,amount_paid.gt.0)`)
+      .order("paid_at", { ascending: false, nullsFirst: false })
       .limit(50),
   ]);
 
   const payments = paymentsResult.data as any[] | null;
   const newInvoices = invoicesResult.data as any[] | null;
-  if (paymentsResult.error && invoicesResult.error) return EMPTY_STATE;
+  if (paymentsResult.error || invoicesResult.error) return EMPTY_STATE;
 
   const paidInvoiceNumbers = new Set<string>();
   if (payments) {
@@ -87,7 +86,7 @@ async function fetchRevenueData(): Promise<RevenueDashboardData> {
           ? `${inv.patient.first_name ?? ""} ${inv.patient.last_name ?? ""}`.trim() || "Unknown"
           : "Unknown",
         patientId: inv.patient?.patient_id ?? "—",
-        department: inv.department ?? "General",
+        department: inv.source_type ?? "General",
         paymentMethod: normalizePaymentMethod(inv.payment_method),
         amount: inv.total_amount ?? 0,
         status: normalizeStatus(inv.status),
