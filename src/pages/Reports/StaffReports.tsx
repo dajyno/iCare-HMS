@@ -16,7 +16,7 @@ import {
 import MetricCard from "./components/MetricCard";
 import GlobalFilterBar from "./components/GlobalFilterBar";
 import DrillDownModal from "./components/DrillDownModal";
-import { useStaffMetrics, useDrillDownData, getMetricColumns } from "./hooks";
+import { useStaffMetrics, useDrillDownData, getMetricColumns, useConsultationTrend, useStaffAvailability } from "./hooks";
 import type { GlobalFilters, MetricKey } from "./types";
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -33,22 +33,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-const consultationTrendData = [
-  { day: "Mon", consultations: 82, doctors: 12 },
-  { day: "Tue", consultations: 95, doctors: 14 },
-  { day: "Wed", consultations: 78, doctors: 11 },
-  { day: "Thu", consultations: 88, doctors: 13 },
-  { day: "Fri", consultations: 92, doctors: 14 },
-  { day: "Sat", consultations: 45, doctors: 6 },
-  { day: "Sun", consultations: 32, doctors: 5 },
-];
 
-const attendanceData = [
-  { name: "On Duty", value: 65 },
-  { name: "Off-Duty", value: 20 },
-  { name: "On Leave", value: 10 },
-  { name: "Sick", value: 5 },
-];
 
 export default function StaffReports() {
   const [filters, setFilters] = useState<GlobalFilters>({
@@ -68,6 +53,8 @@ export default function StaffReports() {
     drillDown.metricKey,
     drillDown.open ? filters : undefined
   );
+  const { data: consultationTrendData, isLoading: chartLoading1 } = useConsultationTrend();
+  const { data: attendanceData, isLoading: chartLoading2 } = useStaffAvailability();
 
   const handleMetricClick = (key: MetricKey, label: string) => {
     setDrillDown({ open: true, metricKey: key, label });
@@ -124,8 +111,11 @@ export default function StaffReports() {
           </CardHeader>
           <CardContent>
             <div className="min-h-[220px] h-72">
+              {chartLoading1 ? (
+                <div className="flex items-center justify-center h-full text-xs text-slate-400">Loading...</div>
+              ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={consultationTrendData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                <LineChart data={consultationTrendData ?? []} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="day" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                   <YAxis yAxisId="left" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
@@ -136,6 +126,7 @@ export default function StaffReports() {
                   <Line yAxisId="right" type="monotone" dataKey="doctors" name="Active Doctors" stroke={chartColors.emerald} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} animationDuration={1500} />
                 </LineChart>
               </ResponsiveContainer>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -149,8 +140,11 @@ export default function StaffReports() {
           </CardHeader>
           <CardContent>
             <div className="min-h-[220px] h-72">
+              {chartLoading2 ? (
+                <div className="flex items-center justify-center h-full text-xs text-slate-400">Loading...</div>
+              ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={attendanceData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                <BarChart data={attendanceData ?? []} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
@@ -158,6 +152,7 @@ export default function StaffReports() {
                   <Bar dataKey="value" name="Percentage" fill={chartColors.violet} radius={[4, 4, 0, 0]} animationDuration={1200} barSize={40} />
                 </BarChart>
               </ResponsiveContainer>
+              )}
             </div>
           </CardContent>
         </Card>

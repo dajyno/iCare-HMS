@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Bed, Calendar, Clock, TrendingUp, BarChart3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -16,7 +16,7 @@ import {
 import MetricCard from "./components/MetricCard";
 import GlobalFilterBar from "./components/GlobalFilterBar";
 import DrillDownModal from "./components/DrillDownModal";
-import { useClinicalMetrics, useDrillDownData, getMetricColumns } from "./hooks";
+import { useClinicalMetrics, useDrillDownData, getMetricColumns, useOccupancyTrend, useAlosDeptData } from "./hooks";
 import type { GlobalFilters, MetricKey } from "./types";
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -32,30 +32,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     </div>
   );
 };
-
-const occupancyTrendData = [
-  { month: "Jan", rate: 72, admissions: 120 },
-  { month: "Feb", rate: 75, admissions: 135 },
-  { month: "Mar", rate: 71, admissions: 118 },
-  { month: "Apr", rate: 78, admissions: 145 },
-  { month: "May", rate: 76, admissions: 140 },
-  { month: "Jun", rate: 80, admissions: 155 },
-  { month: "Jul", rate: 83, admissions: 162 },
-  { month: "Aug", rate: 79, admissions: 148 },
-  { month: "Sep", rate: 77, admissions: 142 },
-  { month: "Oct", rate: 81, admissions: 158 },
-  { month: "Nov", rate: 78, admissions: 150 },
-  { month: "Dec", rate: 82, admissions: 160 },
-];
-
-const alosDeptData = [
-  { department: "Surgery", alos: 6.8 },
-  { department: "Cardiology", alos: 6.1 },
-  { department: "Internal Med", alos: 5.2 },
-  { department: "Orthopedics", alos: 7.5 },
-  { department: "Pediatrics", alos: 3.1 },
-  { department: "OB/GYN", alos: 2.8 },
-];
 
 export default function ClinicalReports() {
   const [filters, setFilters] = useState<GlobalFilters>({
@@ -75,6 +51,8 @@ export default function ClinicalReports() {
     drillDown.metricKey,
     drillDown.open ? filters : undefined
   );
+  const { data: occupancyTrendData, isLoading: chartLoading1 } = useOccupancyTrend();
+  const { data: alosDeptData, isLoading: chartLoading2 } = useAlosDeptData();
 
   const handleMetricClick = (key: MetricKey, label: string) => {
     setDrillDown({ open: true, metricKey: key, label });
@@ -131,8 +109,11 @@ export default function ClinicalReports() {
           </CardHeader>
           <CardContent>
             <div className="min-h-[220px] h-72">
+              {chartLoading1 ? (
+                <div className="flex items-center justify-center h-full text-xs text-slate-400">Loading...</div>
+              ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={occupancyTrendData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                <LineChart data={occupancyTrendData ?? []} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                   <YAxis yAxisId="left" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
@@ -143,6 +124,7 @@ export default function ClinicalReports() {
                   <Line yAxisId="right" type="monotone" dataKey="admissions" name="Admissions" stroke={chartColors.emerald} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} animationDuration={1500} />
                 </LineChart>
               </ResponsiveContainer>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -156,8 +138,11 @@ export default function ClinicalReports() {
           </CardHeader>
           <CardContent>
             <div className="min-h-[220px] h-72">
+              {chartLoading2 ? (
+                <div className="flex items-center justify-center h-full text-xs text-slate-400">Loading...</div>
+              ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={alosDeptData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }} layout="vertical">
+                <BarChart data={alosDeptData ?? []} margin={{ top: 5, right: 10, left: 0, bottom: 5 }} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                   <XAxis type="number" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                   <YAxis dataKey="department" type="category" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} width={100} />
@@ -165,6 +150,7 @@ export default function ClinicalReports() {
                   <Bar dataKey="alos" name="Avg Days" fill={chartColors.amber} radius={[0, 4, 4, 0]} animationDuration={1200} barSize={18} />
                 </BarChart>
               </ResponsiveContainer>
+              )}
             </div>
           </CardContent>
         </Card>
