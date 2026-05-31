@@ -89,7 +89,6 @@ export default function TransactionLedger({ transactions, loading, selectedDate,
                           </span>
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-sm text-slate-600">{txn.department}</td>
                       <td className="px-5 py-4">
                         <span
                           className={cn(
@@ -101,6 +100,7 @@ export default function TransactionLedger({ transactions, loading, selectedDate,
                           {txn.paymentMethod}
                         </span>
                       </td>
+                      <td className="px-5 py-4 text-sm text-slate-600">{txn.department}</td>
                       <td className="px-5 py-4 text-right font-bold text-sm text-slate-900 tabular-nums whitespace-nowrap">
                         ₦{txn.amount.toLocaleString()}
                       </td>
