@@ -34,7 +34,7 @@ async function fetchRevenueData(): Promise<RevenueDashboardData> {
   const { data: invoices, error } = await supabase
     .from("invoices")
     .select("id, total_amount, amount_paid, balance, payment_method, status, paid_at, created_at, patient:patients!inner(patient_id, first_name, last_name), department, source_type")
-    .or(`paid_at.gte.${today}T00:00:00.000Z,paid_at.lte.${today}T23:59:59.999Z,created_at.gte.${today}T00:00:00.000Z,created_at.lte.${today}T23:59:59.999Z`)
+    .or(`and(paid_at.gte.${today}T00:00:00.000Z,paid_at.lte.${today}T23:59:59.999Z),and(created_at.gte.${today}T00:00:00.000Z,created_at.lte.${today}T23:59:59.999Z)`)
     .order("created_at", { ascending: false })
     .limit(50);
 
