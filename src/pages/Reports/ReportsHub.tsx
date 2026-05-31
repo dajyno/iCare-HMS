@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { BarChart3, Users, Bed, Calendar, Clock, ClipboardCheck } from "lucide-react";
+import type { ComponentType } from "react";
 import MetricCard from "./components/MetricCard";
 import CategorySection from "./components/CategorySection";
 import GlobalFilterBar from "./components/GlobalFilterBar";
@@ -7,16 +8,16 @@ import DrillDownModal from "./components/DrillDownModal";
 import { useReportsDashboard, useDrillDownData, getMetricColumns } from "./hooks";
 import type { GlobalFilters, MetricKey } from "./types";
 
-const clinicalMetrics = [
-  { key: "bed-occupancy" as MetricKey, label: "Bed Occupancy", icon: Bed, color: "sky" },
-  { key: "new-registrations" as MetricKey, label: "New Registrations", icon: Calendar, color: "emerald" },
-  { key: "alos" as MetricKey, label: "Avg Length of Stay", icon: Clock, color: "amber" },
+const clinicalMetrics: { key: MetricKey; label: string; icon: ComponentType<{ className?: string }>; color: string }[] = [
+  { key: "bed-occupancy", label: "Bed Occupancy", icon: Bed, color: "sky" },
+  { key: "new-registrations", label: "New Registrations", icon: Calendar, color: "emerald" },
+  { key: "alos", label: "Avg Length of Stay", icon: Clock, color: "amber" },
 ];
 
-const staffMetrics = [
-  { key: "active-personnel" as MetricKey, label: "Active Personnel", icon: Users, color: "violet" },
-  { key: "consultations" as MetricKey, label: "Consultations Today", icon: ClipboardCheck, color: "rose" },
-  { key: "task-completion" as MetricKey, label: "Task Completion", icon: BarChart3, color: "indigo" },
+const staffMetrics: { key: MetricKey; label: string; icon: ComponentType<{ className?: string }>; color: string }[] = [
+  { key: "active-personnel", label: "Active Personnel", icon: Users, color: "violet" },
+  { key: "consultations", label: "Consultations Today", icon: ClipboardCheck, color: "rose" },
+  { key: "task-completion", label: "Task Completion", icon: BarChart3, color: "indigo" },
 ];
 
 export default function ReportsHub() {

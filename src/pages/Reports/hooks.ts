@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/src/lib/supabase";
+import { adminSupabase } from "@/src/lib/adminSupabase";
 import type { GlobalFilters, ClinicalMetrics, StaffMetrics, DrillDownRecord, DrillDownColumn, MetricKey } from "./types";
 
 function trend(direction: "up" | "down" | "neutral", value: string) {
@@ -211,7 +212,7 @@ export function useReportsDashboard(filters?: GlobalFilters) {
           alosTrend: computeTrend(averageLengthOfStay, MOCK_CLINICAL.averageLengthOfStay, "vs baseline"),
         };
 
-        const { count: activeStaff } = await supabase
+        const { count: activeStaff } = await adminSupabase
           .from("staff")
           .select("*", { count: "exact", head: true })
           .eq("availability_status", "Active");
@@ -318,7 +319,7 @@ export function useDrillDownData(metricKey: MetricKey, filters?: GlobalFilters) 
             break;
           }
           case "active-personnel": {
-            const { data } = await supabase
+            const { data } = await adminSupabase
               .from("staff")
               .select("staff_id, name, position, department, availability_status")
               .limit(20);
@@ -337,7 +338,6 @@ export function useDrillDownData(metricKey: MetricKey, filters?: GlobalFilters) 
             const { data: consultData } = await supabase
               .from("consultations")
               .select("id, doctor_id, created_at, appointment_id, doctor:users!doctor_id(full_name), appointment:appointments!appointment_id(start_time)")
-              .not("appointment_id", "is", null)
               .gte("created_at", f.dateFrom ?? getDefaultFilters().dateFrom!)
               .lte("created_at", f.dateTo ?? getDefaultFilters().dateTo!)
               .limit(50);
@@ -549,7 +549,7 @@ export function useStaffAvailability() {
   return useQuery({
     queryKey: ["reports", "staff-availability"],
     queryFn: async () => {
-      const { data: staff } = await supabase
+      const { data: staff } = await adminSupabase
         .from("staff")
         .select("availability_status");
 

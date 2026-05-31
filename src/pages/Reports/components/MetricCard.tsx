@@ -1,4 +1,5 @@
-import { type LucideIcon, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import type { ComponentType } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -10,7 +11,7 @@ interface MetricCardProps {
     direction: "up" | "down" | "neutral";
     value: string;
   };
-  icon: LucideIcon;
+  icon: ComponentType<{ className?: string }>;
   color: string;
   loading?: boolean;
   onClick?: () => void;
