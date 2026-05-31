@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Download, ArrowRightLeft } from "lucide-react";
 import RevenueKPICards from "./components/RevenueKPICards";
 import TransactionLedger from "./components/TransactionLedger";
@@ -5,8 +6,13 @@ import PaymentChannelSplit from "./components/PaymentChannelSplit";
 import UnreconciledDiscrepancyCard from "./components/UnreconciledDiscrepancyCard";
 import { useRevenueDashboard } from "./hooks";
 
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default function RevenueDashboard() {
-  const { data, isLoading } = useRevenueDashboard();
+  const [selectedDate, setSelectedDate] = useState(todayStr);
+  const { data, isLoading } = useRevenueDashboard(selectedDate);
 
   return (
     <div className="animate-in fade-in duration-500 space-y-6">
@@ -31,7 +37,12 @@ export default function RevenueDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <div className="lg:col-span-2">
-          <TransactionLedger transactions={data?.transactions} loading={isLoading} />
+          <TransactionLedger
+            transactions={data?.transactions}
+            loading={isLoading}
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+          />
         </div>
         <div className="lg:col-span-1 space-y-6">
           <PaymentChannelSplit channels={data?.channels} loading={isLoading} />

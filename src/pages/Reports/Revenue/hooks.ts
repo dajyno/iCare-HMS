@@ -28,8 +28,8 @@ function normalizeStatus(raw: string | null | undefined): CashierTransaction["st
   return "Pending";
 }
 
-async function fetchRevenueData(): Promise<RevenueDashboardData> {
-  const today = new Date().toISOString().slice(0, 10);
+async function fetchRevenueData(date?: string): Promise<RevenueDashboardData> {
+  const today = date ?? new Date().toISOString().slice(0, 10);
   const todayStart = `${today}T00:00:00.000Z`;
   const todayEnd = `${today}T23:59:59.999Z`;
 
@@ -153,12 +153,12 @@ async function fetchRevenueData(): Promise<RevenueDashboardData> {
   };
 }
 
-export function useRevenueDashboard() {
+export function useRevenueDashboard(date?: string) {
   return useQuery({
-    queryKey: ["revenue", "dashboard"],
+    queryKey: ["revenue", "dashboard", date ?? "today"],
     queryFn: async () => {
       try {
-        return await fetchRevenueData();
+        return await fetchRevenueData(date);
       } catch {
         return EMPTY_STATE;
       }
