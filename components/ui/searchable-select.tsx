@@ -54,6 +54,7 @@ const SearchableSelect = ({
         <Button
           variant="outline"
           role="combobox"
+          type="button"
           disabled={disabled}
           className={cn(
             "w-full justify-between font-normal h-10",
