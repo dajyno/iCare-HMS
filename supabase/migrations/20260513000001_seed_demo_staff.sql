@@ -34,3 +34,25 @@ insert into public.staff (staff_id, name, position, department, availability_sta
   ('STF006', 'Phil Pharmacist',    'Pharmacy',                'Clinical Support Services', 'Active', false, 'Male',   'phil@icare.com',   '', true, 'T-DEMO-01'),
   ('STF007', 'Demo User',          'Hospital Administration', 'Administrative',        'Active', false, 'Male',   'demo@icare.com',   '', true, 'T-DEMO-01')
 on conflict (staff_id) do nothing;
+
+-- 3. Row Level Security — allows anon/authenticated clients to read staff
+alter table public.staff enable row level security;
+
+drop policy if exists "staff_select_authenticated" on public.staff;
+create policy "staff_select_authenticated"
+  on public.staff for select
+  to authenticated
+  using (true);
+
+drop policy if exists "staff_insert_authenticated" on public.staff;
+create policy "staff_insert_authenticated"
+  on public.staff for insert
+  to authenticated
+  with check (true);
+
+drop policy if exists "staff_update_authenticated" on public.staff;
+create policy "staff_update_authenticated"
+  on public.staff for update
+  to authenticated
+  using (true)
+  with check (true);

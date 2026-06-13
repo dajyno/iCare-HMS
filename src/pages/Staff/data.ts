@@ -52,6 +52,19 @@ const POPULAR_FIRST = ["Medical Doctors", "Nursing", "Laboratory", "Pharmacy", "
 const REST = ALL_POSITIONS.filter((p) => !POPULAR_FIRST.includes(p));
 export const FILTER_ORDERED_POSITIONS = [...POPULAR_FIRST, ...REST];
 
+export const POSITION_FILTERS = [
+  "Medical Doctors",
+  "Nursing",
+  "Laboratory",
+  "Pharmacy",
+  "Radiology",
+  "Hospital Administration",
+  "Finance / Accounts",
+  "Resident / Intern",
+  "IT / Health Informatics",
+  "Facilities Management / Engineering",
+];
+
 export const CLINICIAN_POSITIONS: readonly string[] = [
   "Medical Doctors",
   "Nursing",

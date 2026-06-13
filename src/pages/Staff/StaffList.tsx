@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useStaff } from "./StaffContext";
-import { FILTER_ORDERED_POSITIONS } from "./data";
+import { POSITION_FILTERS } from "./data";
 import AddStaffModal from "./AddStaffDrawer";
 import StaffUploadModal from "./StaffUploadModal";
 import type { StaffRecord } from "./types";
@@ -49,7 +49,9 @@ export default function StaffList() {
   const filteredData = useMemo(() => {
     let list = records;
 
-    if (activeFilter !== "All Staff") {
+    if (activeFilter === "Others") {
+      list = list.filter((r) => !POSITION_FILTERS.includes(r.position));
+    } else if (activeFilter !== "All Staff") {
       list = list.filter((r) => r.position === activeFilter);
     }
 
@@ -201,7 +203,7 @@ export default function StaffList() {
 
           {/* Horizontal Filter Pills */}
           <div className="px-4 py-2.5 flex items-center gap-1.5 overflow-x-auto border-b border-slate-100">
-            {["All Staff", ...FILTER_ORDERED_POSITIONS].map((pos) => (
+            {["All Staff", ...POSITION_FILTERS, "Others"].map((pos) => (
               <button
                 key={pos}
                 onClick={() => setActiveFilter(pos)}
