@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import ws from "ws";
+import WebSocket from "ws";
 
 export default async function handler(req: any, res: any) {
   res.setHeader("Content-Type", "application/json");
@@ -20,7 +20,7 @@ export default async function handler(req: any, res: any) {
 
     const supabaseAdmin = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
-      realtime: { transport: ws },
+      realtime: { transport: WebSocket as any },
     });
 
     const { email, password } = req.body;
