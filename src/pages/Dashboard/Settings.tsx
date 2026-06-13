@@ -176,7 +176,7 @@ export default function Settings() {
 
   const staffByRole = useMemo(() => {
     if (!overrideRole) return [];
-    return staffRecords.filter((s: StaffRecord) => POSITION_TO_ROLE[s.position] === overrideRole);
+    return staffRecords.filter((s: StaffRecord) => s.authUserId && POSITION_TO_ROLE[s.position] === overrideRole);
   }, [overrideRole, staffRecords]);
 
   const baseRoutesForRole = useMemo(() => {
@@ -192,10 +192,10 @@ export default function Settings() {
   const openOverrideModal = (role: RoleKey) => {
     setOverrideRole(role);
     const existing = settings.staffRouteOverrides || {};
-    const roleStaff = staffRecords.filter((s: StaffRecord) => POSITION_TO_ROLE[s.position] === role);
+    const roleStaff = staffRecords.filter((s: StaffRecord) => s.authUserId && POSITION_TO_ROLE[s.position] === role);
     const draft: Record<string, string[]> = {};
     roleStaff.forEach((s: StaffRecord) => {
-      draft[s.staff_id] = existing[s.staff_id] ? [...existing[s.staff_id]] : [];
+      draft[s.authUserId!] = existing[s.authUserId!] ? [...existing[s.authUserId!]] : [];
     });
     setOverrideDraft(draft);
   };
@@ -896,9 +896,9 @@ export default function Settings() {
               <p className="text-sm text-slate-400 text-center py-6">No staff found for this role.</p>
             )}
             {staffByRole.map((staff: any) => {
-              const staffRoutes = overrideDraft[staff.staff_id] || [];
+              const staffRoutes = overrideDraft[staff.authUserId] || [];
               return (
-                <div key={staff.staff_id} className="rounded-lg border border-slate-200 p-3">
+                <div key={staff.authUserId || staff.staff_id} className="rounded-lg border border-slate-200 p-3">
                   <p className="text-sm font-medium text-slate-800 mb-2">{staff.name}</p>
                   {availableOverrideRoutes.length === 0 ? (
                     <p className="text-xs text-slate-400 italic">This role already has full access — no additional routes available.</p>
@@ -910,7 +910,7 @@ export default function Settings() {
                           <button
                             key={g.prefix}
                             type="button"
-                            onClick={() => toggleOverrideRoute(staff.staff_id, g.prefix)}
+                            onClick={() => toggleOverrideRoute(staff.authUserId, g.prefix)}
                             className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors ${
                               has
                                 ? "bg-blue-600 border-blue-600 text-white"
