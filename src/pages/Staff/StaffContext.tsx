@@ -7,7 +7,7 @@ interface StaffContextType {
   records: StaffRecord[];
   loading: boolean;
   addRecord: (record: StaffRecord) => Promise<void>;
-  updateRecord: (staffId: string, updates: Partial<StaffRecord>) => Promise<void>;
+  updateRecord: (staffId: string, updates: Partial<StaffRecord>) => Promise<{ error?: any }>;
   deleteRecord: (staffId: string) => Promise<void>;
 }
 
@@ -88,11 +88,12 @@ export function StaffProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       console.error("Failed to update staff record:", error);
-      return;
+      return { error };
     }
     setRecords((prev) =>
       prev.map((r) => (r.staff_id === staffId ? { ...r, ...updates } : r))
     );
+    return {};
   };
 
   const deleteRecord = async (staffId: string) => {

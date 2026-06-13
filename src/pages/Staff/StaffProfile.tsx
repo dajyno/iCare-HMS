@@ -123,7 +123,7 @@ export default function StaffProfile() {
 
   const handleSaveDetails = async () => {
     if (!position) return;
-    await updateRecord(staff.staff_id, {
+    const { error: saveError } = await updateRecord(staff.staff_id, {
       name,
       position,
       department,
@@ -134,6 +134,10 @@ export default function StaffProfile() {
       profilePicture,
       is_clinician: CLINICIAN_POSITIONS.includes(position),
     });
+    if (saveError) {
+      toast.error("Failed to save staff details");
+      return;
+    }
 
     if (staff.authUserId) {
       const { data: existingUser } = await (adminSupabase as any)
@@ -161,6 +165,7 @@ export default function StaffProfile() {
       );
     }
     toast.success("Profile details saved");
+    navigate(`/${hospital_slug}/staff`);
   };
 
   const handleSaveSettings = async () => {
