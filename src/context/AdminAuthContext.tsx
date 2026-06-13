@@ -49,8 +49,15 @@ export const AdminAuthProvider: React.FC<{ children: ReactNode }> = ({ children 
     });
 
     if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error || "Login failed");
+      let message = "Login failed";
+      try {
+        const err = await response.json();
+        message = err.error || message;
+      } catch {
+        const text = await response.text();
+        message = text || message;
+      }
+      throw new Error(message);
     }
 
     const data = await response.json();
