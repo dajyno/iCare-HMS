@@ -125,6 +125,7 @@ class QueryBuilder implements PromiseLike<{ data: any; error: any; count?: numbe
           limit: this.limitValue,
           single: this.singleMode,
           returning: this.returning || undefined,
+          selectOptions: this.selectOptions,
         }),
       });
 

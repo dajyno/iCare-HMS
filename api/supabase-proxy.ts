@@ -43,7 +43,7 @@ export default async function handler(req: any, res: any) {
 }
 
 async function handleTable(supabase: any, body: any) {
-  const { table, action, columns, payload, upsertOptions, filters, orders, limit, single, returning } = body;
+  const { table, action, columns, payload, upsertOptions, filters, orders, limit, single, returning, selectOptions } = body;
 
   let query = supabase.from(table);
 
@@ -58,7 +58,7 @@ async function handleTable(supabase: any, body: any) {
   if (action === "insert" || action === "upsert") {
     query = action === "insert" ? query.insert(payload) : query.upsert(payload, upsertOptions);
     if (returning) {
-      query = query.select(columns || "*");
+      query = query.select(columns || "*", selectOptions);
       for (const ord of orders || []) {
         query = query.order(ord.column, { ascending: ord.ascending, nullsFirst: ord.nullsFirst, foreignTable: ord.foreignTable });
       }
@@ -73,7 +73,7 @@ async function handleTable(supabase: any, body: any) {
     query = applyFilters(query);
     query = query.delete();
   } else {
-    query = query.select(columns || "*");
+    query = query.select(columns || "*", selectOptions);
     query = applyFilters(query);
     for (const ord of orders || []) {
       query = query.order(ord.column, { ascending: ord.ascending, nullsFirst: ord.nullsFirst, foreignTable: ord.foreignTable });
