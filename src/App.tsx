@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { Routes, Route, Navigate, BrowserRouter, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,48 +13,57 @@ import AdminLayout from "./layouts/AdminLayout";
 import TenantRouteGuard from "./components/TenantRouteGuard";
 import HospitalNotFound from "./components/HospitalNotFound";
 
-import Login from "./pages/Auth/Login";
-import TenantLogin from "./pages/Auth/TenantLogin";
-import AuthCallback from "./pages/Auth/AuthCallback";
-import AdminLogin from "./pages/Admin/AdminLogin";
-import PlatformOverview from "./pages/Admin/PlatformOverview";
-import TenantsDirectory from "./pages/Admin/TenantsDirectory";
-import TenantDetail from "./pages/Admin/TenantDetail";
-import LicensingManager from "./pages/Admin/LicensingManager";
-import HealthMonitor from "./pages/Admin/HealthMonitor";
-import Overview from "./pages/Dashboard/Overview";
-import PatientList from "./pages/Patients/PatientList";
-import PatientProfile from "./pages/Patients/PatientProfile";
-import FamilyPatients from "./pages/Patients/FamilyPatients";
-import AppointmentList from "./pages/Appointments/AppointmentList";
-import ConsultationList from "./pages/Consultations/ConsultationList";
-import ConsultationWorkspace from "./pages/Consultations/ConsultationWorkspace";
-import VitalSigns from "./pages/Consultations/VitalSigns";
-import LabModule from "./pages/Laboratory/LabModule";
-import PrescriptionTerminal from "./pages/Pharmacy/prescriptions/PrescriptionTerminal";
-import InventoryMatrix from "./pages/Pharmacy/inventory/InventoryMatrix";
-import BillingAnalytics from "./pages/Pharmacy/analytics/BillingAnalytics";
-import BillingOverview from "./pages/Billing/BillingOverview";
-import InpatientOverview from "./pages/Inpatient/InpatientOverview";
-import InventoryList from "./pages/Inventory/InventoryList";
-import RadiologyModule from "./pages/Radiology/RadiologyModule";
-import AccountingPage from "./pages/Accounting/AccountingPage";
-import RegistriesPage from "./pages/Accounting/registries/RegistriesPage";
-import LedgerPage from "./pages/Accounting/ledger/LedgerPage";
-import BanksPage from "./pages/Accounting/banks/BanksPage";
-import ReportsPage from "./pages/Accounting/reports/ReportsPage";
-import Settings from "./pages/Dashboard/Settings";
-import Profile from "./pages/Dashboard/Profile";
-import StaffLayout from "./pages/Staff/StaffLayout";
-import StaffList from "./pages/Staff/StaffList";
-import StaffProfile from "./pages/Staff/StaffProfile";
-import ReportsHub from "./pages/Reports/ReportsHub";
-import ClinicalReports from "./pages/Reports/ClinicalReports";
-import RevenueDashboard from "./pages/Reports/Revenue/RevenueDashboard";
+const Login = lazy(() => import("./pages/Auth/Login"));
+const TenantLogin = lazy(() => import("./pages/Auth/TenantLogin"));
+const AuthCallback = lazy(() => import("./pages/Auth/AuthCallback"));
+const AdminLogin = lazy(() => import("./pages/Admin/AdminLogin"));
+const PlatformOverview = lazy(() => import("./pages/Admin/PlatformOverview"));
+const TenantsDirectory = lazy(() => import("./pages/Admin/TenantsDirectory"));
+const TenantDetail = lazy(() => import("./pages/Admin/TenantDetail"));
+const LicensingManager = lazy(() => import("./pages/Admin/LicensingManager"));
+const HealthMonitor = lazy(() => import("./pages/Admin/HealthMonitor"));
+const Overview = lazy(() => import("./pages/Dashboard/Overview"));
+const PatientList = lazy(() => import("./pages/Patients/PatientList"));
+const PatientProfile = lazy(() => import("./pages/Patients/PatientProfile"));
+const FamilyPatients = lazy(() => import("./pages/Patients/FamilyPatients"));
+const AppointmentList = lazy(() => import("./pages/Appointments/AppointmentList"));
+const ConsultationList = lazy(() => import("./pages/Consultations/ConsultationList"));
+const ConsultationWorkspace = lazy(() => import("./pages/Consultations/ConsultationWorkspace"));
+const VitalSigns = lazy(() => import("./pages/Consultations/VitalSigns"));
+const LabModule = lazy(() => import("./pages/Laboratory/LabModule"));
+const PrescriptionTerminal = lazy(() => import("./pages/Pharmacy/prescriptions/PrescriptionTerminal"));
+const InventoryMatrix = lazy(() => import("./pages/Pharmacy/inventory/InventoryMatrix"));
+const BillingAnalytics = lazy(() => import("./pages/Pharmacy/analytics/BillingAnalytics"));
+const BillingOverview = lazy(() => import("./pages/Billing/BillingOverview"));
+const InpatientOverview = lazy(() => import("./pages/Inpatient/InpatientOverview"));
+const InventoryList = lazy(() => import("./pages/Inventory/InventoryList"));
+const RadiologyModule = lazy(() => import("./pages/Radiology/RadiologyModule"));
+const AccountingPage = lazy(() => import("./pages/Accounting/AccountingPage"));
+const RegistriesPage = lazy(() => import("./pages/Accounting/registries/RegistriesPage"));
+const LedgerPage = lazy(() => import("./pages/Accounting/ledger/LedgerPage"));
+const BanksPage = lazy(() => import("./pages/Accounting/banks/BanksPage"));
+const ReportsPage = lazy(() => import("./pages/Accounting/reports/ReportsPage"));
+const Settings = lazy(() => import("./pages/Dashboard/Settings"));
+const Profile = lazy(() => import("./pages/Dashboard/Profile"));
+const StaffLayout = lazy(() => import("./pages/Staff/StaffLayout"));
+const StaffList = lazy(() => import("./pages/Staff/StaffList"));
+const StaffProfile = lazy(() => import("./pages/Staff/StaffProfile"));
+const ReportsHub = lazy(() => import("./pages/Reports/ReportsHub"));
+const ClinicalReports = lazy(() => import("./pages/Reports/ClinicalReports"));
+const RevenueDashboard = lazy(() => import("./pages/Reports/Revenue/RevenueDashboard"));
 
 const IndividualPatients = () => <PatientList defaultCategory="Individual" />;
 const CorporatePatients = () => <PatientList defaultCategory="Corporate" />;
 const HmoPatients = () => <PatientList defaultCategory="HMO" />;
+
+const PageLoading = () => (
+  <div className="h-screen w-screen flex items-center justify-center">
+    <div className="flex flex-col items-center gap-4">
+      <Skeleton className="w-10 h-10 rounded-xl" />
+      <Skeleton className="h-4 w-24" />
+    </div>
+  </div>
+);
 
 const AdminProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { admin, loading } = useAdminAuth();
@@ -88,6 +97,7 @@ export default function App() {
             <AdminAuthProvider>
               <StaffProvider>
               <GlobalSettingsProvider>
+              <Suspense fallback={<PageLoading />}>
               <Routes>
                 {/* Super Admin Routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />
@@ -149,6 +159,7 @@ export default function App() {
                 <Route path="/" element={<Navigate to="/demo/dashboard" replace />} />
                 <Route path="*" element={<HospitalNotFound />} />
               </Routes>
+              </Suspense>
               </GlobalSettingsProvider>
               </StaffProvider>
             </AdminAuthProvider>
