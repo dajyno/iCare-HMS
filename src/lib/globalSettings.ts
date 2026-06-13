@@ -61,6 +61,9 @@ function defaultRbacMatrix(): Record<RoleKey, RolePermissions> {
       "/dashboard", "/pharmacy/prescriptions", "/pharmacy/inventory",
       "/pharmacy/analytics", "/profile"
     ),
+    Radiologist: routeAccess(
+      "/dashboard", "/radiology", "/profile"
+    ),
     Accountant: routeAccess(
       "/dashboard", "/billing", "/profile",
       "/accounting", "/accounting/registries", "/accounting/ledger",

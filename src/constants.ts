@@ -29,6 +29,7 @@ export const ROLES = {
   NURSE: "Nurse",
   LAB_TECH: "LabTechnician",
   PHARMACIST: "Pharmacist",
+  RADIOLOGIST: "Radiologist",
   ACCOUNTANT: "Accountant",
   FRONT_DESK: "FrontDesk",
   ADMINISTRATOR: "Administrator",

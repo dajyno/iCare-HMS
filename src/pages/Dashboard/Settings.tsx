@@ -28,6 +28,7 @@ import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
 import { useStaff } from "@/src/pages/Staff/StaffContext";
 import { supabase } from "@/src/lib/supabase";
 import type { RoleKey } from "@/src/types/globalSettings";
+import { POSITION_TO_ROLE } from "@/src/pages/Staff/data";
 import { toast } from "sonner";
 import type { StaffRecord } from "@/src/pages/Staff/types";
 
@@ -35,7 +36,7 @@ type ActiveTab = "general" | "financial" | "security" | "notifications" | "regio
 
 const ROLES_ORDER: RoleKey[] = [
   "HospitalAdmin", "ChiefMedicalOfficer", "Doctor", "Nurse",
-  "LabTechnician", "Pharmacist",
+  "LabTechnician", "Pharmacist", "Radiologist",
   "Accountant", "FrontDesk", "Administrator",
 ];
 
@@ -173,21 +174,9 @@ export default function Settings() {
   const [overrideRole, setOverrideRole] = useState<RoleKey | null>(null);
   const [overrideDraft, setOverrideDraft] = useState<Record<string, string[]>>({});
 
-  const positionToRole: Record<string, RoleKey> = {
-    "Medical Doctors": "Doctor",
-    "Nursing": "Nurse",
-    "Pharmacy": "Pharmacist",
-    "Laboratory": "LabTechnician",
-    "Chief Medical Officer": "ChiefMedicalOfficer",
-    "Hospital Administration": "Administrator",
-    "Finance / Accounts": "Accountant",
-    "Billing & Insurance": "Accountant",
-    "Patient Relations": "FrontDesk",
-  };
-
   const staffByRole = useMemo(() => {
     if (!overrideRole) return [];
-    return staffRecords.filter((s: StaffRecord) => positionToRole[s.position] === overrideRole);
+    return staffRecords.filter((s: StaffRecord) => POSITION_TO_ROLE[s.position] === overrideRole);
   }, [overrideRole, staffRecords]);
 
   const baseRoutesForRole = useMemo(() => {
@@ -203,7 +192,7 @@ export default function Settings() {
   const openOverrideModal = (role: RoleKey) => {
     setOverrideRole(role);
     const existing = settings.staffRouteOverrides || {};
-    const roleStaff = staffRecords.filter((s: StaffRecord) => positionToRole[s.position] === role);
+    const roleStaff = staffRecords.filter((s: StaffRecord) => POSITION_TO_ROLE[s.position] === role);
     const draft: Record<string, string[]> = {};
     roleStaff.forEach((s: StaffRecord) => {
       draft[s.staff_id] = existing[s.staff_id] ? [...existing[s.staff_id]] : [];
@@ -223,9 +212,14 @@ export default function Settings() {
   };
 
   const saveOverrides = () => {
-    const merged: Record<string, string[]> = {};
-    Object.entries(overrideDraft).forEach(([id, routes]) => {
-      if (routes.length > 0) merged[id] = routes;
+    const existing = settings.staffRouteOverrides || {};
+    const merged = { ...existing };
+    Object.entries(overrideDraft).forEach(([id, routes]: [string, string[]]) => {
+      if (routes.length > 0) {
+        merged[id] = routes;
+      } else {
+        delete merged[id];
+      }
     });
     updateSettings({ staffRouteOverrides: merged });
     setOverrideRole(null);

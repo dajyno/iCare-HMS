@@ -4,7 +4,7 @@ export interface User {
   fullName: string;
   email: string;
   phone?: string | null;
-  role: "SuperAdmin" | "HospitalAdmin" | "ChiefMedicalOfficer" | "Doctor" | "Nurse" | "LabTechnician" | "Pharmacist" | "Accountant" | "FrontDesk" | "Administrator";
+  role: "SuperAdmin" | "HospitalAdmin" | "ChiefMedicalOfficer" | "Doctor" | "Nurse" | "LabTechnician" | "Pharmacist" | "Radiologist" | "Accountant" | "FrontDesk" | "Administrator";
   departmentId?: string | null;
   status: "active" | "inactive" | "suspended";
   lastLogin?: string | null;

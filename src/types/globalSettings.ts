@@ -6,6 +6,7 @@ export type RoleKey =
   | "Nurse"
   | "LabTechnician"
   | "Pharmacist"
+  | "Radiologist"
   | "Accountant"
   | "FrontDesk"
   | "Administrator";

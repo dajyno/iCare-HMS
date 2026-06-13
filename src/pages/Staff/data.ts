@@ -39,7 +39,7 @@ export const DEPARTMENT_POSITIONS: Record<string, string[]> = {
     "Housekeeping / Environmental Services",
     "Security Services",
     "Patient Transport / Portering",
-    "Patient Relations",
+    "Front Desk",
     "Social Work",
     "Facilities Management / Engineering",
   ],
@@ -77,7 +77,7 @@ export function getPositionsForDepartment(category: string): string[] {
   return DEPARTMENT_POSITIONS[category] || [];
 }
 
-const POSITION_TO_ROLE: Record<string, string> = {
+export const POSITION_TO_ROLE: Record<string, string> = {
   "Medical Doctors": "Doctor",
   "Nursing": "Nurse",
   "Nursing Services": "Nurse",
@@ -85,14 +85,14 @@ const POSITION_TO_ROLE: Record<string, string> = {
   "Laboratory": "LabTechnician",
   "Resident / Intern": "Doctor",
   "Anesthesiology": "Doctor",
-  "Radiology": "Doctor",
+  "Radiology": "Radiologist",
   "Pathology": "Doctor",
   "Diagnostic Cardiology": "Doctor",
   "Diagnostic Neurology": "Doctor",
   "Chief Medical Officer": "ChiefMedicalOfficer",
   "Finance / Accounts": "Accountant",
   "Billing & Insurance": "Accountant",
-  "Patient Relations": "FrontDesk",
+  "Front Desk": "FrontDesk",
   "Hospital Administration": "Administrator",
 };
 
@@ -108,8 +108,9 @@ export const ROLE_TO_POSITION: Record<string, string> = {
   "HospitalAdmin": "Hospital Administration",
   "SuperAdmin": "Hospital Administration",
   "ChiefMedicalOfficer": "Chief Medical Officer",
+  "Radiologist": "Radiology",
   "Accountant": "Finance / Accounts",
-  "FrontDesk": "Patient Relations",
+  "FrontDesk": "Front Desk",
   "Administrator": "Hospital Administration",
 };
 
@@ -121,6 +122,7 @@ export const ROLE_TO_DEPARTMENT: Record<string, string> = {
   "HospitalAdmin": "Administrative",
   "SuperAdmin": "Administrative",
   "ChiefMedicalOfficer": "Clinical / Medical",
+  "Radiologist": "Diagnostic & Imaging",
   "Accountant": "Administrative",
   "FrontDesk": "Operations & Facilities",
   "Administrator": "Administrative",
