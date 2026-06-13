@@ -1,7 +1,38 @@
-import { getCurrentTenantId, setCurrentTenantId } from "./supabase";
+import { supabase, getCurrentTenantId, setCurrentTenantId } from "./supabase";
 
 // Re-export for callers that import setCurrentTenantId from here
 export { setCurrentTenantId, getCurrentTenantId };
+
+async function proxyFetch(body: any): Promise<{ data: any; error: any; count?: number }> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (session?.access_token) {
+      headers["Authorization"] = `Bearer ${session.access_token}`;
+    }
+
+    const response = await fetch("/api/supabase-proxy", {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      let message = "Request failed";
+      try {
+        const err = await response.json();
+        message = err.error || message;
+      } catch {
+        message = (await response.text()) || message;
+      }
+      return { data: null, error: message };
+    }
+
+    return await response.json();
+  } catch (err: any) {
+    return { data: null, error: err.message || "Network error" };
+  }
+}
 
 // Tables that should NOT receive automatic tenant filtering
 const SKIP_TENANT_TABLES = new Set<string>();
@@ -109,41 +140,20 @@ class QueryBuilder implements PromiseLike<{ data: any; error: any; count?: numbe
   }
 
   private async execute() {
-    try {
-      const response = await fetch("/api/supabase-proxy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "table",
-          table: this.table,
-          action: this.action,
-          columns: this.action === "select" ? this.selectColumns : this.returning ? this.selectColumns : undefined,
-          payload: ["insert", "update", "upsert"].includes(this.action) ? this.payload : undefined,
-          upsertOptions: this.upsertOptions,
-          filters: this.filters.length > 0 ? this.filters : undefined,
-          orders: this.orders.length > 0 ? this.orders : undefined,
-          limit: this.limitValue,
-          single: this.singleMode,
-          returning: this.returning || undefined,
-          selectOptions: this.selectOptions,
-        }),
-      });
-
-      if (!response.ok) {
-        let message = "Request failed";
-        try {
-          const err = await response.json();
-          message = err.error || message;
-        } catch {
-          message = (await response.text()) || message;
-        }
-        return { data: null, error: message };
-      }
-
-      return await response.json();
-    } catch (err: any) {
-      return { data: null, error: err.message || "Network error" };
-    }
+    return proxyFetch({
+      type: "table",
+      table: this.table,
+      action: this.action,
+      columns: this.action === "select" ? this.selectColumns : this.returning ? this.selectColumns : undefined,
+      payload: ["insert", "update", "upsert"].includes(this.action) ? this.payload : undefined,
+      upsertOptions: this.upsertOptions,
+      filters: this.filters.length > 0 ? this.filters : undefined,
+      orders: this.orders.length > 0 ? this.orders : undefined,
+      limit: this.limitValue,
+      single: this.singleMode,
+      returning: this.returning || undefined,
+      selectOptions: this.selectOptions,
+    });
   }
 }
 
@@ -155,40 +165,13 @@ class AdminClient {
   auth = {
     admin: {
       listUsers: async () => {
-        try {
-          const res = await fetch("/api/supabase-proxy", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ type: "auth", action: "listUsers" }),
-          });
-          return res.ok ? await res.json() : { data: null, error: "Request failed" };
-        } catch (err: any) {
-          return { data: null, error: err.message };
-        }
+        return proxyFetch({ type: "auth", action: "listUsers" });
       },
       createUser: async (args: any) => {
-        try {
-          const res = await fetch("/api/supabase-proxy", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ type: "auth", action: "createUser", args }),
-          });
-          return res.ok ? await res.json() : { data: null, error: "Request failed" };
-        } catch (err: any) {
-          return { data: null, error: err.message };
-        }
+        return proxyFetch({ type: "auth", action: "createUser", args });
       },
       updateUserById: async (id: string, updates: any) => {
-        try {
-          const res = await fetch("/api/supabase-proxy", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ type: "auth", action: "updateUserById", args: { id, updates } }),
-          });
-          return res.ok ? await res.json() : { data: null, error: "Request failed" };
-        } catch (err: any) {
-          return { data: null, error: err.message };
-        }
+        return proxyFetch({ type: "auth", action: "updateUserById", args: { id, updates } });
       },
     },
   };
@@ -198,11 +181,7 @@ class AdminClient {
   }
 
   rpc(name: string, args: any) {
-    return fetch("/api/supabase-proxy", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "rpc", name, args }),
-    }).then((res) => res.json());
+    return proxyFetch({ type: "rpc", name, args });
   }
 }
 

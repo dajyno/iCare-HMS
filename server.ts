@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import cors from "cors";
 import dotenv from "dotenv";
+import { createClient } from "@supabase/supabase-js";
 import * as authService from "./src/services/authService";
 import * as patientService from "./src/services/patientService";
 import * as appointmentService from "./src/services/appointmentService";
@@ -34,6 +35,137 @@ async function startServer() {
 
   app.use(cors());
   app.use(express.json());
+
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_KEY;
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error("Missing Supabase admin credentials (VITE_SUPABASE_URL / SUPABASE_SERVICE_KEY)");
+  }
+  const supabaseAdmin = createClient(supabaseUrl!, serviceRoleKey!);
+
+  // ── Supabase Admin Proxy (authenticated, no role gating) ──
+
+  app.post("/api/supabase-proxy", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(authHeader.slice(7));
+      if (authError || !user) {
+        return res.status(401).json({ error: "Invalid or expired token" });
+      }
+
+      const { type } = req.body;
+
+      if (type === "table") {
+        const { table, action, columns, payload, upsertOptions, filters, orders, limit, single, returning, selectOptions } = req.body;
+
+        let query: any;
+
+        switch (action) {
+          case "select":
+            query = supabaseAdmin.from(table).select(columns || "*", selectOptions);
+            break;
+          case "insert":
+            query = supabaseAdmin.from(table).insert(payload, upsertOptions);
+            if (returning) query = query.select(columns || "*");
+            break;
+          case "update":
+            query = supabaseAdmin.from(table).update(payload);
+            break;
+          case "delete":
+            query = supabaseAdmin.from(table).delete();
+            break;
+          case "upsert":
+            query = supabaseAdmin.from(table).upsert(payload, upsertOptions);
+            if (returning) query = query.select(columns || "*");
+            break;
+          default:
+            return res.status(400).json({ error: `Unknown action: ${action}` });
+        }
+
+        if (filters && Array.isArray(filters)) {
+          for (const f of filters) {
+            const [op, col, val, ...rest] = f;
+            switch (op) {
+              case "eq": query = query.eq(col, val); break;
+              case "neq": query = query.neq(col, val); break;
+              case "gt": query = query.gt(col, val); break;
+              case "gte": query = query.gte(col, val); break;
+              case "lt": query = query.lt(col, val); break;
+              case "lte": query = query.lte(col, val); break;
+              case "is": query = query.is(col, val); break;
+              case "in": query = query.in(col, val); break;
+              case "like": query = query.like(col, val); break;
+              case "ilike": query = query.ilike(col, val); break;
+              case "contains": query = query.contains(col, val); break;
+              case "containedBy": query = query.containedBy(col, val); break;
+              case "overlaps": query = query.overlaps(col, val); break;
+              case "textSearch": query = query.textSearch(col, val, rest[0]); break;
+              case "not": query = query.not(col, val, rest[0]); break;
+              case "or": query = query.or(val); break;
+              case "filter": query = query.filter(col, val, rest[0]); break;
+            }
+          }
+        }
+
+        if (orders && Array.isArray(orders)) {
+          for (const o of orders) {
+            query = query.order(o.column, { ascending: o.ascending, nullsFirst: o.nullsFirst, foreignTable: o.foreignTable });
+          }
+        }
+
+        if (limit !== undefined && limit !== null) {
+          query = query.limit(limit);
+        }
+
+        let result;
+        if (single === "single") {
+          result = await query.single();
+        } else if (single === "maybeSingle") {
+          result = await query.maybeSingle();
+        } else {
+          result = await query;
+        }
+
+        return res.json({ data: result.data, error: result.error, count: result.count });
+      }
+
+      if (type === "auth") {
+        const { action: authAction, args } = req.body;
+        let result;
+
+        switch (authAction) {
+          case "listUsers":
+            result = await supabaseAdmin.auth.admin.listUsers();
+            break;
+          case "createUser":
+            result = await supabaseAdmin.auth.admin.createUser(args);
+            break;
+          case "updateUserById":
+            result = await supabaseAdmin.auth.admin.updateUserById(args.id, args.updates);
+            break;
+          default:
+            return res.status(400).json({ error: `Unknown auth action: ${authAction}` });
+        }
+
+        return res.json(result);
+      }
+
+      if (type === "rpc") {
+        const { name, args } = req.body;
+        const result = await supabaseAdmin.rpc(name, args);
+        return res.json({ data: result.data, error: result.error });
+      }
+
+      return res.status(400).json({ error: `Unknown request type: ${type}` });
+    } catch (err: any) {
+      console.error("Supabase proxy error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
 
   // API Routes
   app.get("/api/health", async (req, res) => {
