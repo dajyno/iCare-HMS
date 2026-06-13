@@ -24,13 +24,14 @@ export const AUDIT_ACTIONS = {
 export const ROLES = {
   SUPER_ADMIN: "SuperAdmin",
   HOSPITAL_ADMIN: "HospitalAdmin",
-  RECEPTIONIST: "Receptionist",
+  CHIEF_MEDICAL_OFFICER: "ChiefMedicalOfficer",
   DOCTOR: "Doctor",
   NURSE: "Nurse",
   LAB_TECH: "LabTechnician",
   PHARMACIST: "Pharmacist",
-  BILLING_OFFICER: "BillingOfficer",
-  INVENTORY_OFFICER: "InventoryOfficer",
+  ACCOUNTANT: "Accountant",
+  FRONT_DESK: "FrontDesk",
+  ADMINISTRATOR: "Administrator",
 };
 
 /*

@@ -15,7 +15,7 @@ model User {
   email         String    @unique
   password      String
   phone         String?
-  role          String    // SuperAdmin, HospitalAdmin, Receptionist, Doctor, Nurse, LabTechnician, Pharmacist, BillingOfficer, InventoryOfficer
+  role          String    // SuperAdmin, HospitalAdmin, ChiefMedicalOfficer, Doctor, Nurse, LabTechnician, Pharmacist, Accountant, FrontDesk, Administrator
   departmentId  String?
   department    Department? @relation(fields: [departmentId], references: [id])
   status        String    @default("active") // active, inactive, suspended

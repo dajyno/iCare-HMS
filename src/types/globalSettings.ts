@@ -1,13 +1,14 @@
 export type RoleKey =
   | "SuperAdmin"
   | "HospitalAdmin"
-  | "Receptionist"
+  | "ChiefMedicalOfficer"
   | "Doctor"
   | "Nurse"
   | "LabTechnician"
   | "Pharmacist"
-  | "BillingOfficer"
-  | "InventoryOfficer";
+  | "Accountant"
+  | "FrontDesk"
+  | "Administrator";
 
 export interface RolePermissions {
   allowedRoutes: string[];

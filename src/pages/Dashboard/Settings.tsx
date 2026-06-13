@@ -34,8 +34,9 @@ import type { StaffRecord } from "@/src/pages/Staff/types";
 type ActiveTab = "general" | "financial" | "security" | "notifications" | "regional" | "database";
 
 const ROLES_ORDER: RoleKey[] = [
-  "HospitalAdmin", "Doctor", "Nurse", "Receptionist",
-  "LabTechnician", "Pharmacist", "BillingOfficer", "InventoryOfficer",
+  "HospitalAdmin", "ChiefMedicalOfficer", "Doctor", "Nurse",
+  "LabTechnician", "Pharmacist",
+  "Accountant", "FrontDesk", "Administrator",
 ];
 
 const ROUTE_GROUPS = [
@@ -177,7 +178,11 @@ export default function Settings() {
     "Nursing": "Nurse",
     "Pharmacy": "Pharmacist",
     "Laboratory": "LabTechnician",
-    "Administration": "HospitalAdmin",
+    "Chief Medical Officer": "ChiefMedicalOfficer",
+    "Hospital Administration": "Administrator",
+    "Finance / Accounts": "Accountant",
+    "Billing & Insurance": "Accountant",
+    "Patient Relations": "FrontDesk",
   };
 
   const staffByRole = useMemo(() => {
@@ -272,6 +277,7 @@ export default function Settings() {
 
   const handleRouteToggle = (role: RoleKey, prefix: string) => {
     const current = settings.rbacMatrix[role];
+    if (!current) return;
     const has = current.allowedRoutes.some((r) => routeMatchesGroup(r, prefix));
     const updated = has
       ? current.allowedRoutes.filter((r) => !routeMatchesGroup(r, prefix))
@@ -286,6 +292,7 @@ export default function Settings() {
 
   const handlePermissionToggle = (role: RoleKey, field: "write" | "approve") => {
     const current = settings.rbacMatrix[role];
+    if (!current) return;
     updateSettings({
       rbacMatrix: {
         ...settings.rbacMatrix,
@@ -504,6 +511,7 @@ export default function Settings() {
                   <tbody>
                     {ROLES_ORDER.map((role) => {
                       const perm = settings.rbacMatrix[role];
+                      if (!perm) return null;
                       return (
                         <tr key={role} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
                           <td className="sticky left-0 z-10 py-2.5 pl-4 pr-4 font-medium text-slate-800 bg-white">{role}</td>

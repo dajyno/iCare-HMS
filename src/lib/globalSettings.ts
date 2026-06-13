@@ -44,6 +44,7 @@ function defaultRbacMatrix(): Record<RoleKey, RolePermissions> {
   return {
     SuperAdmin: fullAccess(),
     HospitalAdmin: fullAccess(),
+    ChiefMedicalOfficer: fullAccess(),
     Doctor: routeAccess(
       "/dashboard", "/appointments", "/patients", "/consultations",
       "/consultations/vitals", "/laboratory", "/radiology",
@@ -53,9 +54,6 @@ function defaultRbacMatrix(): Record<RoleKey, RolePermissions> {
       "/dashboard", "/appointments", "/patients", "/consultations/vitals",
       "/inpatient", "/profile"
     ),
-    Receptionist: routeAccess(
-      "/dashboard", "/appointments", "/patients", "/billing", "/profile"
-    ),
     LabTechnician: routeAccess(
       "/dashboard", "/laboratory", "/profile"
     ),
@@ -63,12 +61,17 @@ function defaultRbacMatrix(): Record<RoleKey, RolePermissions> {
       "/dashboard", "/pharmacy/prescriptions", "/pharmacy/inventory",
       "/pharmacy/analytics", "/profile"
     ),
-    BillingOfficer: routeAccess(
-      "/dashboard", "/billing", "/accounting", "/accounting/registries",
-      "/accounting/ledger", "/accounting/banks", "/accounting/reports", "/profile"
+    Accountant: routeAccess(
+      "/dashboard", "/billing", "/profile",
+      "/accounting", "/accounting/registries", "/accounting/ledger",
+      "/accounting/banks", "/accounting/reports"
     ),
-    InventoryOfficer: routeAccess(
-      "/dashboard", "/inventory", "/pharmacy/inventory", "/profile"
+    FrontDesk: routeAccess(
+      "/dashboard", "/appointments", "/patients", "/billing", "/profile"
+    ),
+    Administrator: routeAccess(
+      "/dashboard", "/appointments", "/patients", "/staff",
+      "/reports", "/reports/clinical", "/settings", "/profile"
     ),
   };
 }
@@ -107,7 +110,11 @@ export function loadSettings(): GlobalSettings {
     if (!raw) return getDefaultSettings();
     const parsed = JSON.parse(raw) as Partial<GlobalSettings>;
     const defaults = getDefaultSettings();
-    return { ...defaults, ...parsed };
+    return {
+      ...defaults,
+      ...parsed,
+      rbacMatrix: { ...defaults.rbacMatrix, ...(parsed.rbacMatrix || {}) },
+    };
   } catch {
     return getDefaultSettings();
   }

@@ -51,7 +51,9 @@ async function buildSettings(tenantId: string): Promise<GlobalSettings> {
     fetchSettings(supabase, tenantId),
     fetchTenantHospitalName(tenantId),
   ]);
-  const merged = { ...getDefaultSettings(), ...(db || {}) };
+  const defaults = getDefaultSettings();
+  const merged = { ...defaults, ...(db || {}) };
+  merged.rbacMatrix = { ...defaults.rbacMatrix, ...(db?.rbacMatrix || {}) };
   if (hospitalName) merged.hospitalName = hospitalName;
   return merged;
 }
@@ -98,7 +100,9 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
 
   const updateSettings = useCallback((partial: Partial<GlobalSettings>) => {
     setSettings((prev) => {
-      const next = { ...prev, ...partial };
+      const next = partial.rbacMatrix
+        ? { ...prev, ...partial, rbacMatrix: { ...prev.rbacMatrix, ...partial.rbacMatrix } }
+        : { ...prev, ...partial };
       saveLocalCache(next, user?.tenantId);
       upsertSettings(supabase, next, user?.id);
       return next;

@@ -48,7 +48,7 @@ create table public.users (
   full_name     text not null,
   email         text not null unique,
   phone         text,
-  role          text not null check (role in ('SuperAdmin','HospitalAdmin','Receptionist','Doctor','Nurse','LabTechnician','Pharmacist','BillingOfficer','InventoryOfficer')),
+  role          text not null check (role in ('SuperAdmin','HospitalAdmin','ChiefMedicalOfficer','Doctor','Nurse','LabTechnician','Pharmacist','Accountant','FrontDesk','Administrator')),
   department_id uuid,
   status        text not null default 'active' check (status in ('active','inactive','suspended')),
   last_login    timestamptz,

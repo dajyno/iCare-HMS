@@ -4,6 +4,7 @@ export const DEPARTMENT_POSITIONS: Record<string, string[]> = {
     "Nursing",
     "Anesthesiology",
     "Resident / Intern",
+    "Chief Medical Officer",
   ],
   "Clinical Support Services": [
     "Laboratory",
@@ -88,6 +89,11 @@ const POSITION_TO_ROLE: Record<string, string> = {
   "Pathology": "Doctor",
   "Diagnostic Cardiology": "Doctor",
   "Diagnostic Neurology": "Doctor",
+  "Chief Medical Officer": "ChiefMedicalOfficer",
+  "Finance / Accounts": "Accountant",
+  "Billing & Insurance": "Accountant",
+  "Patient Relations": "FrontDesk",
+  "Hospital Administration": "Administrator",
 };
 
 export function mapPositionToRole(position: string): string {
@@ -101,9 +107,10 @@ export const ROLE_TO_POSITION: Record<string, string> = {
   "LabTechnician": "Laboratory",
   "HospitalAdmin": "Hospital Administration",
   "SuperAdmin": "Hospital Administration",
-  "Receptionist": "Patient Relations",
-  "BillingOfficer": "Billing & Insurance",
-  "InventoryOfficer": "Procurement / Supply Chain",
+  "ChiefMedicalOfficer": "Chief Medical Officer",
+  "Accountant": "Finance / Accounts",
+  "FrontDesk": "Patient Relations",
+  "Administrator": "Hospital Administration",
 };
 
 export const ROLE_TO_DEPARTMENT: Record<string, string> = {
@@ -113,7 +120,8 @@ export const ROLE_TO_DEPARTMENT: Record<string, string> = {
   "LabTechnician": "Clinical Support Services",
   "HospitalAdmin": "Administrative",
   "SuperAdmin": "Administrative",
-  "Receptionist": "Operations & Facilities",
-  "BillingOfficer": "Administrative",
-  "InventoryOfficer": "Administrative",
+  "ChiefMedicalOfficer": "Clinical / Medical",
+  "Accountant": "Administrative",
+  "FrontDesk": "Operations & Facilities",
+  "Administrator": "Administrative",
 };
