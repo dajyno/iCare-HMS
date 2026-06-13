@@ -4,6 +4,7 @@ import { getDefaultSettings } from "@/src/lib/globalSettings";
 import { fetchSettings, upsertSettings } from "@/src/services/globalSettingsService";
 import { supabase } from "@/src/lib/supabase";
 import { useAuth } from "./AuthContext";
+import { useTenant } from "./TenantContext";
 
 interface GlobalSettingsContextType {
   settings: GlobalSettings;
@@ -60,6 +61,8 @@ async function buildSettings(tenantId: string): Promise<GlobalSettings> {
 
 export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const { tenant } = useTenant();
+  const effectiveTenantId = user?.tenantId || tenant?.tenantId;
   const [settings, setSettings] = useState<GlobalSettings>(getDefaultSettings());
   const [loading, setLoading] = useState(true);
   const pendingUpsert = useRef<Promise<boolean>>(Promise.resolve(true));
@@ -69,16 +72,16 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
     let intervalId: ReturnType<typeof setInterval> | undefined;
 
     async function init() {
-      if (!user?.tenantId) {
+      if (!effectiveTenantId) {
         setLoading(false);
         return;
       }
 
       setLoading(true);
-      const merged = await buildSettings(user.tenantId);
+      const merged = await buildSettings(effectiveTenantId);
       if (cancelled) return;
       setSettings(merged);
-      saveLocalCache(merged, user.tenantId);
+      saveLocalCache(merged, effectiveTenantId);
       setLoading(false);
     }
 
@@ -86,40 +89,40 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
 
     // Poll for changes (e.g., hospital name edited by admin)
     intervalId = setInterval(async () => {
-      if (cancelled || !user?.tenantId) return;
-      const merged = await buildSettings(user.tenantId);
+      if (cancelled || !effectiveTenantId) return;
+      const merged = await buildSettings(effectiveTenantId);
       if (cancelled) return;
       setSettings(merged);
-      saveLocalCache(merged, user.tenantId);
+      saveLocalCache(merged, effectiveTenantId);
     }, 30000);
 
     return () => {
       cancelled = true;
       if (intervalId !== undefined) clearInterval(intervalId);
     };
-  }, [user?.tenantId, user?.id]);
+  }, [user?.tenantId, user?.id, tenant?.tenantId]);
 
   const updateSettings = useCallback((partial: Partial<GlobalSettings>) => {
     setSettings((prev) => {
       const next = partial.rbacMatrix
         ? { ...prev, ...partial, rbacMatrix: { ...prev.rbacMatrix, ...partial.rbacMatrix } }
         : { ...prev, ...partial };
-      saveLocalCache(next, user?.tenantId);
+      saveLocalCache(next, effectiveTenantId);
       pendingUpsert.current = pendingUpsert.current.then(() =>
-        upsertSettings(supabase, next, user?.id, user?.tenantId)
+        upsertSettings(supabase, next, user?.id, effectiveTenantId)
       );
       return next;
     });
-  }, [user?.tenantId]);
+  }, [effectiveTenantId]);
 
   const resetSettings = useCallback(() => {
     const defaults = getDefaultSettings();
     setSettings(defaults);
-    saveLocalCache(defaults, user?.tenantId);
+    saveLocalCache(defaults, effectiveTenantId);
     pendingUpsert.current = pendingUpsert.current.then(() =>
-      upsertSettings(supabase, defaults, user?.id, user?.tenantId)
+      upsertSettings(supabase, defaults, user?.id, effectiveTenantId)
     );
-  }, [user?.tenantId]);
+  }, [effectiveTenantId]);
 
   return (
     <GlobalSettingsContext.Provider value={{ settings, updateSettings, resetSettings, loading }}>
