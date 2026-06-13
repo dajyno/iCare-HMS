@@ -30,6 +30,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/src/lib/supabase";
 import { adminSupabase } from "@/src/lib/adminSupabase";
 import { useAuth } from "@/src/context/AuthContext";
 import { saveCustomAccount, removeCustomAccount } from "@/src/lib/accountsStore";
@@ -140,13 +141,13 @@ export default function StaffProfile() {
     }
 
     if (staff.authUserId) {
-      const { data: existingUser } = await (adminSupabase as any)
+      const { data: existingUser } = await supabase
         .from("users")
         .select("id")
         .eq("id", staff.authUserId)
         .maybeSingle();
       if (existingUser) {
-        const { error: roleError } = await (adminSupabase as any)
+        const { error: roleError } = await (supabase as any)
           .from("users")
           .update({ role: mapPositionToRole(position) })
           .eq("id", staff.authUserId);

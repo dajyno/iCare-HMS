@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
-import { adminSupabase } from "@/src/lib/adminSupabase";
+import { supabase } from "@/src/lib/supabase";
 import { useAuth } from "@/src/context/AuthContext";
 import type { StaffRecord } from "./types";
 
@@ -56,7 +56,7 @@ export function StaffProvider({ children }: { children: ReactNode }) {
   const [records, setRecords] = useState<StaffRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const staffTable = () => adminSupabase.from("staff") as any;
+  const staffTable = () => supabase.from("staff") as any;
 
   useEffect(() => {
     if (!user?.tenantId) return;
