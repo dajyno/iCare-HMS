@@ -116,18 +116,22 @@ const TenantRouteGuard: React.FC = () => {
     const roleKey = user.role as string;
     const matrix = settings.rbacMatrix;
     const perm = matrix[roleKey as keyof typeof matrix];
-    if (perm && perm.allowedRoutes.length > 0) {
+    if (perm) {
       const baseRoutes = perm.allowedRoutes;
       const overrides = settings.staffRouteOverrides?.[user.id] || [];
       const effectiveRoutes = [...baseRoutes, ...overrides];
       const path = location.pathname;
-      const allowed = effectiveRoutes.some((route: string) =>
+      const isDashboard = path === `/${hospital_slug}/dashboard`;
+      const allowed = isDashboard || effectiveRoutes.some((route: string) =>
         path === route || path.startsWith(route + "/") || path.startsWith(`/${hospital_slug}${route}`)
       );
       if (!allowed) {
         navigate(`/${hospital_slug}/dashboard`, { replace: true });
         return null;
       }
+    } else {
+      navigate(`/${hospital_slug}/dashboard`, { replace: true });
+      return null;
     }
   }
 

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import type { GlobalSettings } from "@/src/types/globalSettings";
 import { getDefaultSettings } from "@/src/lib/globalSettings";
 import { fetchSettings, upsertSettings } from "@/src/services/globalSettingsService";
@@ -62,6 +62,7 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [settings, setSettings] = useState<GlobalSettings>(getDefaultSettings());
   const [loading, setLoading] = useState(true);
+  const pendingUpsert = useRef<Promise<boolean>>(Promise.resolve(true));
 
   useEffect(() => {
     let cancelled = false;
@@ -104,17 +105,21 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
         ? { ...prev, ...partial, rbacMatrix: { ...prev.rbacMatrix, ...partial.rbacMatrix } }
         : { ...prev, ...partial };
       saveLocalCache(next, user?.tenantId);
-      upsertSettings(supabase, next, user?.id, user?.tenantId);
+      pendingUpsert.current = pendingUpsert.current.then(() =>
+        upsertSettings(supabase, next, user?.id, user?.tenantId)
+      );
       return next;
     });
-  }, [user?.id, user?.tenantId]);
+  }, [user?.tenantId]);
 
   const resetSettings = useCallback(() => {
     const defaults = getDefaultSettings();
     setSettings(defaults);
     saveLocalCache(defaults, user?.tenantId);
-    upsertSettings(supabase, defaults, user?.id, user?.tenantId);
-  }, [user?.id, user?.tenantId]);
+    pendingUpsert.current = pendingUpsert.current.then(() =>
+      upsertSettings(supabase, defaults, user?.id, user?.tenantId)
+    );
+  }, [user?.tenantId]);
 
   return (
     <GlobalSettingsContext.Provider value={{ settings, updateSettings, resetSettings, loading }}>

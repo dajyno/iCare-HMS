@@ -185,7 +185,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     const matrix = settings.rbacMatrix;
     const roleKey = user.role as keyof typeof matrix;
     const perm = matrix[roleKey];
-    if (!perm || perm.allowedRoutes.length === 0) return all;
+    if (!perm) return [];
 
     const baseRoutes = perm.allowedRoutes;
     const overrides = settings.staffRouteOverrides?.[user.id] || [];
