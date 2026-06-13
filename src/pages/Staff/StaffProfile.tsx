@@ -142,10 +142,15 @@ export default function StaffProfile() {
         .eq("id", staff.authUserId)
         .maybeSingle();
       if (existingUser) {
-        await (adminSupabase as any)
+        const { error: roleError } = await (adminSupabase as any)
           .from("users")
           .update({ role: mapPositionToRole(position) })
           .eq("id", staff.authUserId);
+        if (roleError) {
+          console.error("Failed to sync role to users table:", roleError);
+          toast.error("Staff record saved but role sync failed");
+          return;
+        }
       }
     }
 
