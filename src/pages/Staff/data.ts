@@ -80,3 +80,27 @@ const POSITION_TO_ROLE: Record<string, string> = {
 export function mapPositionToRole(position: string): string {
   return POSITION_TO_ROLE[position] || "HospitalAdmin";
 }
+
+export const ROLE_TO_POSITION: Record<string, string> = {
+  "Doctor": "Medical Doctors",
+  "Nurse": "Nursing",
+  "Pharmacist": "Pharmacy",
+  "LabTechnician": "Laboratory",
+  "HospitalAdmin": "Hospital Administration",
+  "SuperAdmin": "Hospital Administration",
+  "Receptionist": "Patient Relations",
+  "BillingOfficer": "Billing & Insurance",
+  "InventoryOfficer": "Procurement / Supply Chain",
+};
+
+export const ROLE_TO_DEPARTMENT: Record<string, string> = {
+  "Doctor": "Clinical / Medical",
+  "Nurse": "Clinical / Medical",
+  "Pharmacist": "Clinical Support Services",
+  "LabTechnician": "Clinical Support Services",
+  "HospitalAdmin": "Administrative",
+  "SuperAdmin": "Administrative",
+  "Receptionist": "Operations & Facilities",
+  "BillingOfficer": "Administrative",
+  "InventoryOfficer": "Administrative",
+};

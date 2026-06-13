@@ -3,7 +3,7 @@ import { supabase, toCamel, setCurrentTenantId } from "../lib/supabase";
 import { adminSupabase } from "../lib/adminSupabase";
 import type { StaffRecord } from "../pages/Staff/types";
 import { getCustomAccounts } from "../lib/accountsStore";
-import { mapPositionToRole } from "../pages/Staff/data";
+import { mapPositionToRole, ROLE_TO_POSITION, ROLE_TO_DEPARTMENT, CLINICIAN_POSITIONS } from "../pages/Staff/data";
 import type { User } from "../lib/types";
 
 interface AuthContextType {
@@ -121,6 +121,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await fetchProfile(userId, authUser);
     };
 
+    const ensureStaffRecord = async (userId: string) => {
+      if (tenantId) setCurrentTenantId(tenantId);
+
+      const { data: existing } = await (adminSupabase.from("staff") as any)
+        .select("staff_id")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (existing) {
+        await (adminSupabase.from("staff") as any)
+          .update({ auth_user_id: userId })
+          .eq("staff_id", existing.staff_id);
+        return;
+      }
+
+      const account = { ...DEFAULT_ACCOUNTS, ...getCustomAccounts() }[email.toLowerCase()];
+      if (!account) return;
+
+      const position = ROLE_TO_POSITION[account.role] || "Hospital Administration";
+      const department = ROLE_TO_DEPARTMENT[account.role] || "Administrative";
+      const isClinician = CLINICIAN_POSITIONS.includes(position);
+      const staffId = `AUTO-${Date.now().toString(36).toUpperCase()}`;
+
+      await (adminSupabase.from("staff") as any).insert({
+        staff_id: staffId,
+        name: account.name,
+        position,
+        department,
+        availability_status: "Active",
+        is_clinician: isClinician,
+        gender: "",
+        address: "",
+        email,
+        phone: "",
+        can_login: true,
+        password: "",
+        profile_picture: "",
+        auth_user_id: userId,
+      });
+    };
+
     if (error?.message?.includes("Invalid login credentials")) {
       let account = { ...DEFAULT_ACCOUNTS, ...getCustomAccounts() }[email.toLowerCase()];
 
@@ -164,6 +205,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (signUpData?.session) {
+        await ensureStaffRecord(signUpData.session.user.id);
         await handlePostAuth(signUpData.session.user.id, signUpData.session.user);
         return;
       }
@@ -173,6 +215,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { data } = await supabase.auth.getSession();
       if (data.session?.user) {
+        await ensureStaffRecord(data.session.user.id);
         await handlePostAuth(data.session.user.id, data.session.user);
       }
       return;
