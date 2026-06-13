@@ -7,6 +7,7 @@
     { "source": "/sw.js", "destination": "/sw.js" },
     { "source": "/workbox-:id.js", "destination": "/workbox-:id.js" },
     { "source": "/manifest.webmanifest", "destination": "/manifest.webmanifest" },
+    { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

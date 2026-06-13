@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from "react";
-import { adminSupabase } from "../lib/adminSupabase";
 import type { PlatformAdmin } from "../types/tenant";
 
 const SESSION_KEY = "icare_admin_session";
@@ -43,13 +42,18 @@ export const AdminAuthProvider: React.FC<{ children: ReactNode }> = ({ children 
   }, []);
 
   const login = async (email: string, password: string) => {
-    const { data, error } = await adminSupabase.rpc("admin_login", {
-      p_email: email,
-      p_password: password,
+    const response = await fetch("/api/admin-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
     });
 
-    if (error) throw new Error(error.message);
-    if (!data?.success) throw new Error(data?.error || "Invalid credentials");
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || "Login failed");
+    }
+
+    const data = await response.json();
 
     const session: AdminSession = {
       id: data.id,
