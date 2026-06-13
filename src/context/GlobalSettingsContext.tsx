@@ -104,7 +104,7 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
         ? { ...prev, ...partial, rbacMatrix: { ...prev.rbacMatrix, ...partial.rbacMatrix } }
         : { ...prev, ...partial };
       saveLocalCache(next, user?.tenantId);
-      upsertSettings(supabase, next, user?.id);
+      upsertSettings(supabase, next, user?.id, user?.tenantId);
       return next;
     });
   }, [user?.id, user?.tenantId]);
@@ -113,7 +113,7 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
     const defaults = getDefaultSettings();
     setSettings(defaults);
     saveLocalCache(defaults, user?.tenantId);
-    upsertSettings(supabase, defaults, user?.id);
+    upsertSettings(supabase, defaults, user?.id, user?.tenantId);
   }, [user?.id, user?.tenantId]);
 
   return (

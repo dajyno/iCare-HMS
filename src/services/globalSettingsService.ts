@@ -16,14 +16,18 @@ export async function upsertSettings(
   supabase: any,
   settings: GlobalSettings,
   userId?: string,
+  tenantId?: string | null,
 ): Promise<boolean> {
+  const payload: Record<string, any> = {
+    id: 1,
+    settings,
+    updated_at: new Date().toISOString(),
+    updated_by: userId || null,
+  };
+  if (tenantId) payload.tenant_id = tenantId;
+
   const { error } = await supabase.from("global_settings").upsert(
-    {
-      id: 1,
-      settings,
-      updated_at: new Date().toISOString(),
-      updated_by: userId || null,
-    },
+    payload,
     { onConflict: "tenant_id,id" },
   );
 
