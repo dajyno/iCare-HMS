@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, type ChangeEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import {
   ArrowLeft,
@@ -8,7 +9,15 @@ import {
   Camera,
   Trash2,
   AlertTriangle,
+  History,
 } from "lucide-react";
+import { supabase } from "@/src/lib/supabase";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,6 +53,25 @@ const STATUS_STYLES: Record<string, string> = {
   "Off-Duty": "bg-slate-100 text-slate-500 border-slate-200",
   "On Leave": "bg-amber-100 text-amber-700 border-amber-200",
 };
+
+interface AuditLog {
+  id: string;
+  action: string;
+  entity: string;
+  entity_id: string;
+  details: any;
+  timestamp: string;
+}
+
+function formatTimestamp(ts: string) {
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = now.getTime() - d.getTime();
+  if (diff < 60000) return "Just now";
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
 
 export default function StaffProfile() {
   const { id, hospital_slug } = useParams<{ id: string; hospital_slug: string }>();
@@ -102,6 +130,22 @@ export default function StaffProfile() {
 
   const isOwnProfile = user?.email === staff.email;
   const staffRole: string = mapPositionToRole(staff.position);
+
+  const { data: auditLogs = [] } = useQuery({
+    queryKey: ["staff-audit-logs", staff?.authUserId],
+    queryFn: async () => {
+      if (!staff?.authUserId) return [];
+      const { data, error } = await (supabase as any)
+        .from("audit_logs")
+        .select("*")
+        .eq("user_id", staff.authUserId)
+        .order("timestamp", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return (data as AuditLog[]) ?? [];
+    },
+    enabled: !!staff?.authUserId,
+  });
 
   const handlePictureUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -315,6 +359,14 @@ export default function StaffProfile() {
               >
                 <Settings className="w-3.5 h-3.5" />
                 Settings
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="activity"
+                className="gap-1.5 data-[state=active]:bg-white text-xs"
+              >
+                <History className="w-3.5 h-3.5" />
+                Activity Logs
               </TabsTrigger>
             </TabsList>
 
@@ -555,6 +607,57 @@ export default function StaffProfile() {
                   </Button>
                 </div>
               </div>
+            </TabsContent>
+
+            {/* === ACTIVITY LOGS TAB === */}
+            <TabsContent value="activity" className="mt-0 pt-4">
+              <Card className="border-none shadow-none">
+                <CardHeader className="px-0 pt-0">
+                  <CardTitle className="text-sm font-bold text-slate-700">
+                    Activity Logs
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-0">
+                  {!staff.authUserId ? (
+                    <div className="text-center py-12 text-slate-400 space-y-2">
+                      <p className="text-sm font-medium">No auth user linked</p>
+                      <p className="text-xs opacity-70">This staff member has no login account, so no activity logs are available.</p>
+                    </div>
+                  ) : auditLogs.length === 0 ? (
+                    <div className="text-center py-12 text-slate-400 space-y-2">
+                      <p className="text-sm font-medium">No logs yet</p>
+                      <p className="text-xs opacity-70">Actions performed by this staff member will appear here.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1 max-h-[500px] overflow-y-auto pr-1">
+                      {auditLogs.map((log) => (
+                        <div
+                          key={log.id}
+                          className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-slate-50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-slate-900 truncate">
+                                {log.action}
+                              </p>
+                              {log.entity && (
+                                <p className="text-[11px] text-slate-400 truncate">
+                                  {log.entity}
+                                  {log.entity_id ? ` — ${log.entity_id.slice(0, 8)}` : ""}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <span className="text-[11px] text-slate-400 font-mono shrink-0 ml-4">
+                            {formatTimestamp(log.timestamp)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>

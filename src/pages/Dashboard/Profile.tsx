@@ -1,7 +1,6 @@
 import { useState, useRef, type ChangeEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { supabase } from "@/src/lib/supabase";
 import { adminSupabase } from "@/src/lib/adminSupabase";
 import { useAuth } from "@/src/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,25 +27,6 @@ import {
 } from "@/components/ui/select";
 import { DEPARTMENT_CATEGORIES, getPositionsForDepartment, CLINICIAN_POSITIONS, mapPositionToRole } from "@/src/pages/Staff/data";
 import { Mail, Phone, MapPin, Briefcase, Calendar, Camera, Pencil, Loader2 } from "lucide-react";
-
-interface AuditLog {
-  id: string;
-  action: string;
-  entity: string;
-  entity_id: string;
-  details: any;
-  timestamp: string;
-}
-
-function formatTimestamp(ts: string) {
-  const d = new Date(ts);
-  const now = new Date();
-  const diff = now.getTime() - d.getTime();
-  if (diff < 60000) return "Just now";
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
 
 function formatDate(ts: string | null | undefined) {
   if (!ts) return "N/A";
@@ -92,22 +72,6 @@ const Profile = () => {
   const profileRole = staffRecord?.position
     ? mapPositionToRole(staffRecord.position)
     : user?.role;
-
-  const { data: auditLogs = [] } = useQuery({
-    queryKey: ["profile-audit-logs", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      const { data, error } = await (supabase as any)
-        .from("audit_logs")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("timestamp", { ascending: false })
-        .limit(15);
-      if (error) throw error;
-      return (data as AuditLog[]) ?? [];
-    },
-    enabled: !!user?.id,
-  });
 
   const openEdit = () => {
     setEditName(user?.fullName || "");
@@ -319,46 +283,6 @@ const Profile = () => {
                   </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-500">Recent System Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {auditLogs.length === 0 ? (
-                <div className="text-center py-12 text-slate-400 space-y-2">
-                  <p className="text-sm font-medium">No recent logs to display</p>
-                  <p className="text-xs opacity-70">Your recent interactions with patients and reports will appear here.</p>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {auditLogs.map((log) => (
-                    <div
-                      key={log.id}
-                      className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-slate-900 truncate">
-                            {log.action}
-                          </p>
-                          {log.entity && (
-                            <p className="text-[11px] text-slate-400 truncate">
-                              {log.entity}{log.entity_id ? ` — ${log.entity_id.slice(0, 8)}` : ""}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <span className="text-[11px] text-slate-400 font-mono shrink-0 ml-4">
-                        {formatTimestamp(log.timestamp)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
             </CardContent>
           </Card>
         </div>
