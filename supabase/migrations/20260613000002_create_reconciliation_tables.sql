@@ -11,12 +11,12 @@ create table if not exists public.audit_logs (
   entity    text,
   entity_id text,
   details   jsonb,
-  tenant_id text references public.tenants(tenant_id),
+  tenant_id text,
   timestamp timestamptz not null default now()
 );
 
 -- Add tenant_id if table already existed without it
-alter table public.audit_logs add column if not exists tenant_id text references public.tenants(tenant_id);
+alter table public.audit_logs add column if not exists tenant_id text;
 
 -- 2. Add reconciled_at to accounting_income / accounting_expenses
 alter table public.accounting_income
@@ -35,10 +35,13 @@ create table if not exists public.reconciliation_sessions (
   status         text not null default 'Open' check (status in ('Open', 'Completed')),
   notes          text,
   created_by     text,
-  tenant_id      text references public.tenants(tenant_id),
+  tenant_id      text,
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now()
 );
+
+-- Add tenant_id if table already existed without it
+alter table public.reconciliation_sessions add column if not exists tenant_id text;
 
 -- 4. Create reconciliation_entries table (with tenant_id for multi-tenant filtering)
 create table if not exists public.reconciliation_entries (
@@ -52,17 +55,22 @@ create table if not exists public.reconciliation_entries (
   statement_type      text not null check (statement_type in ('Credit', 'Debit')),
   match_type   text not null default 'Manual' check (match_type in ('Manual', 'Auto')),
   matched_at   timestamptz,
-  tenant_id    text references public.tenants(tenant_id)
+  tenant_id    text
 );
+
+-- Add tenant_id if table already existed without it
+alter table public.reconciliation_entries add column if not exists tenant_id text;
 
 -- 5. RLS for audit_logs
 alter table public.audit_logs enable row level security;
 
+drop policy if exists "authenticated select audit_logs" on public.audit_logs;
 create policy "authenticated select audit_logs"
   on public.audit_logs for select
   to authenticated
   using (true);
 
+drop policy if exists "authenticated insert audit_logs" on public.audit_logs;
 create policy "authenticated insert audit_logs"
   on public.audit_logs for insert
   to authenticated
@@ -72,12 +80,14 @@ create policy "authenticated insert audit_logs"
 alter table public.reconciliation_sessions enable row level security;
 alter table public.reconciliation_entries enable row level security;
 
+drop policy if exists "authenticated all reconciliation_sessions" on public.reconciliation_sessions;
 create policy "authenticated all reconciliation_sessions"
   on public.reconciliation_sessions for all
   to authenticated
   using (true)
   with check (true);
 
+drop policy if exists "authenticated all reconciliation_entries" on public.reconciliation_entries;
 create policy "authenticated all reconciliation_entries"
   on public.reconciliation_entries for all
   to authenticated
