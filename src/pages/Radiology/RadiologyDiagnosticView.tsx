@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "motion/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
+import { logAudit } from "@/src/lib/auditLogger";
 import {
   Dialog,
   DialogContent,
@@ -173,6 +174,7 @@ const RadiologyDiagnosticView = ({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["radiology-requests"] });
       queryClient.invalidateQueries({ queryKey: ["radiology-results-batch"] });
+      requests.forEach((req) => logAudit("Completed radiology report", "RadiologyRequest", req.id));
       onClose();
     },
     onError: (err) => {

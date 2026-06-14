@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
+import { logAudit } from "@/src/lib/auditLogger";
 import Pagination from "@/components/ui/pagination";
 import {
   Search, Plus, Filter, MoreVertical, User, Phone, Mail,
@@ -99,11 +100,12 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success("Patient created successfully");
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       setShowNewModal(false);
       setNewForm({});
+      logAudit("Created patient", "Patient", data?.id);
     },
     onError: (error: any) => {
       toast.error(error?.message || error?.details || error?.hint || error?.error_description || JSON.stringify(error));
@@ -115,11 +117,12 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
       const { error } = await supabase.from("patients").update(data).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       toast.success("Patient updated successfully");
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       setShowEditModal(false);
       setEditPatient(null);
+      logAudit("Updated patient", "Patient", variables.id);
     },
   });
 

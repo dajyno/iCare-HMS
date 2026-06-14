@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { adminSupabase } from "@/src/lib/adminSupabase";
+import { logAudit } from "@/src/lib/auditLogger";
 import { useAuth } from "../../context/AuthContext";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -287,6 +288,7 @@ const ConsultationWorkspace = () => {
     if (error) throw error;
     consultationIdRef.current = data.id;
     setConsultationId(data.id);
+    logAudit("Started consultation", "Consultation", data.id);
     return data.id;
   };
 
@@ -574,6 +576,7 @@ const ConsultationWorkspace = () => {
       }
     },
     onSuccess: async () => {
+      const cId = consultationIdRef.current;
       await queryClient.refetchQueries({ queryKey: ["consultations"] });
       queryClient.invalidateQueries({ queryKey: ["patient-consultations"] });
       queryClient.invalidateQueries({ queryKey: ["all-vitals"] });
@@ -583,6 +586,7 @@ const ConsultationWorkspace = () => {
       queryClient.invalidateQueries({ queryKey: ["patient-labs"] });
       queryClient.invalidateQueries({ queryKey: ["radiology-requests"] });
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      if (cId) logAudit("Completed consultation", "Consultation", cId);
       reset();
       setConsultationId(null);
       consultationIdRef.current = null;

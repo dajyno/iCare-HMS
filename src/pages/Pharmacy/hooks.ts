@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
+import { logAudit } from "@/src/lib/auditLogger";
 import { toast } from "sonner";
 import type {
   PharmacyPrescription,
@@ -205,10 +206,11 @@ export function useDispense() {
 
       return { prescriptionId: prescription.id };
     },
-    onSuccess: () => {
+    onSuccess: (_data, prescription) => {
       toast.success("Prescription dispensed successfully");
       queryClient.invalidateQueries({ queryKey: ["pharmacy-prescriptions"] });
       queryClient.invalidateQueries({ queryKey: ["pharmacy-inventory"] });
+      logAudit("Dispensed prescription", "Prescription", prescription.id);
     },
   });
 }

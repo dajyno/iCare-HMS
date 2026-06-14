@@ -1,11 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
+import { logAudit } from "@/src/lib/auditLogger";
 import {
   type BankAccount,
   type IncomeRecord,
   type ExpenseRecord,
   type LedgerEntry,
   type CategoryItem,
+  type ReconciliationSession,
+  type ReconciliationEntry,
   generateId,
   getIncomeCategories,
   getExpenseCategories,
@@ -146,6 +149,7 @@ export function useCreateIncome() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["accounting"] });
+      logAudit("Created income entry", "IncomeRecord");
     },
   });
 }
@@ -177,6 +181,7 @@ export function useCreateExpense() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["accounting"] });
+      logAudit("Created expense entry", "ExpenseRecord");
     },
   });
 }
@@ -242,8 +247,9 @@ export function useVerifyTransaction() {
           .eq("bank_id", bank_id);
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["accounting"] });
+      logAudit("Verified transaction", variables.type === "Income" ? "IncomeRecord" : "ExpenseRecord", variables.id);
     },
   });
 }
@@ -344,7 +350,148 @@ export async function createIncomeFromPayment(params: {
     });
   if (error) throw error;
 
+  logAudit("Recorded payment", "IncomeRecord", record.id, { description: record.description, amount: record.amount });
+
   return record;
+}
+
+// ── Reconciliation Hooks ──
+
+export function useReconciliationSessions(bankId: string) {
+  return useQuery<ReconciliationSession[]>({
+    queryKey: ["accounting", "reconciliation-sessions", bankId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("reconciliation_sessions")
+        .select("*")
+        .eq("bank_id", bankId)
+        .order("created_at", { ascending: false });
+      if (error) return [];
+      return (data as ReconciliationSession[]) || [];
+    },
+    enabled: !!bankId,
+  });
+}
+
+export function useCreateReconciliationSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (session: Omit<ReconciliationSession, "id" | "created_at" | "updated_at" | "status">) => {
+      const newSession: ReconciliationSession = {
+        ...session,
+        id: generateId("RS"),
+        status: "Open",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      const { error } = await (supabase as any)
+        .from("reconciliation_sessions")
+        .insert({
+          id: newSession.id,
+          bank_id: newSession.bank_id,
+          period_start: newSession.period_start,
+          period_end: newSession.period_end,
+          opening_balance: newSession.opening_balance,
+          status: newSession.status,
+          created_by: newSession.created_by || null,
+          created_at: newSession.created_at,
+          updated_at: newSession.updated_at,
+        });
+      if (error) throw error;
+      return newSession;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["accounting", "reconciliation-sessions"] });
+    },
+  });
+}
+
+export function useReconciliationEntries(sessionId: string) {
+  return useQuery<ReconciliationEntry[]>({
+    queryKey: ["accounting", "reconciliation-entries", sessionId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("reconciliation_entries")
+        .select("*")
+        .eq("session_id", sessionId)
+        .order("statement_date", { ascending: false });
+      if (error) return [];
+      return (data as ReconciliationEntry[]) || [];
+    },
+    enabled: !!sessionId,
+  });
+}
+
+export function useSaveReconciliationEntries() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (entries: ReconciliationEntry[]) => {
+      const { error } = await (supabase as any)
+        .from("reconciliation_entries")
+        .upsert(entries, { onConflict: "id" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["accounting", "reconciliation-entries"] });
+    },
+  });
+}
+
+export function useCompleteReconciliation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      sessionId,
+      closingBalance,
+      matchedEntryIds,
+    }: {
+      sessionId: string;
+      closingBalance: number;
+      matchedEntryIds: string[];
+    }) => {
+      // Mark matched entries with matched_at
+      if (matchedEntryIds.length > 0) {
+        const { error: matchError } = await (supabase as any)
+          .from("reconciliation_entries")
+          .update({ matched_at: new Date().toISOString() })
+          .in("id", matchedEntryIds);
+        if (matchError) throw matchError;
+
+        // Fetch matched entries to get source_type + source_id
+        const { data: matchedEntries, error: fetchError } = await (supabase as any)
+          .from("reconciliation_entries")
+          .select("source_type, source_id")
+          .in("id", matchedEntryIds);
+        if (fetchError) throw fetchError;
+
+        // Flag matched transactions as reconciled
+        for (const entry of matchedEntries || []) {
+          if (!entry.source_id) continue;
+          const table = entry.source_type === "Income" ? "accounting_income" : "accounting_expenses";
+          const { error: recError } = await (supabase as any)
+            .from(table)
+            .update({ reconciled_at: new Date().toISOString() })
+            .eq("id", entry.source_id);
+          if (recError) throw recError;
+        }
+      }
+
+      // Close the session
+      const { error } = await (supabase as any)
+        .from("reconciliation_sessions")
+        .update({
+          status: "Completed",
+          closing_balance: closingBalance,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", sessionId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["accounting"] });
+      logAudit("Completed reconciliation", "ReconciliationSession");
+    },
+  });
 }
 
 export function useIncomeCategories() {

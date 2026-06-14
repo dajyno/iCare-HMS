@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { adminSupabase } from "@/src/lib/adminSupabase";
+import { logAudit } from "@/src/lib/auditLogger";
 import type { Appointment, AppointmentStatus } from "@/src/lib/types";
 import { toast } from "sonner";
 
@@ -132,6 +133,7 @@ export function useCreateAppointment() {
       toast.success("Appointment created successfully");
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       queryClient.invalidateQueries({ queryKey: ["appointments", "all"] });
+      logAudit("Booked appointment", "Appointment");
     },
   });
 }

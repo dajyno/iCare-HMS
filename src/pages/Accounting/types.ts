@@ -19,6 +19,7 @@ export interface IncomeRecord {
   patient_name?: string;
   payment_method: string;
   created_at: string;
+  reconciled_at?: string | null;
 }
 
 export interface ExpenseRecord {
@@ -33,6 +34,34 @@ export interface ExpenseRecord {
   payee: string;
   payment_method: string;
   created_at: string;
+  reconciled_at?: string | null;
+}
+
+export interface ReconciliationSession {
+  id: string;
+  bank_id: string;
+  period_start: string;
+  period_end: string;
+  opening_balance: number;
+  closing_balance?: number | null;
+  status: "Open" | "Completed";
+  notes?: string | null;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReconciliationEntry {
+  id: string;
+  session_id: string;
+  source_type: "Income" | "Expense";
+  source_id?: string | null;
+  statement_date: string;
+  statement_description?: string | null;
+  statement_amount: number;
+  statement_type: "Credit" | "Debit";
+  match_type: "Manual" | "Auto";
+  matched_at?: string | null;
 }
 
 export type LedgerEntry = {

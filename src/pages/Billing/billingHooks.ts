@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
+import { logAudit } from "@/src/lib/auditLogger";
 import type { LineItem, InvoiceSummary, CatalogItem } from "./billingTypes";
 import { computeLineItemAmount, MOCK_MEDICATIONS, MOCK_LAB_TESTS } from "./billingTypes";
 import { createIncomeFromPayment } from "../Accounting/hooks";
@@ -194,8 +195,9 @@ export function useCreateInvoice() {
 
       return invoiceId;
     },
-    onSuccess: () => {
+    onSuccess: (invoiceId) => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      logAudit("Generated invoice", "Invoice", invoiceId);
     },
   });
 }
