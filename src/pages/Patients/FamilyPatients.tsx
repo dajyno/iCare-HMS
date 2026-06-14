@@ -91,6 +91,7 @@ const FamilyPatients = () => {
       return data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
       queryClient.invalidateQueries({ queryKey: ["patients-family-groups"] });
       queryClient.invalidateQueries({ queryKey: ["patients-dependant-counts"] });
       queryClient.invalidateQueries({ queryKey: ["patients-family-primaries"] });

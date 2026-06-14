@@ -11,6 +11,7 @@ import {
   Banknote,
   CreditCard,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -190,11 +191,15 @@ const BillingOverview = () => {
     setBulkPaying(true);
     setShowBulkPayModal(false);
     const ids: string[] = Array.from(selectedIds);
-    for (const id of ids) {
-      const inv = (invoices as InvoiceSummary[] | undefined)?.find((i: InvoiceSummary) => i.id === id);
-      if (inv && inv.status !== "Paid") {
-        await updateStatus.mutateAsync({ id, amountPaid: inv.balance as number, paymentMethod: bulkPayMethod, bankAccountId: bulkBankAccountId });
+    try {
+      for (const id of ids) {
+        const inv = (invoices as InvoiceSummary[] | undefined)?.find((i: InvoiceSummary) => i.id === id);
+        if (inv && inv.status !== "Paid") {
+          await updateStatus.mutateAsync({ id, amountPaid: inv.balance as number, paymentMethod: bulkPayMethod, bankAccountId: bulkBankAccountId });
+        }
       }
+    } catch (e) {
+      toast.error("Bulk payment failed for some invoices. Check individual invoices.");
     }
     clearSelection();
     setBulkPaying(false);

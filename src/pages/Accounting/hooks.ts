@@ -148,7 +148,8 @@ export function useCreateIncome() {
       return newRecord;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["accounting"] });
+      queryClient.invalidateQueries({ queryKey: ["accounting", "income"] });
+      queryClient.invalidateQueries({ queryKey: ["accounting", "ledger"] });
       logAudit("Created income entry", "IncomeRecord");
     },
   });
@@ -180,7 +181,8 @@ export function useCreateExpense() {
       return newRecord;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["accounting"] });
+      queryClient.invalidateQueries({ queryKey: ["accounting", "expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["accounting", "ledger"] });
       logAudit("Created expense entry", "ExpenseRecord");
     },
   });
@@ -248,7 +250,10 @@ export function useVerifyTransaction() {
       }
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["accounting"] });
+      queryClient.invalidateQueries({ queryKey: ["accounting", "income"] });
+      queryClient.invalidateQueries({ queryKey: ["accounting", "expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["accounting", "bank_accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["accounting", "ledger"] });
       logAudit("Verified transaction", variables.type === "Income" ? "IncomeRecord" : "ExpenseRecord", variables.id);
     },
   });
@@ -488,7 +493,10 @@ export function useCompleteReconciliation() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["accounting"] });
+      queryClient.invalidateQueries({ queryKey: ["accounting", "reconciliation-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["accounting", "reconciliation-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["accounting", "income"] });
+      queryClient.invalidateQueries({ queryKey: ["accounting", "expenses"] });
       logAudit("Completed reconciliation", "ReconciliationSession");
     },
   });

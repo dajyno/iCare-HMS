@@ -281,6 +281,28 @@ export function useUpdateInvoiceStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    onMutate: async ({ id, amountPaid }) => {
+      await queryClient.cancelQueries({ queryKey: ["invoices"] });
+      const previousInvoices = queryClient.getQueryData<InvoiceSummary[]>(["invoices"]);
+
+      const currentInvoice = previousInvoices?.find((inv) => inv.id === id);
+      if (currentInvoice) {
+        const currentPaid = currentInvoice.amountPaid || 0;
+        const newAmountPaid = currentPaid + amountPaid;
+        const newBalance = Math.max(0, currentInvoice.balance - amountPaid);
+        const status = newBalance <= 0 ? "Paid" : amountPaid > 0 ? "PartiallyPaid" : currentInvoice.status;
+
+        queryClient.setQueryData<InvoiceSummary[]>(["invoices"], (old) =>
+          old?.map((inv) =>
+            inv.id === id
+              ? { ...inv, amountPaid: newAmountPaid, balance: newBalance, status }
+              : inv
+          )
+        );
+      }
+
+      return { previousInvoices };
+    },
     mutationFn: async ({
       id,
       amountPaid,
@@ -323,15 +345,6 @@ export function useUpdateInvoiceStatus() {
         .eq("id", id);
       if (error) throw error;
 
-      if (cache) {
-        const updated = cache.map((inv) =>
-          inv.id === id
-            ? { ...inv, amountPaid: newAmountPaid, balance: newBalance, status, paymentMethod, paidAt, updatedAt: new Date().toISOString() }
-            : inv
-        );
-        queryClient.setQueryData(["invoices"], updated);
-      }
-
       if (amountPaid > 0) {
         const patientName = currentInvoice.patient
           ? `${currentInvoice.patient.firstName} ${currentInvoice.patient.lastName}`
@@ -345,13 +358,21 @@ export function useUpdateInvoiceStatus() {
           patientName,
           invoiceNumber: currentInvoice.invoiceNumber,
         });
-        queryClient.invalidateQueries({ queryKey: ["accounting"] });
-        queryClient.invalidateQueries({ queryKey: ["revenue"] });
       }
 
       if (status === "Paid") {
         await processPaymentSideEffects(currentInvoice, queryClient);
       }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousInvoices) {
+        queryClient.setQueryData(["invoices"], context.previousInvoices);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["accounting"] });
+      queryClient.invalidateQueries({ queryKey: ["revenue"] });
     },
   });
 }

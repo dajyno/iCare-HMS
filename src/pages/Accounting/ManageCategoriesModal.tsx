@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useQueryClient } from "@tanstack/react-query";
 import { Plus, X, Pencil, Check, Loader2 } from "lucide-react";
 import {
   getIncomeCategories,
@@ -30,6 +31,7 @@ interface Props {
 }
 
 const ManageCategoriesModal = ({ open, onClose }: Props) => {
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState("income");
   const [incomeCats, setIncomeCats] = useState(getIncomeCategories());
   const [expenseCats, setExpenseCats] = useState(getExpenseCategories());
@@ -46,6 +48,11 @@ const ManageCategoriesModal = ({ open, onClose }: Props) => {
     }
   }, [open]);
 
+  const invalidateCategoryCaches = () => {
+    queryClient.invalidateQueries({ queryKey: ["accounting", "incomeCategories"] });
+    queryClient.invalidateQueries({ queryKey: ["accounting", "expenseCategories"] });
+  };
+
   const handleAdd = () => {
     if (!newName.trim()) return;
     if (tab === "income") {
@@ -56,6 +63,7 @@ const ManageCategoriesModal = ({ open, onClose }: Props) => {
       setExpenseCats(getExpenseCategories());
     }
     setNewName("");
+    invalidateCategoryCaches();
   };
 
   const handleRemove = (name: string) => {
@@ -66,6 +74,7 @@ const ManageCategoriesModal = ({ open, onClose }: Props) => {
       removeExpenseCategory(name);
       setExpenseCats(getExpenseCategories());
     }
+    invalidateCategoryCaches();
   };
 
   const handleRename = (oldName: string) => {
@@ -79,6 +88,7 @@ const ManageCategoriesModal = ({ open, onClose }: Props) => {
     }
     setEditing(null);
     setEditValue("");
+    invalidateCategoryCaches();
   };
 
   const cats = tab === "income" ? incomeCats : expenseCats;

@@ -511,6 +511,7 @@ const PatientProfile = () => {
       return data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
       queryClient.invalidateQueries({ queryKey: ["patient-family-group", patient?.id] });
       queryClient.invalidateQueries({ queryKey: ["patient", id] });
       setShowDependantModal(false);

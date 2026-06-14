@@ -319,6 +319,7 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
       if (linkError) throw linkError;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["lab-tests"] });
       queryClient.invalidateQueries({ queryKey: ["lab-tests-all"] });
