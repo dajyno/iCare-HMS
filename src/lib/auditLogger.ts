@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase, getCurrentTenantId } from "./supabase";
 import { adminSupabase } from "./adminSupabase";
 
 export async function logAudit(
@@ -10,7 +10,12 @@ export async function logAudit(
   try {
     const { data: { session } } = await supabase.auth.getSession();
     const userId = session?.user?.id;
-    if (!userId) return;
+    if (!userId) {
+      console.warn("[auditLogger] No active session, skipping audit log");
+      return;
+    }
+
+    const tenantId = getCurrentTenantId();
 
     await adminSupabase.from("audit_logs").insert({
       user_id: userId,
@@ -18,9 +23,10 @@ export async function logAudit(
       entity: entity || null,
       entity_id: entityId || null,
       details: details || null,
+      tenant_id: tenantId,
       timestamp: new Date().toISOString(),
     });
   } catch (e) {
-    console.error("Failed to log audit event:", e);
+    console.warn("[auditLogger] Failed to log audit event:", e);
   }
 }

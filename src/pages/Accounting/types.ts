@@ -47,6 +47,7 @@ export interface ReconciliationSession {
   status: "Open" | "Completed";
   notes?: string | null;
   created_by?: string | null;
+  tenant_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -62,6 +63,7 @@ export interface ReconciliationEntry {
   statement_type: "Credit" | "Debit";
   match_type: "Manual" | "Auto";
   matched_at?: string | null;
+  tenant_id?: string | null;
 }
 
 export type LedgerEntry = {
