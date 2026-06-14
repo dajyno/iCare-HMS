@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import {
-  Search, Plus, Users, Phone, Mail, AlertCircle,
+  Search, Plus, Users, Phone, Mail, AlertCircle, X,
   User, Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { TableSkeleton } from "@/src/components/skeletons/TableSkeleton";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import SearchableSelect from "@/components/ui/searchable-select";
 import { Textarea } from "@/components/ui/textarea";
@@ -251,84 +251,96 @@ const FamilyPatients = () => {
 
       {/* New Patient Modal */}
       <Dialog open={showNewModal} onOpenChange={setShowNewModal}>
-        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Add Family Patient</DialogTitle>
-            <DialogDescription>Create a new family patient record.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleNewSubmit} className="space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <Label>First Name *</Label>
-                <Input required value={newForm.firstName || ""} onChange={(e) => {
-                  setNewForm({ ...newForm, firstName: e.target.value });
-                }} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Last Name *</Label>
-                <Input required value={newForm.lastName || ""} onChange={(e) => {
-                  const lastName = e.target.value;
-                  const base = lastName.toUpperCase().replace(/[^A-Z]/g, "").substring(0, 6);
-                  const existing = Array.isArray(families) ? families.filter((p: any) => p.patientId?.startsWith(base)) : [];
-                  const next = (existing.length + 1).toString().padStart(3, "0");
-                  const suggestedId = `${base}-${next}`;
-                  setNewForm({ ...newForm, lastName, patientId: newForm.patientId || suggestedId });
-                }} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Gender *</Label>
-                <SearchableSelect value={newForm.gender || ""} onValueChange={(v) => setNewForm({ ...newForm, gender: v })} placeholder="Select" options={[{value:"Male",label:"Male"},{value:"Female",label:"Female"}]} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Folder No. *</Label>
-                <Input required value={newForm.patientId || ""} onChange={(e) => setNewForm({ ...newForm, patientId: e.target.value })} placeholder="e.g. DOE-001" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Date of Birth *</Label>
-                <Input type="date" required value={newForm.dateOfBirth || ""} onChange={(e) => setNewForm({ ...newForm, dateOfBirth: e.target.value })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Phone *</Label>
-                <Input required value={newForm.phone || ""} onChange={(e) => setNewForm({ ...newForm, phone: e.target.value })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Email</Label>
-                <Input type="email" value={newForm.email || ""} onChange={(e) => setNewForm({ ...newForm, email: e.target.value })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Blood Group</Label>
-                <SearchableSelect value={newForm.bloodGroup || ""} onValueChange={(v) => setNewForm({ ...newForm, bloodGroup: v })} placeholder="Select" options={["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(b => ({value:b,label:b}))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Role *</Label>
-                <SearchableSelect value={newForm.role || "primary"} onValueChange={(v) => setNewForm({ ...newForm, role: v, familyId: v === "primary" ? null : newForm.familyId })} options={[{value:"primary",label:"Primary Member"},{value:"dependant",label:"Dependant"}]} />
-              </div>
-              {newForm.role === "dependant" && (
+        <DialogContent showCloseButton={false} className="fixed bottom-0 left-0 right-0 md:top-1/2 md:left-1/2 z-50 w-full max-w-lg mx-auto md:-translate-x-1/2 md:-translate-y-1/2 flex flex-col max-h-[90vh] rounded-t-2xl md:rounded-2xl bg-white shadow-2xl overflow-hidden p-0 gap-0">
+          {/* Sticky Header */}
+          <div className="sticky top-0 bg-white px-5 py-4 border-b border-slate-100 flex items-center justify-between z-10">
+            <DialogTitle className="text-base font-bold">Add Family Patient</DialogTitle>
+            <DialogClose className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors">
+              <X className="w-4 h-4" />
+            </DialogClose>
+          </div>
+
+          {/* Scrollable Form Body */}
+          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            <p className="text-xs text-slate-500">Create a new family patient record.</p>
+            <form onSubmit={handleNewSubmit} id="new-family-form" className="space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Family Head *</Label>
-                  <SearchableSelect value={newForm.familyId || ""} onValueChange={(v) => setNewForm({ ...newForm, familyId: v })} placeholder="Select primary member" options={(Array.isArray(primaryPatients) ? primaryPatients : []).map((pp: any) => ({value: pp.id, label: `${pp.firstName} ${pp.lastName} (${pp.patientId})`}))} />
+                  <Label>First Name *</Label>
+                  <Input required value={newForm.firstName || ""} onChange={(e) => {
+                    setNewForm({ ...newForm, firstName: e.target.value });
+                  }} />
                 </div>
-              )}
-              <div className="col-span-2 space-y-1.5">
-                <Label>Allergies</Label>
-                <Textarea value={newForm.allergies || ""} onChange={(e) => setNewForm({ ...newForm, allergies: e.target.value })} />
-              </div>
-              <div className="col-span-3 border-t pt-4">
-                <h4 className="text-sm font-bold text-slate-700 mb-3">Next of Kin</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-1.5"><Label>Name</Label><Input value={newForm.nextOfKinName || ""} onChange={(e) => setNewForm({ ...newForm, nextOfKinName: e.target.value })} /></div>
-                  <div className="space-y-1.5"><Label>Phone</Label><Input value={newForm.nextOfKinPhone || ""} onChange={(e) => setNewForm({ ...newForm, nextOfKinPhone: e.target.value })} /></div>
-                  <div className="space-y-1.5"><Label>Relation</Label><Input value={newForm.nextOfKinRelation || ""} onChange={(e) => setNewForm({ ...newForm, nextOfKinRelation: e.target.value })} /></div>
+                <div className="space-y-1.5">
+                  <Label>Last Name *</Label>
+                  <Input required value={newForm.lastName || ""} onChange={(e) => {
+                    const lastName = e.target.value;
+                    const base = lastName.toUpperCase().replace(/[^A-Z]/g, "").substring(0, 6);
+                    const existing = Array.isArray(families) ? families.filter((p: any) => p.patientId?.startsWith(base)) : [];
+                    const next = (existing.length + 1).toString().padStart(3, "0");
+                    const suggestedId = `${base}-${next}`;
+                    setNewForm({ ...newForm, lastName, patientId: newForm.patientId || suggestedId });
+                  }} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Gender *</Label>
+                  <SearchableSelect value={newForm.gender || ""} onValueChange={(v) => setNewForm({ ...newForm, gender: v })} placeholder="Select" options={[{value:"Male",label:"Male"},{value:"Female",label:"Female"}]} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Folder No. *</Label>
+                  <Input required value={newForm.patientId || ""} onChange={(e) => setNewForm({ ...newForm, patientId: e.target.value })} placeholder="e.g. DOE-001" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Date of Birth *</Label>
+                  <Input type="date" required value={newForm.dateOfBirth || ""} onChange={(e) => setNewForm({ ...newForm, dateOfBirth: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Phone *</Label>
+                  <Input required value={newForm.phone || ""} onChange={(e) => setNewForm({ ...newForm, phone: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Email</Label>
+                  <Input type="email" value={newForm.email || ""} onChange={(e) => setNewForm({ ...newForm, email: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Blood Group</Label>
+                  <SearchableSelect value={newForm.bloodGroup || ""} onValueChange={(v) => setNewForm({ ...newForm, bloodGroup: v })} placeholder="Select" options={["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(b => ({value:b,label:b}))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Role *</Label>
+                  <SearchableSelect value={newForm.role || "primary"} onValueChange={(v) => setNewForm({ ...newForm, role: v, familyId: v === "primary" ? null : newForm.familyId })} options={[{value:"primary",label:"Primary Member"},{value:"dependant",label:"Dependant"}]} />
+                </div>
+                {newForm.role === "dependant" && (
+                  <div className="space-y-1.5">
+                    <Label>Family Head *</Label>
+                    <SearchableSelect value={newForm.familyId || ""} onValueChange={(v) => setNewForm({ ...newForm, familyId: v })} placeholder="Select primary member" options={(Array.isArray(primaryPatients) ? primaryPatients : []).map((pp: any) => ({value: pp.id, label: `${pp.firstName} ${pp.lastName} (${pp.patientId})`}))} />
+                  </div>
+                )}
+                <div className="col-span-1 sm:col-span-2 space-y-1.5">
+                  <Label>Allergies</Label>
+                  <Textarea value={newForm.allergies || ""} onChange={(e) => setNewForm({ ...newForm, allergies: e.target.value })} />
+                </div>
+                <div className="col-span-1 sm:col-span-2 border-t pt-4">
+                  <h4 className="text-sm font-bold text-slate-700 mb-3">Next of Kin</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5"><Label>Name</Label><Input value={newForm.nextOfKinName || ""} onChange={(e) => setNewForm({ ...newForm, nextOfKinName: e.target.value })} /></div>
+                    <div className="space-y-1.5"><Label>Phone</Label><Input value={newForm.nextOfKinPhone || ""} onChange={(e) => setNewForm({ ...newForm, nextOfKinPhone: e.target.value })} /></div>
+                    <div className="space-y-1.5"><Label>Relation</Label><Input value={newForm.nextOfKinRelation || ""} onChange={(e) => setNewForm({ ...newForm, nextOfKinRelation: e.target.value })} /></div>
+                  </div>
                 </div>
               </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowNewModal(false)}>Cancel</Button>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Saving..." : "Save Member"}
-              </Button>
-            </DialogFooter>
-          </form>
+            </form>
+          </div>
+
+          {/* Sticky Footer */}
+          <div className="sticky bottom-0 bg-slate-50/80 backdrop-blur-md px-5 py-3.5 border-t border-slate-100 flex items-center justify-end gap-3 z-10">
+            <Button type="button" variant="outline" onClick={() => setShowNewModal(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 rounded-xl">
+              Cancel
+            </Button>
+            <Button type="submit" form="new-family-form" className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm shadow-blue-100 transition-colors" disabled={createMutation.isPending}>
+              {createMutation.isPending ? "Saving..." : "Save Member"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

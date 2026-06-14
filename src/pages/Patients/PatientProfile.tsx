@@ -1209,7 +1209,7 @@ const PatientProfile = () => {
               {editForm.category === "Corporate" && (
                 <div className="border-t pt-4">
                   <h4 className="text-sm font-bold text-slate-700 mb-3">Company Information</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Company Name</Label>
                       <SearchableSelect value={editForm.companyName || ""} onValueChange={(v) => setEditForm({ ...editForm, companyName: v })} placeholder="Search or type company name..." options={companySuggestions.map((name) => ({value: name, label: name}))} triggerClassName="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none text-left justify-start font-normal h-auto" />
