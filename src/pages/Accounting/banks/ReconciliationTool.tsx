@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { toast } from "sonner";
 import {
   ArrowLeft, Check, X, RefreshCw, Plus, Save, Sparkles,
   Calendar, DollarSign, FileText,
@@ -193,42 +194,57 @@ const ReconciliationTool = ({ bank, onBack }: Props) => {
 
   const handleCreateSession = async () => {
     if (!periodStart || !periodEnd) return;
-    const result = await createSession.mutateAsync({
-      bank_id: bank.bank_id,
-      period_start: periodStart,
-      period_end: periodEnd,
-      opening_balance: parseFloat(openingBalance) || 0,
-    });
-    setActiveSessionId(result.id);
-    setShowCreateForm(false);
+    try {
+      const result = await createSession.mutateAsync({
+        bank_id: bank.bank_id,
+        period_start: periodStart,
+        period_end: periodEnd,
+        opening_balance: parseFloat(openingBalance) || 0,
+      });
+      setActiveSessionId(result.id);
+      setShowCreateForm(false);
+      toast.success("Reconciliation session created");
+    } catch {
+      toast.error("Failed to create session");
+    }
   };
 
   const handleSave = async () => {
     if (!activeSessionId) return;
-    const entries: ReconciliationEntry[] = lines.map((l) => ({
-      id: l.id,
-      session_id: activeSessionId,
-      source_type: l.type === "Credit" ? "Income" : "Expense",
-      source_id: l.matchedId || null,
-      statement_date: l.date,
-      statement_description: l.description,
-      statement_amount: l.amount,
-      statement_type: l.type,
-      match_type: l.matchedId ? "Manual" : "Manual",
-      matched_at: l.matchedId ? new Date().toISOString() : null,
-    }));
-    await saveEntries.mutateAsync(entries);
+    try {
+      const entries: ReconciliationEntry[] = lines.map((l) => ({
+        id: l.id,
+        session_id: activeSessionId,
+        source_type: l.type === "Credit" ? "Income" : "Expense",
+        source_id: l.matchedId || null,
+        statement_date: l.date,
+        statement_description: l.description,
+        statement_amount: l.amount,
+        statement_type: l.type,
+        match_type: l.matchedId ? "Manual" : "Manual",
+        matched_at: l.matchedId ? new Date().toISOString() : null,
+      }));
+      await saveEntries.mutateAsync(entries);
+      toast.success("Reconciliation entries saved");
+    } catch {
+      toast.error("Failed to save entries");
+    }
   };
 
   const handleComplete = async () => {
     if (!activeSessionId) return;
-    const matchedLines = lines.filter((l) => l.matchedId);
-    await completeRecon.mutateAsync({
-      sessionId: activeSessionId,
-      closingBalance: parseFloat(openingBalance) + statementTotal,
-      matchedEntryIds: matchedLines.map((l) => l.id),
-    });
-    setActiveSessionId(null);
+    try {
+      const matchedLines = lines.filter((l) => l.matchedId);
+      await completeRecon.mutateAsync({
+        sessionId: activeSessionId,
+        closingBalance: parseFloat(openingBalance) + statementTotal,
+        matchedEntryIds: matchedLines.map((l) => l.id),
+      });
+      setActiveSessionId(null);
+      toast.success("Reconciliation completed");
+    } catch {
+      toast.error("Failed to complete reconciliation");
+    }
   };
 
   // ── Session Selector / Create UI ──

@@ -540,7 +540,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <Label>Company Name</Label>
-                        <SearchableSelect value={newForm.companyName || ""} onValueChange={(v) => setNewForm({ ...newForm, companyName: v })} placeholder="Search or type company name..." options={companySuggestions.map((name) => ({value: name, label: name}))} />
+                        <SearchableSelect value={newForm.companyName || ""} onValueChange={(v) => setNewForm({ ...newForm, companyName: v })} placeholder="Search or type company name..." options={companySuggestions.map((name) => ({value: name, label: name}))} creatable />
                       </div>
                       <div className="space-y-1.5">
                         <Label>Company Phone</Label>
@@ -560,7 +560,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <Label>HMO Provider</Label>
-                        <SearchableSelect value={newForm.insuranceProvider || ""} onValueChange={(v) => setNewForm({ ...newForm, insuranceProvider: v })} placeholder="Search or type HMO provider..." options={hmoSuggestions.map((name) => ({value: name, label: name}))} />
+                        <SearchableSelect value={newForm.insuranceProvider || ""} onValueChange={(v) => setNewForm({ ...newForm, insuranceProvider: v })} placeholder="Search or type HMO provider..." options={hmoSuggestions.map((name) => ({value: name, label: name}))} creatable />
                       </div>
                       <div className="space-y-1.5">
                         <Label>Insurance ID / Registration Number</Label>
@@ -658,7 +658,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <Label>Company Name</Label>
-                        <SearchableSelect value={editForm.companyName || ""} onValueChange={(v) => setEditForm({ ...editForm, companyName: v })} placeholder="Search or type company name..." options={companySuggestions.map((name) => ({value: name, label: name}))} />
+                        <SearchableSelect value={editForm.companyName || ""} onValueChange={(v) => setEditForm({ ...editForm, companyName: v })} placeholder="Search or type company name..." options={companySuggestions.map((name) => ({value: name, label: name}))} creatable />
                       </div>
                       <div className="space-y-1.5">
                         <Label>Company Phone</Label>
@@ -678,7 +678,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <Label>HMO Provider</Label>
-                        <SearchableSelect value={editForm.insuranceProvider || ""} onValueChange={(v) => setEditForm({ ...editForm, insuranceProvider: v })} placeholder="Search or type HMO provider..." options={hmoSuggestions.map((name) => ({value: name, label: name}))} />
+                        <SearchableSelect value={editForm.insuranceProvider || ""} onValueChange={(v) => setEditForm({ ...editForm, insuranceProvider: v })} placeholder="Search or type HMO provider..." options={hmoSuggestions.map((name) => ({value: name, label: name}))} creatable />
                       </div>
                       <div className="space-y-1.5">
                         <Label>Insurance ID / Registration Number</Label>
