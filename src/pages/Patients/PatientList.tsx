@@ -124,6 +124,9 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
       setEditPatient(null);
       logAudit("Updated patient", "Patient", variables.id);
     },
+    onError: (error: any) => {
+      toast.error(error?.message || error?.details || "Failed to update patient");
+    },
   });
 
   const archiveMutation = useMutation({

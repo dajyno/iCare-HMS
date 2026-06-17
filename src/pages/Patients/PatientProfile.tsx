@@ -296,6 +296,9 @@ const PatientProfile = () => {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       setShowEditModal(false);
     },
+    onError: (error: any) => {
+      toast.error(error?.message || error?.details || "Failed to update patient");
+    },
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
