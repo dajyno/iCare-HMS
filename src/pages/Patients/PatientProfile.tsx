@@ -539,7 +539,7 @@ const PatientProfile = () => {
       const dbKey = key.replace(/([A-Z])/g, "_$1").toLowerCase();
       if (category !== "Corporate" && ["companyName", "companyPhone", "companyAddress"].includes(key)) continue;
       if (category !== "HMO" && ["insuranceProvider", "insuranceId"].includes(key)) continue;
-      payload[dbKey] = val || null;
+      payload[dbKey] = typeof val === "boolean" ? val : (val || null);
     }
     updateMutation.mutate(payload);
   };

@@ -16,9 +16,9 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import SearchableSelect from "@/components/ui/searchable-select";
+import { CustomModal } from "@/components/ui/custom-modal";
 import NewAppointmentModal from "@/src/pages/Appointments/NewAppointmentModal";
 import { useDoctors } from "@/src/pages/Appointments/hooks";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, SheetContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -215,7 +215,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
     const payload: any = {};
     for (const [key, val] of Object.entries(rest)) {
       const dbKey = key.replace(/([A-Z])/g, "_$1").toLowerCase();
-      payload[dbKey] = val || null;
+      payload[dbKey] = typeof val === "boolean" ? val : (val || null);
     }
     payload.status = editForm.status || "active";
     updateMutation.mutate({ id: editPatient.id, ...payload });
@@ -421,20 +421,20 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
       </div>
 
       {/* New Patient Modal */}
-      <Dialog open={showNewModal} onOpenChange={setShowNewModal}>
-        <SheetContent showCloseButton={false} className="bg-white shadow-2xl overflow-hidden p-0 gap-0">
-          {/* Sticky Header */}
-          <div className="sticky top-0 bg-white px-5 py-4 border-b border-slate-100 flex items-center justify-between z-10">
-            <DialogTitle className="text-base font-bold">Register New Patient</DialogTitle>
-            <DialogClose className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors">
-              <X className="w-4 h-4" />
-            </DialogClose>
-          </div>
+      <CustomModal open={showNewModal} onClose={() => setShowNewModal(false)}>
+        {/* Sticky Header */}
+        <div className="sticky top-0 bg-white px-5 py-4 border-b border-slate-100 flex items-center justify-between z-10">
+          <h2 className="text-base font-bold text-slate-900">Register New Patient</h2>
+          <button onClick={() => setShowNewModal(false)} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
-          {/* Scrollable Form Body */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-4">
-            <p className="text-xs text-slate-500">Fill in the patient details to create a new record.</p>
-            <form onSubmit={handleNewSubmit} id="new-patient-form" className="space-y-5">
+        {/* Scrollable Form Body */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          <p className="text-xs text-slate-500">Fill in the patient details to create a new record.</p>
+          <form onSubmit={handleNewSubmit} id="new-patient-form" className="space-y-5">
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>First Name <span className="text-red-500">*</span></Label>
@@ -585,8 +585,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
               {createMutation.isPending ? "Saving..." : "Save Patient"}
             </Button>
           </div>
-        </SheetContent>
-      </Dialog>
+        </CustomModal>
 
       {/* Edit Patient Modal */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
