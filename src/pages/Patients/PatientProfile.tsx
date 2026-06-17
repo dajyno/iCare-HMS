@@ -1139,7 +1139,7 @@ const PatientProfile = () => {
 
       {/* ======== EDIT MODAL ======== */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent showCloseButton={false} className="fixed bottom-0 left-0 right-0 md:top-1/2 md:left-1/2 z-50 w-full max-w-lg mx-auto md:-translate-x-1/2 md:-translate-y-1/2 flex flex-col max-h-[90vh] rounded-t-2xl md:rounded-2xl bg-white shadow-2xl overflow-hidden p-0 gap-0">
+        <DialogContent showCloseButton={false} className="w-[95vw] max-w-lg max-h-[90vh] flex flex-col rounded-2xl bg-white shadow-2xl overflow-hidden p-0 gap-0">
           {/* Sticky Header */}
           <div className="sticky top-0 bg-white px-5 py-4 border-b border-slate-100 flex items-center justify-between z-10">
             <DialogTitle className="text-base font-bold">Edit Patient</DialogTitle>
