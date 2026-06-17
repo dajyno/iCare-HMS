@@ -80,6 +80,46 @@ function DialogContent({
   )
 }
 
+function SheetContent({
+  className,
+  children,
+  showCloseButton = true,
+  ...props
+}: DialogPrimitive.Popup.Props & {
+  showCloseButton?: boolean
+}) {
+  return (
+    <DialogPortal>
+      <DialogOverlay />
+      <DialogPrimitive.Popup
+        data-slot="dialog-sheet-content"
+        className={cn(
+          "fixed bottom-0 left-0 right-0 md:top-1/2 md:left-1/2 z-50 w-full max-w-lg mx-auto translate-x-0 translate-y-0 md:-translate-x-1/2 md:-translate-y-1/2 flex flex-col max-h-[90vh] rounded-t-2xl md:rounded-2xl bg-popover shadow-xl border border-blue-100/50 ring-1 ring-blue-200/40 duration-100 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          className
+        )}
+        {...props}
+      >
+        {children}
+        {showCloseButton && (
+          <DialogPrimitive.Close
+            data-slot="dialog-close"
+            render={
+              <Button
+                variant="ghost"
+                className="absolute top-2 right-2"
+                size="icon-sm"
+              />
+            }
+          >
+            <XIcon />
+            <span className="sr-only">Close</span>
+          </DialogPrimitive.Close>
+        )}
+      </DialogPrimitive.Popup>
+    </DialogPortal>
+  )
+}
+
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -157,4 +197,5 @@ export {
   DialogPortal,
   DialogTitle,
   DialogTrigger,
+  SheetContent,
 }

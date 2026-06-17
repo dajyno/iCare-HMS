@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import SearchableSelect from "@/components/ui/searchable-select";
 import NewAppointmentModal from "@/src/pages/Appointments/NewAppointmentModal";
 import { useDoctors } from "@/src/pages/Appointments/hooks";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, SheetContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -422,7 +422,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
 
       {/* New Patient Modal */}
       <Dialog open={showNewModal} onOpenChange={setShowNewModal}>
-        <DialogContent showCloseButton={false} className="fixed bottom-0 left-0 right-0 md:top-1/2 md:left-1/2 z-50 w-full max-w-lg mx-auto md:-translate-x-1/2 md:-translate-y-1/2 flex flex-col max-h-[90vh] rounded-t-2xl md:rounded-2xl bg-white shadow-2xl overflow-hidden p-0 gap-0">
+        <SheetContent showCloseButton={false} className="bg-white shadow-2xl overflow-hidden p-0 gap-0">
           {/* Sticky Header */}
           <div className="sticky top-0 bg-white px-5 py-4 border-b border-slate-100 flex items-center justify-between z-10">
             <DialogTitle className="text-base font-bold">Register New Patient</DialogTitle>
@@ -585,12 +585,12 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
               {createMutation.isPending ? "Saving..." : "Save Patient"}
             </Button>
           </div>
-        </DialogContent>
+        </SheetContent>
       </Dialog>
 
       {/* Edit Patient Modal */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent showCloseButton={false} className="fixed bottom-0 left-0 right-0 md:top-1/2 md:left-1/2 z-50 w-full max-w-lg mx-auto md:-translate-x-1/2 md:-translate-y-1/2 flex flex-col max-h-[90vh] rounded-t-2xl md:rounded-2xl bg-white shadow-2xl overflow-hidden p-0 gap-0">
+        <SheetContent showCloseButton={false} className="bg-white shadow-2xl overflow-hidden p-0 gap-0">
           {/* Sticky Header */}
           <div className="sticky top-0 bg-white px-5 py-4 border-b border-slate-100 flex items-center justify-between z-10">
             <DialogTitle className="text-base font-bold">Edit Patient</DialogTitle>
@@ -703,7 +703,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
               {updateMutation.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </div>
-        </DialogContent>
+        </SheetContent>
       </Dialog>
 
       {/* Book Appointment Modal */}
