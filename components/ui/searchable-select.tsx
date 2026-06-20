@@ -42,6 +42,7 @@ const SearchableSelect = ({
     : options;
 
   const selected = options.find((opt) => opt.value === value);
+  const displayValue = selected?.label || (creatable ? value : "") || "";
 
   useEffect(() => {
     if (open && inputRef.current) {
@@ -60,11 +61,11 @@ const SearchableSelect = ({
           disabled={disabled}
           className={cn(
             "w-full justify-between font-normal h-10",
-            !selected && "text-muted-foreground",
+            !displayValue && "text-muted-foreground",
             triggerClassName
           )}
         >
-          <span className="truncate">{selected ? selected.label : placeholder}</span>
+          <span className="truncate">{displayValue || placeholder}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -73,7 +74,11 @@ const SearchableSelect = ({
           <Input
             ref={inputRef}
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              setSearch(next);
+              if (creatable) onValueChange(next);
+            }}
             placeholder="Type to search..."
             className="h-9"
           />
@@ -102,17 +107,17 @@ const SearchableSelect = ({
                   <span className="truncate">{opt.label}</span>
                 </button>
               ))}
-              {creatable && search && !options.some((o) => o.value.toLowerCase() === search.toLowerCase()) && (
+              {creatable && search.trim() && !options.some((o) => o.value.toLowerCase() === search.trim().toLowerCase()) && (
                 <button
                   type="button"
                   className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm transition-colors text-left text-sky-600 hover:bg-sky-50 border-t border-slate-100 mt-1 pt-2"
                   onClick={() => {
-                    onValueChange(search);
+                    onValueChange(search.trim());
                     setOpen(false);
                   }}
                 >
                   <Plus className="h-4 w-4 shrink-0" />
-                  <span>Add &quot;{search}&quot;</span>
+                  <span>Add &quot;{search.trim()}&quot;</span>
                 </button>
               )}
             </>
