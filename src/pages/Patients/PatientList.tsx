@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import SearchableSelect from "@/components/ui/searchable-select";
 import { CustomModal } from "@/components/ui/custom-modal";
+import { Dialog, DialogClose, DialogTitle, SheetContent } from "@/components/ui/dialog";
 import NewAppointmentModal from "@/src/pages/Appointments/NewAppointmentModal";
 import { useDoctors } from "@/src/pages/Appointments/hooks";
 import { toast } from "sonner";
