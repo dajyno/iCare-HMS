@@ -91,8 +91,14 @@ const FamilyPatients = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["patients"] });
+    onSuccess: (newPatient: any) => {
+      const patient = toCamel(newPatient);
+      toast.success("Family patient created successfully");
+      queryClient.setQueryData(["patients"], (old: any) => Array.isArray(old) ? [...old, patient] : [patient]);
+      if (patient?.isPrimary) {
+        queryClient.setQueryData(["patients-family-groups"], (old: any) => Array.isArray(old) ? [...old, patient] : [patient]);
+        queryClient.setQueryData(["patients-family-primaries"], (old: any) => Array.isArray(old) ? [...old, patient] : [patient]);
+      }
       queryClient.invalidateQueries({ queryKey: ["patients-family-groups"] });
       queryClient.invalidateQueries({ queryKey: ["patients-dependant-counts"] });
       queryClient.invalidateQueries({ queryKey: ["patients-family-primaries"] });

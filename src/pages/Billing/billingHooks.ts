@@ -4,6 +4,7 @@ import { logAudit } from "@/src/lib/auditLogger";
 import type { LineItem, InvoiceSummary, CatalogItem } from "./billingTypes";
 import { computeLineItemAmount, MOCK_MEDICATIONS, MOCK_LAB_TESTS } from "./billingTypes";
 import { createIncomeFromPayment } from "../Accounting/hooks";
+import { toast } from "sonner";
 
 export function useInvoices() {
   return useQuery<InvoiceSummary[]>({
@@ -196,8 +197,12 @@ export function useCreateInvoice() {
       return invoiceId;
     },
     onSuccess: (invoiceId) => {
+      toast.success("Invoice created successfully");
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       logAudit("Generated invoice", "Invoice", invoiceId);
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Failed to create invoice");
     },
   });
 }
@@ -364,10 +369,14 @@ export function useUpdateInvoiceStatus() {
         await processPaymentSideEffects(currentInvoice, queryClient);
       }
     },
+    onSuccess: () => {
+      toast.success("Invoice payment updated successfully");
+    },
     onError: (_err, _vars, context) => {
       if (context?.previousInvoices) {
         queryClient.setQueryData(["invoices"], context.previousInvoices);
       }
+      toast.error("Failed to update invoice payment");
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });

@@ -293,6 +293,7 @@ const PatientProfile = () => {
       if (error) throw error;
     },
     onSuccess: () => {
+      toast.success("Patient updated successfully");
       queryClient.invalidateQueries({ queryKey: ["patient", id] });
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       setShowEditModal(false);
@@ -316,6 +317,7 @@ const PatientProfile = () => {
         if (!old) return old;
         return { ...old, profilePicture: base64 };
       });
+      toast.success("Profile picture updated successfully");
       setUploadingPic(false);
     },
     onError: (err: Error) => {
@@ -342,9 +344,13 @@ const PatientProfile = () => {
       return data;
     },
     onSuccess: () => {
+      toast.success("Consultation created successfully");
       queryClient.invalidateQueries({ queryKey: ["patient-consultations", id] });
       setShowConsultModal(false);
       setConsultForm({});
+    },
+    onError: (err: Error) => {
+      toast.error(`Failed to create consultation: ${err.message}`);
     },
   });
 
@@ -362,6 +368,7 @@ const PatientProfile = () => {
       if (vitalsError) throw vitalsError;
     },
     onSuccess: () => {
+      toast.success("Vital signs saved successfully");
       queryClient.invalidateQueries({ queryKey: ["patient-vitals", id] });
       queryClient.invalidateQueries({ queryKey: ["patient-consultations", id] });
       setShowVitalsModal(false);
@@ -383,22 +390,30 @@ const PatientProfile = () => {
       return data;
     },
     onSuccess: () => {
+      toast.success("Lab request created successfully");
       queryClient.invalidateQueries({ queryKey: ["patient-labs", id] });
       setShowLabModal(false);
       setLabForm({});
+    },
+    onError: (err: Error) => {
+      toast.error(`Failed to create lab request: ${err.message}`);
     },
   });
 
   const createRadRequest = useMutation({
     mutationFn: async (payload: any) => {
-      const { data, error } = await supabase.from("lab_requests").insert(payload).select().single();
+      const { data, error } = await supabase.from("radiology_requests").insert(payload).select().single();
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["patient-labs", id] });
+      toast.success("Radiology request created successfully");
+      queryClient.invalidateQueries({ queryKey: ["patient-radiology-requests", id] });
       setShowRadModal(false);
       setRadForm({});
+    },
+    onError: (err: Error) => {
+      toast.error(`Failed to create radiology request: ${err.message}`);
     },
   });
 
@@ -419,9 +434,13 @@ const PatientProfile = () => {
       }
     },
     onSuccess: () => {
+      toast.success("Prescription created successfully");
       queryClient.invalidateQueries({ queryKey: ["patient-rx", id] });
       setShowRxModal(false);
       setRxForm({});
+    },
+    onError: (err: Error) => {
+      toast.error(`Failed to create prescription: ${err.message}`);
     },
   });
 
@@ -442,6 +461,7 @@ const PatientProfile = () => {
       }
     },
     onSuccess: () => {
+      toast.success("Invoice created successfully");
       queryClient.invalidateQueries({ queryKey: ["patient-invoices", id] });
       setShowBillModal(false);
       setBillForm({});
@@ -509,12 +529,15 @@ const PatientProfile = () => {
           status: "active",
           phone: "",
         })
-        .select("id")
+        .select("*")
         .single();
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (newDependant: any) => {
+      const dependant = toCamel(newDependant);
+      toast.success("Dependant created successfully");
+      queryClient.setQueryData(["patients"], (old: any) => Array.isArray(old) ? [...old, dependant] : [dependant]);
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       queryClient.invalidateQueries({ queryKey: ["patient-family-group", patient?.id] });
       queryClient.invalidateQueries({ queryKey: ["patient", id] });

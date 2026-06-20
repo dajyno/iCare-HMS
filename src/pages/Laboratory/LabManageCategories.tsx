@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import SearchableSelect from "@/components/ui/searchable-select";
 import { testCategories } from "./testCategories";
 import { Plus, Pencil, Save, X, Beaker, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
 
 interface Props {
   open: boolean;
@@ -35,6 +36,23 @@ const LabManageCategories = ({ open, onClose }: Props) => {
   const [addPrice, setAddPrice] = useState("");
   const [showCustomCategory, setShowCustomCategory] = useState(false);
   const [customCategory, setCustomCategory] = useState("");
+
+  const upsertLabTestCaches = (labTest: any) => {
+    const test = toCamel(labTest);
+    const keys = [["lab-tests-all"], ["lab-tests"], ["labTests"]] as const;
+    for (const key of keys) {
+      queryClient.setQueryData(key, (old: any) => {
+        if (!Array.isArray(old)) return old;
+        const idx = old.findIndex((t: any) => t.id === test.id);
+        if (idx >= 0) {
+          const next = [...old];
+          next[idx] = { ...next[idx], ...test };
+          return next;
+        }
+        return [...old, test];
+      });
+    }
+  };
 
   const { data: tests } = useQuery({
     queryKey: ["lab-tests-all"],
@@ -118,14 +136,18 @@ const LabManageCategories = ({ open, onClose }: Props) => {
       const { error } = await supabase
         .from("lab_tests")
         .update({ name, category: category || null, price })
+        .select("*")
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      toast.success("Lab test updated successfully");
       queryClient.invalidateQueries({ queryKey: ["lab-tests-all"] });
       queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
       queryClient.invalidateQueries({ queryKey: ["lab-tests"] });
       queryClient.invalidateQueries({ queryKey: ["labTests"] });
+      const updated = { id: variables.id, name: variables.name, category: variables.category || null, price: variables.price };
+      upsertLabTestCaches(updated);
       setEditingId(null);
     },
     onError: (err: Error) => {
@@ -136,12 +158,17 @@ const LabManageCategories = ({ open, onClose }: Props) => {
 
   const addMutation = useMutation({
     mutationFn: async ({ name, category, price }: { name: string; category: string; price: number }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("lab_tests")
-        .insert({ name, category: category || null, price, status: "active" });
+        .insert({ name, category: category || null, price, status: "active" })
+        .select("*")
+        .single();
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (created: any) => {
+      toast.success("Lab test added successfully");
+      if (created) upsertLabTestCaches(created);
       queryClient.invalidateQueries({ queryKey: ["lab-tests-all"] });
       queryClient.invalidateQueries({ queryKey: ["lab-tests"] });
       queryClient.invalidateQueries({ queryKey: ["labTests"] });
@@ -156,6 +183,7 @@ const LabManageCategories = ({ open, onClose }: Props) => {
     onError: (err: Error) => {
       console.error("Add lab test failed:", err);
       setErrorMsg("Add failed: " + err.message);
+      toast.error(`Failed to add lab test: ${err.message}`);
     },
   });
 

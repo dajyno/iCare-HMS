@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import SearchableSelect from "@/components/ui/searchable-select";
 import { Plus, Pencil, Save, X, Scan } from "lucide-react";
+import { toast } from "sonner";
 
 interface ManageCategoriesDialogProps {
   open: boolean;
@@ -37,6 +38,23 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
   const [addCustomCategory, setAddCustomCategory] = useState("");
   const [showEditCustomCategory, setShowEditCustomCategory] = useState(false);
   const [editCustomCategory, setEditCustomCategory] = useState("");
+
+  const upsertRadiologyExamCaches = (exam: any) => {
+    const radiologyExam = toCamel(exam);
+    const keys = [["radiology-exams-all"], ["radiologyExams"], ["radiology-categories-with-exams"]] as const;
+    for (const key of keys) {
+      queryClient.setQueryData(key, (old: any) => {
+        if (!Array.isArray(old)) return old;
+        const idx = old.findIndex((t: any) => t.id === radiologyExam.id);
+        if (idx >= 0) {
+          const next = [...old];
+          next[idx] = { ...next[idx], ...radiologyExam };
+          return next;
+        }
+        return [...old, radiologyExam];
+      });
+    }
+  };
 
   const { data: exams } = useQuery({
     queryKey: ["radiology-exams-all"],
@@ -79,14 +97,17 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
       const { error } = await supabase
         .from("radiology_exams")
         .update({ name, price, category_id: categoryId })
+        .select("*")
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      toast.success("Radiology exam updated successfully");
       queryClient.invalidateQueries({ queryKey: ["radiology-exams-all"] });
       queryClient.invalidateQueries({ queryKey: ["radiology-requests"] });
       queryClient.invalidateQueries({ queryKey: ["radiologyExams"] });
       queryClient.invalidateQueries({ queryKey: ["radiology-categories-with-exams"] });
+      upsertRadiologyExamCaches({ id: variables.id, name: variables.name, price: variables.price, category_id: variables.categoryId });
       setEditingId(null);
       setShowEditCustomCategory(false);
       setEditCustomCategory("");
@@ -100,12 +121,17 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
 
   const addMutation = useMutation({
     mutationFn: async ({ name, price, categoryId }: { name: string; price: number; categoryId: string }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("radiology_exams")
-        .insert({ name, price, category_id: categoryId, status: "active" });
+        .insert({ name, price, category_id: categoryId, status: "active" })
+        .select("*")
+        .single();
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (created: any) => {
+      toast.success("Radiology exam added successfully");
+      if (created) upsertRadiologyExamCaches(created);
       queryClient.invalidateQueries({ queryKey: ["radiology-exams-all"] });
       queryClient.invalidateQueries({ queryKey: ["radiologyExams"] });
       queryClient.invalidateQueries({ queryKey: ["radiology-categories-with-exams"] });
@@ -119,6 +145,7 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
     },
     onError: (err: Error) => {
       setErrorMsg(err.message);
+      toast.error(`Failed to add radiology exam: ${err.message}`);
     },
   });
 

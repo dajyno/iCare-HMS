@@ -114,6 +114,7 @@ const VitalSigns = () => {
       if (vitalError) throw vitalError;
     },
     onSuccess: () => {
+      toast.success("Vital signs saved successfully");
       queryClient.invalidateQueries({ queryKey: ["all-vitals"] });
       queryClient.invalidateQueries({ queryKey: ["consultations"] });
       setShowAddModal(false);

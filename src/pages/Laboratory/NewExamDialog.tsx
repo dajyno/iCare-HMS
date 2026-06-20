@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import SearchableSelect from "@/components/ui/searchable-select";
+import { toast } from "sonner";
 
 const NewExamDialog = ({ onCreated }: { onCreated: () => void }) => {
   const [patientId, setPatientId] = useState("");
@@ -57,10 +58,14 @@ const NewExamDialog = ({ onCreated }: { onCreated: () => void }) => {
       if (error) throw error;
     },
     onSuccess: () => {
+      toast.success("Laboratory request created successfully");
       setPatientId("");
       setTestId("");
       setOpen(false);
       onCreated();
+    },
+    onError: (err: Error) => {
+      toast.error(`Failed to create laboratory request: ${err.message}`);
     },
   });
 

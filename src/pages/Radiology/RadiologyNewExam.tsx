@@ -304,6 +304,7 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
       if (linkError) throw linkError;
     },
     onSuccess: () => {
+      toast.success("Radiology request created successfully");
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["radiology-requests"] });
       queryClient.invalidateQueries({ queryKey: ["radiologyExams"] });

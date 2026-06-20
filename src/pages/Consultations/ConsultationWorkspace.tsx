@@ -582,6 +582,7 @@ const ConsultationWorkspace = () => {
       }
     },
     onSuccess: async () => {
+      toast.success("Consultation completed successfully");
       const cId = consultationIdRef.current;
       await queryClient.refetchQueries({ queryKey: ["consultations"] });
       queryClient.invalidateQueries({ queryKey: ["patient-consultations"] });
@@ -604,6 +605,7 @@ const ConsultationWorkspace = () => {
     },
     onError: (err: any) => {
       setError(err?.message || "Failed to complete consultation");
+      toast.error(err?.message || "Failed to complete consultation");
     },
   });
 

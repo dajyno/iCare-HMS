@@ -103,7 +103,9 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
       return data;
     },
     onSuccess: (data) => {
+      const patient = toCamel(data);
       toast.success("Patient created successfully");
+      queryClient.setQueryData(["patients"], (old: any) => Array.isArray(old) ? [...old, patient] : [patient]);
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       setShowNewModal(false);
       setNewForm({});
