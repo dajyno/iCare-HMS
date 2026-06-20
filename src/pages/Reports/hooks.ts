@@ -49,14 +49,14 @@ function mockDrillDownData(metricKey: MetricKey): DrillDownRecord[] {
       ];
     case "new-registrations":
       return [
-        { id: "1", time: "08:15 AM", name: "Amara Okafor", category: "Individual", folderNumber: "PAT001" },
-        { id: "2", time: "08:45 AM", name: "Chidi Nwosu", category: "Family", folderNumber: "ADEBAYO-001" },
-        { id: "3", time: "09:00 AM", name: "Folake Adeleke", category: "Corporate", folderNumber: "PAT004" },
-        { id: "4", time: "09:30 AM", name: "Emeka Eze", category: "HMO", folderNumber: "PAT006" },
-        { id: "5", time: "10:00 AM", name: "Ngozi Obi", category: "Individual", folderNumber: "PAT007" },
-        { id: "6", time: "10:30 AM", name: "Tunde Balogun", category: "Corporate", folderNumber: "OKAFOR-001" },
-        { id: "7", time: "11:00 AM", name: "Chioma Edeh", category: "Individual", folderNumber: "PAT002" },
-        { id: "8", time: "11:30 AM", name: "Kayode Akinwande", category: "Family", folderNumber: "ADEBAYO-002" },
+        { id: "8", date: "Jun 20, 2026", time: "11:30 AM", name: "Kayode Akinwande", category: "Family", folderNumber: "ADEBAYO-002" },
+        { id: "7", date: "Jun 20, 2026", time: "11:00 AM", name: "Chioma Edeh", category: "Individual", folderNumber: "PAT002" },
+        { id: "6", date: "Jun 20, 2026", time: "10:30 AM", name: "Tunde Balogun", category: "Corporate", folderNumber: "OKAFOR-001" },
+        { id: "5", date: "Jun 20, 2026", time: "10:00 AM", name: "Ngozi Obi", category: "Individual", folderNumber: "PAT007" },
+        { id: "4", date: "Jun 20, 2026", time: "09:30 AM", name: "Emeka Eze", category: "HMO", folderNumber: "PAT006" },
+        { id: "3", date: "Jun 20, 2026", time: "09:00 AM", name: "Folake Adeleke", category: "Corporate", folderNumber: "PAT004" },
+        { id: "2", date: "Jun 20, 2026", time: "08:45 AM", name: "Chidi Nwosu", category: "Family", folderNumber: "ADEBAYO-001" },
+        { id: "1", date: "Jun 20, 2026", time: "08:15 AM", name: "Amara Okafor", category: "Individual", folderNumber: "PAT001" },
       ];
     case "alos":
       return [
@@ -106,7 +106,8 @@ const metricColumnMap: Record<MetricKey, DrillDownColumn[]> = {
     { key: "type", label: "Type" },
   ],
   "new-registrations": [
-    { key: "time", label: "Time", format: "date" },
+    { key: "date", label: "Date" },
+    { key: "time", label: "Time" },
     { key: "name", label: "Patient Name" },
     { key: "category", label: "Category" },
     { key: "folderNumber", label: "Folder No" },
@@ -310,6 +311,7 @@ export function useDrillDownData(metricKey: MetricKey, filters?: GlobalFilters) 
             if (data && data.length > 0) {
               return (data as any[]).map((p: any) => ({
                 id: p.id,
+                date: new Date(p.registration_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
                 time: new Date(p.registration_date).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
                 name: `${p.first_name} ${p.last_name}`,
                 category: p.category ?? "Individual",
