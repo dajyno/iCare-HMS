@@ -41,8 +41,8 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
 
   const upsertRadiologyExamCaches = (exam: any) => {
     const radiologyExam = toCamel(exam);
-    const keys = [["radiology-exams-all"], ["radiologyExams"], ["radiology-categories-with-exams"]] as const;
-    for (const key of keys) {
+    const flatKeys = [["radiology-exams-all"], ["radiologyExams"]] as const;
+    for (const key of flatKeys) {
       queryClient.setQueryData(key, (old: any) => {
         if (!Array.isArray(old)) return old;
         const idx = old.findIndex((t: any) => t.id === radiologyExam.id);
@@ -54,6 +54,23 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
         return [...old, radiologyExam];
       });
     }
+
+    queryClient.setQueryData(["radiology-categories-with-exams"], (old: any) => {
+      if (!Array.isArray(old) || !radiologyExam.categoryId) return old;
+      const idx = old.findIndex((category: any) => category.id === radiologyExam.categoryId);
+      if (idx < 0) return old;
+
+      const next = [...old];
+      const category = next[idx];
+      const exams = Array.isArray(category.radiologyExams) ? category.radiologyExams : [];
+      const examIdx = exams.findIndex((item: any) => item.id === radiologyExam.id);
+      const nextExams = examIdx >= 0
+        ? exams.map((item: any) => (item.id === radiologyExam.id ? { ...item, ...radiologyExam } : item))
+        : [...exams, radiologyExam];
+
+      next[idx] = { ...category, radiologyExams: nextExams };
+      return next;
+    });
   };
 
   const { data: exams } = useQuery({

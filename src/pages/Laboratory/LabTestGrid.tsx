@@ -23,6 +23,8 @@ import { useStaff } from "../Staff/StaffContext";
 import { generateInvoiceNumber } from "@/src/lib/invoiceNumber";
 import { toast } from "sonner";
 
+const hardcodedTestNames = new Set(testCategories.flatMap((c) => c.tests));
+
 const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initialPatientId?: string }) => {
   const [selectedTests, setSelectedTests] = useState<Set<string>>(new Set());
   const [patientId, setPatientId] = useState(initialPatientId || "");
@@ -72,6 +74,25 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
       return toCamel(data);
     },
   });
+
+  const customDbTests = useMemo(
+    () =>
+      Array.isArray(dbLabTests)
+        ? dbLabTests.filter(
+            (t: any) =>
+              t?.category !== "Radiology" &&
+              t?.name &&
+              !hardcodedTestNames.has(t.name)
+          )
+        : [],
+    [dbLabTests]
+  );
+
+  useEffect(() => {
+    if (customDbTests.length > 0) {
+      setExpandedCategories((prev) => new Set(prev).add("custom-tests"));
+    }
+  }, [customDbTests.length]);
 
   const [selectedDbTests, setSelectedDbTests] = useState<Set<string>>(new Set());
 
@@ -528,6 +549,45 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
               </div>
             );
           })}
+
+          {customDbTests.length > 0 && (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <button
+                type="button"
+                onClick={() => toggleCategory("custom-tests")}
+                className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50/80 border-b border-slate-100 md:cursor-default"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                    Custom Tests
+                  </span>
+                  {customDbTests.some((t: any) => selectedDbTests.has(t.id)) && (
+                    <span className="text-[10px] font-bold text-[#005EB8] bg-[#005EB8]/10 px-1.5 py-0.5 rounded">
+                      {customDbTests.filter((t: any) => selectedDbTests.has(t.id)).length}
+                    </span>
+                  )}
+                </div>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-slate-400 transition-transform md:hidden ${
+                    expandedCategories.has("custom-tests") ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              <div className={`${!expandedCategories.has("custom-tests") ? "hidden md:block" : "block"}`}>
+                <div className="p-3 space-y-1.5">
+                  {customDbTests.map((test: any) => (
+                    <ToggleTile
+                      key={test.id}
+                      label={`${test.name}${test.price ? ` — ₦${Number(test.price).toFixed(2)}` : ""}`}
+                      selected={selectedDbTests.has(test.id)}
+                      onToggle={() => toggleDbTest(test.id)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Hormone Profiles - Specialized Inputs */}
