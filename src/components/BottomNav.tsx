@@ -1,5 +1,6 @@
 import React from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
+import { motion } from "motion/react";
 import {
   LayoutDashboard,
   Users,
@@ -19,6 +20,15 @@ const tabs = [
   { icon: ClipboardList, label: "Consultation", route: "consultations" },
   { icon: User, label: "Profile", route: "profile" },
 ];
+
+const bottomNavEntrance = {
+  hidden: { opacity: 0, y: 8 },
+  visible: (index = 0) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.22, ease: "easeOut", delay: index * 0.035 },
+  }),
+};
 
 const BottomNav: React.FC<BottomNavProps> = ({ onMoreClick }) => {
   const location = useLocation();
@@ -45,54 +55,70 @@ const BottomNav: React.FC<BottomNavProps> = ({ onMoreClick }) => {
         className="flex items-center justify-around h-16"
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
-        {tabs.map((tab) => {
+        {tabs.map((tab, index) => {
           const href = p(`/${tab.route}`);
           const active = isActive(href);
           return (
-            <Link
+            <motion.div
               key={tab.label}
-              to={href}
-              className="flex flex-col items-center justify-center min-h-[48px] flex-1 gap-0.5 px-1 py-1 no-underline"
+              className="flex-1"
+              initial="hidden"
+              animate="visible"
+              variants={bottomNavEntrance}
+              custom={index}
             >
-              <tab.icon
-                className={cn(
-                  "w-5 h-5",
-                  active ? "text-blue-600" : "text-slate-400"
-                )}
-                strokeWidth={active ? 2.5 : 2}
-              />
-              <span
-                className={cn(
-                  "text-[10px] font-semibold leading-tight text-center",
-                  active ? "text-blue-600" : "text-slate-500"
-                )}
+              <Link
+                to={href}
+                className="flex flex-col items-center justify-center min-h-[48px] gap-0.5 px-1 py-1 no-underline"
               >
-                {tab.label}
-              </span>
-            </Link>
+                <tab.icon
+                  className={cn(
+                    "w-5 h-5",
+                    active ? "text-blue-600" : "text-slate-400"
+                  )}
+                  strokeWidth={active ? 2.5 : 2}
+                />
+                <span
+                  className={cn(
+                    "text-[10px] font-semibold leading-tight text-center",
+                    active ? "text-blue-600" : "text-slate-500"
+                  )}
+                >
+                  {tab.label}
+                </span>
+              </Link>
+            </motion.div>
           );
         })}
-        <button
-          type="button"
-          onClick={onMoreClick}
-          className="flex flex-col items-center justify-center min-h-[48px] flex-1 gap-0.5 px-1 py-1 bg-transparent border-none cursor-pointer"
+        <motion.div
+          className="flex-1"
+          initial="hidden"
+          animate="visible"
+          variants={bottomNavEntrance}
+          custom={tabs.length}
         >
-          <MoreHorizontal
-            className={cn(
-              "w-5 h-5",
-              isMoreActive ? "text-blue-600" : "text-slate-400"
-            )}
-            strokeWidth={isMoreActive ? 2.5 : 2}
-          />
-          <span
-            className={cn(
-              "text-[10px] font-semibold leading-tight text-center",
-              isMoreActive ? "text-blue-600" : "text-slate-500"
-            )}
+          <button
+            type="button"
+            onClick={onMoreClick}
+            className="flex flex-col items-center justify-center min-h-[48px] w-full gap-0.5 px-1 py-1 bg-transparent border-none cursor-pointer"
           >
-            More
-          </span>
-        </button>
+            <MoreHorizontal
+              className={cn(
+                "w-5 h-5",
+                isMoreActive ? "text-blue-600" : "text-slate-400"
+              )}
+              strokeWidth={isMoreActive ? 2.5 : 2}
+            />
+            <span
+              className={cn(
+                "text-[10px] font-semibold leading-tight text-center",
+                isMoreActive ? "text-blue-600" : "text-slate-500"
+              )}
+            >
+              More
+            </span>
+          </button>
+        </motion.div>
       </div>
     </nav>
   );

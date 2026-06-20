@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { motion } from "motion/react";
 import { useAuth } from "../context/AuthContext";
 import { useGlobalSettings } from "../context/GlobalSettingsContext";
 import { supabase } from "@/src/lib/supabase";
@@ -29,23 +30,34 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import NotificationBell from "@/src/components/NotificationBell";
 import BottomNav from "@/src/components/BottomNav";
 
-const SidebarItem = ({ icon: Icon, label, href, active, onClick }: any) => (
-  <Link
-    to={href}
-    onClick={onClick}
-    className={cn(
-      "flex items-center gap-3 px-3 py-2 rounded-md transition-all text-sm font-medium",
-      active
-        ? "bg-blue-50 text-blue-700 border-r-2 border-blue-500 shadow-sm"
-        : "text-slate-600 hover:bg-blue-50/40 hover:text-blue-600"
-    )}
-  >
-    {Icon && <Icon className="w-5 h-5" strokeWidth={2} />}
-    <span>{label}</span>
-  </Link>
+const navEntrance = {
+  hidden: { opacity: 0, y: 8 },
+  visible: (index = 0) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.22, ease: "easeOut", delay: Math.min(index * 0.025, 0.18) },
+  }),
+};
+
+const SidebarItem = ({ icon: Icon, label, href, active, onClick, animationIndex = 0 }: any) => (
+  <motion.div initial="hidden" animate="visible" variants={navEntrance} custom={animationIndex}>
+    <Link
+      to={href}
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-3 px-3 py-2 rounded-md transition-all text-sm font-medium",
+        active
+          ? "bg-blue-50 text-blue-700 border-r-2 border-blue-500 shadow-sm"
+          : "text-slate-600 hover:bg-blue-50/40 hover:text-blue-600"
+      )}
+    >
+      {Icon && <Icon className="w-5 h-5" strokeWidth={2} />}
+      <span>{label}</span>
+    </Link>
+  </motion.div>
 );
 
-const SidebarGroup = ({ icon: Icon, label, children, currentPath, isOpen, onToggle }: any) => {
+const SidebarGroup = ({ icon: Icon, label, children, currentPath, isOpen, onToggle, animationIndex = 0 }: any) => {
   const isChildActive = (href: string) => {
     if (currentPath === href) return true;
     if (currentPath.startsWith(href + "/")) {
@@ -57,7 +69,7 @@ const SidebarGroup = ({ icon: Icon, label, children, currentPath, isOpen, onTogg
     return false;
   };
   return (
-    <div>
+    <motion.div initial="hidden" animate="visible" variants={navEntrance} custom={animationIndex}>
       <button
         onClick={onToggle}
         className={cn(
@@ -71,17 +83,18 @@ const SidebarGroup = ({ icon: Icon, label, children, currentPath, isOpen, onTogg
       </button>
       {isOpen && (
         <div className="ml-3 mt-0.5 space-y-0.5 border-l border-blue-200 pl-3">
-          {children.map((child: any) => (
+          {children.map((child: any, childIndex: number) => (
             <SidebarItem
               key={child.href}
               href={child.href}
               label={child.label}
               active={isChildActive(child.href)}
+              animationIndex={childIndex}
             />
           ))}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };
 
@@ -247,7 +260,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
         <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-hide">
           <nav className="space-y-1">
-            {navItems.map((item: any) =>
+            {navItems.map((item: any, index: number) =>
               item.children ? (
                 <SidebarGroup
                   key={item.label}
@@ -257,6 +270,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                   currentPath={location.pathname}
                   isOpen={expandedGroup === item.label}
                   onToggle={() => setExpandedGroup(expandedGroup === item.label ? null : item.label)}
+                  animationIndex={index}
                 />
               ) : (
                 <SidebarItem
@@ -264,6 +278,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                   {...item}
                   active={item.href === "/" ? location.pathname === "/" : location.pathname.startsWith(item.href)}
                   onClick={() => setExpandedGroup(null)}
+                  animationIndex={index}
                 />
               )
             )}
@@ -310,7 +325,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 </div>
                 <div className="flex-1 overflow-y-auto px-4 py-4">
                   <nav className="space-y-1">
-                    {navItems.map((item: any) =>
+                    {navItems.map((item: any, index: number) =>
                       item.children ? (
                         <SidebarGroup
                           key={item.label}
@@ -320,6 +335,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                           currentPath={location.pathname}
                           isOpen={expandedGroup === item.label}
                           onToggle={() => setExpandedGroup(expandedGroup === item.label ? null : item.label)}
+                          animationIndex={index}
                         />
                       ) : (
                         <SidebarItem
@@ -327,6 +343,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                           {...item}
                           active={item.href === "/" ? location.pathname === "/" : location.pathname.startsWith(item.href)}
                           onClick={() => setExpandedGroup(null)}
+                          animationIndex={index}
                         />
                       )
                     )}
@@ -426,10 +443,16 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         {/* Footer */}
         <footer className="h-8 bg-blue-50/40 border-t border-blue-100 px-8 flex items-center justify-between text-[10px] text-slate-500 shrink-0">
           <div className="flex gap-4">
-            <span>System Status: <span className="text-green-600 font-semibold">Operational</span></span>
-            <span>Server Load: 12%</span>
+            <motion.span initial="hidden" animate="visible" variants={navEntrance} custom={0}>
+              System Status: <span className="text-green-600 font-semibold">Operational</span>
+            </motion.span>
+            <motion.span initial="hidden" animate="visible" variants={navEntrance} custom={1}>
+              Server Load: 12%
+            </motion.span>
           </div>
-          <div>© {new Date().getFullYear()} iCare HIMS. Enterprise v2.4.1</div>
+          <motion.div initial="hidden" animate="visible" variants={navEntrance} custom={2}>
+            © {new Date().getFullYear()} iCare HIMS. Enterprise v2.4.1
+          </motion.div>
         </footer>
       </main>
       <BottomNav onMoreClick={() => setMobileMenuOpen(true)} />
