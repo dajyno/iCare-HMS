@@ -538,8 +538,14 @@ const PatientProfile = () => {
       const dependant = toCamel(newDependant);
       toast.success("Dependant created successfully");
       queryClient.setQueryData(["patients"], (old: any) => Array.isArray(old) ? [...old, dependant] : [dependant]);
+      queryClient.setQueryData(["patient", id], (old: any) => old ? { ...old, category: old.category === "Individual" ? "Family" : old.category, isPrimary: true } : old);
+      queryClient.setQueryData(["patient-family-group", patient?.id], (old: any) => Array.isArray(old) ? [...old, dependant] : [dependant]);
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       queryClient.invalidateQueries({ queryKey: ["patient-family-group", patient?.id] });
+      queryClient.invalidateQueries({ queryKey: ["patients-family-groups"] });
+      queryClient.invalidateQueries({ queryKey: ["patients-dependant-counts"] });
+      queryClient.invalidateQueries({ queryKey: ["patients-family-primaries"] });
+      queryClient.invalidateQueries({ queryKey: ["patients-family-primaries-list"] });
       queryClient.invalidateQueries({ queryKey: ["patient", id] });
       setShowDependantModal(false);
       setDependantForm({ firstName: "", lastName: "", gender: "", dateOfBirth: "", bloodGroup: "", relationship: "" });

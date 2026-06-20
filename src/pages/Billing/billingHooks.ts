@@ -368,8 +368,27 @@ export function useUpdateInvoiceStatus() {
       if (status === "Paid") {
         await processPaymentSideEffects(currentInvoice, queryClient);
       }
+
+      return {
+        id,
+        amountPaid: newAmountPaid,
+        balance: newBalance,
+        status,
+        paymentMethod,
+        patientId: currentInvoice.patientId,
+      };
     },
-    onSuccess: () => {
+    onSuccess: (updatedInvoice: { id: string; amountPaid: number; balance: number; status: InvoiceSummary["status"]; paymentMethod: string; patientId?: string }) => {
+      queryClient.setQueryData<InvoiceSummary[]>(["invoices"], (old) =>
+        old?.map((inv) =>
+          inv.id === updatedInvoice.id
+            ? { ...inv, amountPaid: updatedInvoice.amountPaid, balance: updatedInvoice.balance, status: updatedInvoice.status, paymentMethod: updatedInvoice.paymentMethod as any }
+            : inv
+        )
+      );
+      if (updatedInvoice.patientId) {
+        queryClient.invalidateQueries({ queryKey: ["patient-invoices", updatedInvoice.patientId] });
+      }
       toast.success("Invoice payment updated successfully");
     },
     onError: (_err, _vars, context) => {

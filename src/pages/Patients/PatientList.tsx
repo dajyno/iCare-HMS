@@ -106,7 +106,11 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
       const patient = toCamel(data);
       toast.success("Patient created successfully");
       queryClient.setQueryData(["patients"], (old: any) => Array.isArray(old) ? [...old, patient] : [patient]);
+      if (patient?.category === "Family" && patient?.isPrimary) {
+        queryClient.setQueryData(["patients-family-primaries-list"], (old: any) => Array.isArray(old) ? [...old, patient] : [patient]);
+      }
       queryClient.invalidateQueries({ queryKey: ["patients"] });
+      queryClient.invalidateQueries({ queryKey: ["patients-family-primaries-list"] });
       setShowNewModal(false);
       setNewForm({});
       logAudit("Created patient", "Patient", data?.id);

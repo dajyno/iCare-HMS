@@ -98,10 +98,12 @@ const FamilyPatients = () => {
       if (patient?.isPrimary) {
         queryClient.setQueryData(["patients-family-groups"], (old: any) => Array.isArray(old) ? [...old, patient] : [patient]);
         queryClient.setQueryData(["patients-family-primaries"], (old: any) => Array.isArray(old) ? [...old, patient] : [patient]);
+        queryClient.setQueryData(["patients-family-primaries-list"], (old: any) => Array.isArray(old) ? [...old, patient] : [patient]);
       }
       queryClient.invalidateQueries({ queryKey: ["patients-family-groups"] });
       queryClient.invalidateQueries({ queryKey: ["patients-dependant-counts"] });
       queryClient.invalidateQueries({ queryKey: ["patients-family-primaries"] });
+      queryClient.invalidateQueries({ queryKey: ["patients-family-primaries-list"] });
       setShowNewModal(false);
       setNewForm({});
     },
