@@ -545,25 +545,23 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
                   </div>
                 </div>
 
-                {newForm.category === "Corporate" && (
-                  <div className="col-span-1 sm:col-span-2 border-t pt-4">
-                    <h4 className="text-sm font-bold text-slate-700 mb-3">Company Information</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label>Company Name</Label>
-                        <SearchableSelect value={newForm.companyName || ""} onValueChange={(v) => setNewForm({ ...newForm, companyName: v })} placeholder="Search or type company name..." options={companySuggestions.map((name) => ({value: name, label: name}))} creatable />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label>Company Phone</Label>
-                        <Input value={newForm.companyPhone || ""} onChange={(e) => setNewForm({ ...newForm, companyPhone: e.target.value })} />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label>Company Address</Label>
-                        <Input value={newForm.companyAddress || ""} onChange={(e) => setNewForm({ ...newForm, companyAddress: e.target.value })} />
-                      </div>
+                <div className="col-span-1 sm:col-span-2 border-t pt-4">
+                  <h4 className="text-sm font-bold text-slate-700 mb-3">Company Information</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label>Company Name</Label>
+                      <SearchableSelect value={newForm.companyName || ""} onValueChange={(v) => setNewForm({ ...newForm, companyName: v })} placeholder="Search or type company name..." options={companySuggestions.map((name) => ({value: name, label: name}))} creatable />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Company Phone</Label>
+                      <Input value={newForm.companyPhone || ""} onChange={(e) => setNewForm({ ...newForm, companyPhone: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Company Address</Label>
+                      <Input value={newForm.companyAddress || ""} onChange={(e) => setNewForm({ ...newForm, companyAddress: e.target.value })} />
                     </div>
                   </div>
-                )}
+                </div>
 
                 {newForm.category === "HMO" && (
                   <div className="col-span-1 sm:col-span-2 border-t pt-4">
@@ -662,25 +660,23 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
                   </div>
                 </div>
 
-                {editForm.category === "Corporate" && (
-                  <div className="border-t pt-4">
-                    <h4 className="text-sm font-bold text-slate-700 mb-3">Company Information</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label>Company Name</Label>
-                        <SearchableSelect value={editForm.companyName || ""} onValueChange={(v) => setEditForm({ ...editForm, companyName: v })} placeholder="Search or type company name..." options={companySuggestions.map((name) => ({value: name, label: name}))} creatable />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label>Company Phone</Label>
-                        <Input value={editForm.companyPhone || ""} onChange={(e) => setEditForm({ ...editForm, companyPhone: e.target.value })} />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label>Company Address</Label>
-                        <Input value={editForm.companyAddress || ""} onChange={(e) => setEditForm({ ...editForm, companyAddress: e.target.value })} />
-                      </div>
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-bold text-slate-700 mb-3">Company Information</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label>Company Name</Label>
+                      <SearchableSelect value={editForm.companyName || ""} onValueChange={(v) => setEditForm({ ...editForm, companyName: v })} placeholder="Search or type company name..." options={companySuggestions.map((name) => ({value: name, label: name}))} creatable />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Company Phone</Label>
+                      <Input value={editForm.companyPhone || ""} onChange={(e) => setEditForm({ ...editForm, companyPhone: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Company Address</Label>
+                      <Input value={editForm.companyAddress || ""} onChange={(e) => setEditForm({ ...editForm, companyAddress: e.target.value })} />
                     </div>
                   </div>
-                )}
+                </div>
 
                 {editForm.category === "HMO" && (
                   <div className="border-t pt-4">

@@ -567,7 +567,6 @@ const PatientProfile = () => {
     const category = editForm.category;
     for (const [key, val] of Object.entries(rest)) {
       const dbKey = key.replace(/([A-Z])/g, "_$1").toLowerCase();
-      if (category !== "Corporate" && ["companyName", "companyPhone", "companyAddress"].includes(key)) continue;
       if (category !== "HMO" && ["insuranceProvider", "insuranceId"].includes(key)) continue;
       payload[dbKey] = typeof val === "boolean" ? val : (val || null);
     }
@@ -1239,25 +1238,23 @@ const PatientProfile = () => {
                 </div>
               </div>
 
-              {editForm.category === "Corporate" && (
-                <div className="border-t pt-4">
-                  <h4 className="text-sm font-bold text-slate-700 mb-3">Company Information</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Company Name</Label>
-                      <SearchableSelect value={editForm.companyName || ""} onValueChange={(v) => setEditForm({ ...editForm, companyName: v })} placeholder="Search or type company name..." options={companySuggestions.map((name) => ({value: name, label: name}))} creatable triggerClassName="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none text-left justify-start font-normal h-auto" />
-                    </div>
-                    <div>
-                      <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Company Phone</Label>
-                      <Input value={editForm.companyPhone || ""} onChange={(e) => setEditForm({ ...editForm, companyPhone: e.target.value })} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none" />
-                    </div>
-                    <div>
-                      <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Company Address</Label>
-                      <Input value={editForm.companyAddress || ""} onChange={(e) => setEditForm({ ...editForm, companyAddress: e.target.value })} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none" />
-                    </div>
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-bold text-slate-700 mb-3">Company Information</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Company Name</Label>
+                    <SearchableSelect value={editForm.companyName || ""} onValueChange={(v) => setEditForm({ ...editForm, companyName: v })} placeholder="Search or type company name..." options={companySuggestions.map((name) => ({value: name, label: name}))} creatable triggerClassName="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none text-left justify-start font-normal h-auto" />
+                  </div>
+                  <div>
+                    <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Company Phone</Label>
+                    <Input value={editForm.companyPhone || ""} onChange={(e) => setEditForm({ ...editForm, companyPhone: e.target.value })} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none" />
+                  </div>
+                  <div>
+                    <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Company Address</Label>
+                    <Input value={editForm.companyAddress || ""} onChange={(e) => setEditForm({ ...editForm, companyAddress: e.target.value })} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none" />
                   </div>
                 </div>
-              )}
+              </div>
 
               {editForm.category === "HMO" && (
                 <div className="border-t pt-4">
