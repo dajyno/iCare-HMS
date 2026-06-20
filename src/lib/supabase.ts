@@ -11,7 +11,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-const rawSupabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+const rawSupabase: any = createClient(supabaseUrl, supabaseAnonKey);
 
 // Tracks the current tenant ID for automatic tenant filtering via Proxy below.
 let _currentTenantId: string | null = null;
@@ -72,14 +72,14 @@ function addTenantFilter(table: string, builder: any): any {
   });
 }
 
-export const supabase = new Proxy(rawSupabase, {
+export const supabase: any = new Proxy(rawSupabase, {
   get(target, prop, receiver) {
     if (prop === "from") {
       return (table: string) => addTenantFilter(table, target.from(table));
     }
     return Reflect.get(target, prop, receiver);
   },
-}) as typeof rawSupabase;
+}) as any;
 
 // Converts snake_case DB rows to camelCase (frontend expects camelCase from original Prisma API)
 export function toCamel(obj: any): any {
@@ -94,5 +94,3 @@ export function toCamel(obj: any): any {
   }
   return obj;
 }
-
-

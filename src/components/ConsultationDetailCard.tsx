@@ -23,6 +23,7 @@ const rxStatusConfig: Record<string, { label: string; color: string; bg: string 
 };
 
 interface ConsultationDetailCardProps {
+  key?: string | number;
   consultation: any;
   prescriptions?: any[];
   labRequests?: any[];

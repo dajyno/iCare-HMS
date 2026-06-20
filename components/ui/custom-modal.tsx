@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import type * as React from "react";
 
 interface CustomModalProps {
   open: boolean;

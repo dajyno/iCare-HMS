@@ -41,7 +41,7 @@ const SKIP_TENANT_TABLES = new Set<string>();
 // QueryBuilder — chainable, thenable, mimics Supabase query builder
 // ─────────────────────────────────────────────
 
-type FilterSpec = [string, string, any, ...any[]];
+type FilterSpec = [string, ...any[]];
 type OrderSpec = { column: string; ascending?: boolean; nullsFirst?: boolean; foreignTable?: string };
 type SelectOptions = { count?: "exact" | "planned" | "estimated"; head?: boolean };
 

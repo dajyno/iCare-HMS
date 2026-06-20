@@ -221,8 +221,9 @@ const LabOrderTable = ({
             }
             return null;
           }
-          const id = row.original.id;
-          const isUnpaid = row.original.paymentStatus !== "Paid";
+          const currentRow = row.original as any;
+          const id = currentRow.id;
+          const isUnpaid = currentRow.paymentStatus !== "Paid";
 
           if (isUnpaid) {
             return (
@@ -340,9 +341,9 @@ const LabOrderTable = ({
               ) : (
                 rows.map((row) => (
                   <TableRow
-                    key={row.original.id}
+                    key={(row.original as any).id}
                     onClick={() => {
-                      const clicked = row.original;
+                      const clicked = row.original as any;
                       const target = clicked.isBatch ? clicked.raw : clicked.raw;
                       const isDone = clicked.dbStatus === "Completed" || clicked.status === "Done";
                       console.log("[lab-click]", { id: clicked.id, dbStatus: clicked.dbStatus, status: clicked.status, isDone, isBatch: clicked.isBatch });

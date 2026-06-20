@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import type * as React from "react";
 import type { Appointment } from "@/src/lib/types";
 import { STATUS_COLORS } from "./types";
 

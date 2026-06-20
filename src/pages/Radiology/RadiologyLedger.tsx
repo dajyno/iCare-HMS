@@ -277,8 +277,8 @@ const RadiologyLedger = ({
               ) : (
                 rows.map((row) => (
                   <TableRow
-                    key={row.original.batchId}
-                    onClick={() => onSelectBatch(row.original.requests)}
+                    key={((row.original as any).batchId || row.id) as string}
+                    onClick={() => onSelectBatch((row.original as any).requests as any[])}
                     className="cursor-pointer hover:bg-slate-50 transition-colors"
                   >
                     {row.getVisibleCells().map((cell) => (

@@ -198,7 +198,7 @@ const ManageCategoriesDialog = ({ open, onClose }: ManageCategoriesDialogProps) 
           </div>
         )}
         <div className="flex-1 overflow-y-auto space-y-4 py-2">
-          {Object.entries(groupedExams).map(([catName, catExams]) => (
+          {Object.entries(groupedExams as Record<string, any[]>).map(([catName, catExams]) => (
             <div key={catName}>
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
                 {catName}

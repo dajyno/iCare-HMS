@@ -255,7 +255,7 @@ export default function StaffList() {
                 <tbody>
                   <AnimatePresence mode="popLayout">
                     {table.getRowModel().rows.map((row, index) => {
-                      const record = row.original;
+                      const record: any = row.original;
                       return (
                         <motion.tr
                           key={record.staff_id}

@@ -1,4 +1,5 @@
 import { useMemo, useCallback, useState } from "react";
+import type * as React from "react";
 import type { Appointment } from "@/src/lib/types";
 import type { DoctorSlot } from "./hooks";
 import AppointmentCard from "./AppointmentCard";
@@ -12,6 +13,7 @@ import {
 } from "./types";
 
 interface AppointmentGridProps {
+  key?: string | number;
   date: Date;
   doctors: DoctorSlot[];
   appointments: Appointment[];
@@ -166,6 +168,7 @@ export default function AppointmentGrid({
 }
 
 interface DoctorRowProps {
+  key?: string | number;
   doctor: DoctorSlot;
   date: Date;
   totalSlots: number;

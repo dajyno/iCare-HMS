@@ -329,14 +329,17 @@ const ConsultationWorkspace = () => {
       const itemRows = items.map((p: any) => ({
         prescription_id: prescription.id, medication_id: p.medicationId,
         dosage: p.dosage, frequency: p.frequency, duration: p.duration,
-        instructions: p.route || null, quantity: p.quantity || 1,
+        instructions: p.route || null, quantity: Number(p.quantity) || 1,
       }));
       const { error: itemsError } = await supabase.from("prescription_items").insert(itemRows);
       if (itemsError) throw itemsError;
       const medIds = items.map((p: any) => p.medicationId);
       const { data: medPrices } = await supabase.from("medications").select("id, unit_price").in("id", medIds);
       const priceMap = new Map((medPrices || []).map((m: any) => [m.id, m.unit_price || 0]));
-      const totalAmount = itemRows.reduce((sum, item) => sum + (priceMap.get(item.medication_id) || 0) * item.quantity, 0);
+      const totalAmount = itemRows.reduce((sum, item) => {
+        const unitPrice = Number(priceMap.get(item.medication_id) || 0);
+        return sum + unitPrice * (Number(item.quantity) || 1);
+      }, 0);
       const { error: invError } = await supabase.from("invoices").insert({
         invoice_number: `PHA-${Date.now()}`,
         patient_id: pId, prescription_id: prescription.id,
@@ -497,14 +500,17 @@ const ConsultationWorkspace = () => {
         const itemRows = formData.prescriptions.map((p: any) => ({
           prescription_id: prescription.id, medication_id: p.medicationId,
           dosage: p.dosage, frequency: p.frequency, duration: p.duration,
-          instructions: p.route || null, quantity: p.quantity || 1,
+          instructions: p.route || null, quantity: Number(p.quantity) || 1,
         }));
         const { error: itemsError } = await supabase.from("prescription_items").insert(itemRows);
         if (itemsError) throw itemsError;
         const medIds = formData.prescriptions.map((p: any) => p.medicationId);
         const { data: medPrices } = await supabase.from("medications").select("id, unit_price").in("id", medIds);
         const priceMap = new Map((medPrices || []).map((m: any) => [m.id, m.unit_price || 0]));
-        const totalAmount = itemRows.reduce((sum, item) => sum + (priceMap.get(item.medication_id) || 0) * item.quantity, 0);
+        const totalAmount = itemRows.reduce((sum, item) => {
+          const unitPrice = Number(priceMap.get(item.medication_id) || 0);
+          return sum + unitPrice * (Number(item.quantity) || 1);
+        }, 0);
         const { error: invError } = await supabase.from("invoices").insert({
           invoice_number: `PHA-${Date.now()}`,
           patient_id: pId, prescription_id: prescription.id,

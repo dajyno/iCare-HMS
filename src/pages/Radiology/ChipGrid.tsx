@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 
 interface ChipGridProps {
+  key?: string | number;
   label: string;
   selected: boolean;
   onToggle: () => void;

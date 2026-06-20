@@ -207,13 +207,13 @@ const LabManageCategories = ({ open, onClose }: Props) => {
         )}
 
         <div className="flex-1 overflow-y-auto space-y-4 px-6 py-2">
-          {Object.entries(groupedTests).map(([catName, catTests]) => (
+          {Object.entries(groupedTests as Record<string, any[]>).map(([catName, catTests]) => (
             <div key={catName}>
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
                 {catName}
               </h3>
               <div className="space-y-1">
-                {catTests.map((test: any) => (
+                {(catTests as any[]).map((test: any) => (
                   <div
                     key={test.id}
                     className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200"

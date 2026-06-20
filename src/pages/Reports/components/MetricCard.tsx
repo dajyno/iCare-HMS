@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 interface MetricCardProps {
+  key?: string | number;
   label: string;
   value: string;
   trend?: {

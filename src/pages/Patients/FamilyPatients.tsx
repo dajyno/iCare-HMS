@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import type * as React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";

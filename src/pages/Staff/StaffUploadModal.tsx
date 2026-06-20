@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import type * as React from "react";
 import {
   Dialog,
   DialogContent,

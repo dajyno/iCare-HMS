@@ -5,6 +5,7 @@ const ToggleTile = ({
   selected,
   onToggle,
 }: {
+  key?: string | number;
   label: string;
   selected: boolean;
   onToggle: () => void;

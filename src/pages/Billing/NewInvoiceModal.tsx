@@ -283,10 +283,10 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
 
     const invNumber = await generateInvoiceNumber(supabase);
 
-    const sourceLabels = [...new Set(accumulatedItems.map((i) => sourceCategory(i.code)))];
-    const sourceLabel = sourceLabels.length === 1
+    const sourceLabels = [...new Set(accumulatedItems.map((i) => sourceCategory(i.code)))] as string[];
+    const sourceLabel = String(sourceLabels.length === 1
       ? sourceLabels[0]
-      : sourceLabels.join(", ");
+      : sourceLabels.join(", "));
 
     createInvoice.mutate(
       {
@@ -912,7 +912,7 @@ interface MiniTileProps {
   itemCount: number;
 }
 
-function TileContent({ children }: { children: ReactNode }) {
+function TileContent({ children }: { children: ReactNode; key?: string | number }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
