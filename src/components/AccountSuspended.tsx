@@ -26,4 +26,5 @@ const AccountSuspended: React.FC<AccountSuspendedProps> = ({ hospitalName }) => 
   </div>
 );
 
+
 export default AccountSuspended;
