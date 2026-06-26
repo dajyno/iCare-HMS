@@ -84,5 +84,35 @@ export default defineConfig(({mode}) => {
         },
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            const normalizedId = id.split(path.sep).join('/');
+            if (!normalizedId.includes('/node_modules/')) return;
+            if (
+              normalizedId.includes('/node_modules/react/') ||
+              normalizedId.includes('/node_modules/react-dom/') ||
+              normalizedId.includes('/node_modules/react-router-dom/')
+            ) {
+              return 'react-vendor';
+            }
+            if (normalizedId.includes('/node_modules/@supabase/')) return 'supabase-vendor';
+            if (normalizedId.includes('/node_modules/@tanstack/')) return 'tanstack-vendor';
+            if (normalizedId.includes('/node_modules/recharts/')) return 'charts-vendor';
+            if (normalizedId.includes('/node_modules/motion/')) return 'motion-vendor';
+            if (
+              normalizedId.includes('/node_modules/@base-ui/') ||
+              normalizedId.includes('/node_modules/radix-ui/') ||
+              normalizedId.includes('/node_modules/@floating-ui/') ||
+              normalizedId.includes('/node_modules/react-day-picker/')
+            ) {
+              return 'ui-vendor';
+            }
+            if (normalizedId.includes('/node_modules/lucide-react/')) return 'icons-vendor';
+          },
+        },
+      },
+    },
   };
 });

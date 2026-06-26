@@ -31,8 +31,8 @@ const typeIcon = (type: string) => {
 export default function NotificationBell() {
   const navigate = useNavigate();
   const { hospital_slug } = useParams<{ hospital_slug: string }>();
-  const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
   const [open, setOpen] = useState(false);
+  const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications(open);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

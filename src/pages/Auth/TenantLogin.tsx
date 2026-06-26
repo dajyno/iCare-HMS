@@ -121,31 +121,30 @@ const TenantLogin: React.FC = () => {
         { count: pendingLabs },
         { count: pendingScans },
         { count: pendingRx },
-        { data: beds },
+        { count: totalBeds },
+        { count: occupiedBeds },
         { data: dailyPayments },
         { count: unpaidInvoices },
         { count: activeStaff },
       ] = await Promise.all([
-        supabase.from("patients").select("*", { count: "exact", head: true }),
-        supabase.from("consultations").select("*", { count: "exact", head: true })
+        supabase.from("patients").select("id", { count: "exact", head: true }),
+        supabase.from("consultations").select("id", { count: "exact", head: true })
           .gte("created_at", today.toISOString()).lt("created_at", tomorrow.toISOString()),
-        supabase.from("lab_requests").select("*", { count: "exact", head: true })
+        supabase.from("lab_requests").select("id", { count: "exact", head: true })
           .neq("status", "Completed"),
-        supabase.from("radiology_requests").select("*", { count: "exact", head: true })
+        supabase.from("radiology_requests").select("id", { count: "exact", head: true })
           .neq("status", "Completed"),
-        supabase.from("prescriptions").select("*", { count: "exact", head: true })
+        supabase.from("prescriptions").select("id", { count: "exact", head: true })
           .eq("status", "Paid"),
-        supabase.from("beds").select("status"),
+        supabase.from("beds").select("id", { count: "exact", head: true }),
+        supabase.from("beds").select("id", { count: "exact", head: true }).eq("status", "Occupied"),
         supabase.from("invoices").select("amount_paid")
           .eq("status", "Paid")
           .gte("paid_at", today.toISOString()).lt("paid_at", tomorrow.toISOString()),
-        supabase.from("invoices").select("*", { count: "exact", head: true })
+        supabase.from("invoices").select("id", { count: "exact", head: true })
           .neq("status", "Paid"),
-        (adminSupabase as any).from("staff").select("*", { count: "exact", head: true }),
+        (adminSupabase as any).from("staff").select("staff_id", { count: "exact", head: true }),
       ]);
-
-      const occupiedBeds = (beds || []).filter((b: any) => b.status === "Occupied").length;
-      const totalBeds = beds?.length || 1;
 
       queryClient.setQueryData(["dashboard-stats"], {
         totalPatients: totalPatients || 0,
@@ -153,7 +152,7 @@ const TenantLogin: React.FC = () => {
         pendingLabs: pendingLabs || 0,
         pendingScans: pendingScans || 0,
         pendingRx: pendingRx || 0,
-        bedOccupancy: Math.round((occupiedBeds / totalBeds) * 100),
+        bedOccupancy: totalBeds ? Math.round(((occupiedBeds || 0) / totalBeds) * 100) : 0,
         dailyRevenue: (dailyPayments || []).reduce((sum: number, p: any) => sum + (p.amount_paid || 0), 0) || 0,
         outstandingClaims: unpaidInvoices || 0,
         activeStaff: activeStaff || 0,

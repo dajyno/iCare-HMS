@@ -89,14 +89,10 @@ const NewPrescriptionDialog = ({ open, onOpenChange, initialPatientId }: { open:
         instructions: item.route,
         quantity: item.quantity,
       }));
-      console.log("Inserting prescription items:", JSON.stringify(itemsPayload));
-
       const itemsResult = await (supabase as any).from("prescription_items").insert(itemsPayload);
       if (itemsResult.error) {
-        console.error("Items insert failed:", itemsResult.error);
         throw new Error(itemsResult.error.message || "Failed to add medication items");
       }
-      console.log("Items created successfully");
 
       const itemTotal = items.filter((i) => i.medicationId).reduce((s, i) => s + (i.quantity || 1) * 0, 0);
       const invNumber = await generateInvoiceNumber(supabase, "PHA");

@@ -4,13 +4,68 @@ import { logAudit } from "@/src/lib/auditLogger";
 import { toast } from "sonner";
 import type {
   PharmacyPrescription,
-  PharmacyPrescriptionItem,
   PharmacyInventoryItem,
-  InvoiceLineItem,
   AnalyticsData,
   OrderStatus,
   StockStatus,
 } from "./types";
+
+const PRESCRIPTION_QUEUE_COLUMNS = [
+  "id",
+  "patient_id",
+  "doctor_id",
+  "status",
+  "date",
+  "created_at",
+  "patient:patients(id, patient_id, first_name, last_name, date_of_birth)",
+].join(", ");
+
+const PRESCRIPTION_ITEM_COLUMNS = [
+  "id",
+  "prescription_id",
+  "medication_id",
+  "dosage",
+  "frequency",
+  "duration",
+  "instructions",
+  "route",
+  "quantity",
+].join(", ");
+
+const MEDICATION_LOOKUP_COLUMNS = [
+  "id",
+  "name",
+  "strength",
+  "dosage_form",
+  "unit_of_measurement",
+  "unit_price",
+].join(", ");
+
+const INVENTORY_COLUMNS = [
+  "id",
+  "name",
+  "strength",
+  "generic_name",
+  "category",
+  "dosage_form",
+  "unit_of_measurement",
+  "quantity_in_stock",
+  "reorder_level",
+  "unit_price",
+].join(", ");
+
+const PHARMACY_INVOICE_COLUMNS = [
+  "id",
+  "invoice_number",
+  "status",
+  "source_type",
+  "prescription_id",
+  "total_amount",
+  "amount_paid",
+  "balance",
+  "created_at",
+  "patient:patients(id, patient_id, first_name, last_name)",
+].join(", ");
 
 function getOrderStatus(dbStatus: string): OrderStatus {
   if (dbStatus === "Dispensed") return "All Completed";
@@ -62,28 +117,57 @@ function toPharmacyPrescription(row: any): PharmacyPrescription {
   };
 }
 
-export function usePrescriptionQueue() {
+export function usePrescriptionQueue({
+  page = 1,
+  pageSize = 14,
+  search = "",
+}: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+} = {}) {
   return useQuery({
-    queryKey: ["pharmacy-prescriptions"],
+    queryKey: ["pharmacy-prescriptions", page, pageSize, search],
     queryFn: async () => {
-      console.log("PHARMACY: Fetching prescriptions...");
-      const { data, error } = await supabase
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      const searchTerm = search.trim().replace(/[,()]/g, " ").replace(/\s+/g, " ");
+
+      let patientIds: string[] | undefined;
+      if (searchTerm) {
+        const { data: patientMatches, error: patientError } = await supabase
+          .from("patients")
+          .select("id")
+          .or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,patient_id.ilike.%${searchTerm}%`)
+          .limit(200);
+        if (patientError) throw patientError;
+        patientIds = (patientMatches || []).map((patient: any) => patient.id).filter(Boolean);
+        if (patientIds.length === 0) return { prescriptions: [], total: 0 };
+      }
+
+      let query = supabase
         .from("prescriptions")
-        .select("*, patient:patients(*)")
-        .order("date", { ascending: false });
-      if (error) { console.error("PHARMACY query error:", error); throw error; }
-      if (!data || !Array.isArray(data)) { console.log("PHARMACY: no data"); return []; }
+        .select(PRESCRIPTION_QUEUE_COLUMNS, { count: "exact" });
+
+      if (patientIds) {
+        query = query.in("patient_id", patientIds);
+      }
+
+      const { data, error, count } = await query
+        .order("date", { ascending: false })
+        .range(from, to);
+      if (error) throw error;
+      if (!data || !Array.isArray(data)) return { prescriptions: [], total: count || 0 };
       const rows = data as any[];
-      console.log("PHARMACY: got", rows.length, "prescriptions");
 
       const rxIds = rows.map((r: any) => r.id);
-      console.log("PHARMACY: fetching items for", rxIds.length, "prescriptions");
+      if (rxIds.length === 0) return { prescriptions: [], total: count || 0 };
+
       const { data: allItems, error: itemsErr } = await supabase
         .from("prescription_items")
-        .select("*")
+        .select(PRESCRIPTION_ITEM_COLUMNS)
         .in("prescription_id", rxIds);
-      if (itemsErr) console.error("PHARMACY items error:", itemsErr);
-      console.log("PHARMACY: got", (allItems as any[] ?? []).length, "items total");
+      if (itemsErr) throw itemsErr;
 
       const itemsByRxId: Record<string, any[]> = {};
       for (const item of (allItems as any[] ?? [])) {
@@ -91,8 +175,6 @@ export function usePrescriptionQueue() {
         if (!itemsByRxId[pid]) itemsByRxId[pid] = [];
         itemsByRxId[pid].push(item);
       }
-      console.log("PHARMACY: prescriptions with items:", Object.keys(itemsByRxId).length);
-
       const medIds = new Set<string>();
       for (const item of (allItems as any[] ?? [])) {
         if (item.medication_id) medIds.add(item.medication_id);
@@ -101,14 +183,12 @@ export function usePrescriptionQueue() {
       if (medIds.size > 0) {
         const { data: meds } = await supabase
           .from("medications")
-          .select("*")
+          .select(MEDICATION_LOOKUP_COLUMNS)
           .in("id", [...medIds]);
         if (meds) {
           for (const m of meds as any[]) medMap[m.id] = m;
         }
       }
-      console.log("PHARMACY: medications fetched:", Object.keys(medMap).length);
-
       const { data: invoices } = await supabase
         .from("invoices")
         .select("id, invoice_number, status, prescription_id")
@@ -129,23 +209,47 @@ export function usePrescriptionQueue() {
 
       const camel = toCamel(enriched) as any[];
       const result = (camel ?? []).map(toPharmacyPrescription) as PharmacyPrescription[];
-      console.log("PHARMACY: final count with items > 0:", result.filter((r: any) => r.items.length > 0).length);
-      return result;
+      return { prescriptions: result, total: count || 0 };
     },
   });
 }
 
-export function usePharmacyInventory() {
+export function usePharmacyInventory({
+  page = 1,
+  pageSize = 15,
+  search = "",
+  outOfStockOnly = false,
+}: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  outOfStockOnly?: boolean;
+} = {}) {
   return useQuery({
-    queryKey: ["pharmacy-inventory"],
+    queryKey: ["pharmacy-inventory", page, pageSize, search, outOfStockOnly],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      const searchTerm = search.trim().replace(/[,()]/g, " ").replace(/\s+/g, " ");
+
+      let query = supabase
         .from("medications")
-        .select("*")
-        .order("name", { ascending: true });
+        .select(INVENTORY_COLUMNS, { count: "exact" });
+
+      if (searchTerm) {
+        query = query.or(`name.ilike.%${searchTerm}%,generic_name.ilike.%${searchTerm}%,category.ilike.%${searchTerm}%,dosage_form.ilike.%${searchTerm}%`);
+      }
+      if (outOfStockOnly) {
+        query = query.eq("quantity_in_stock", 0);
+      }
+
+      const { data, error, count } = await query
+        .order("name", { ascending: true })
+        .range(from, to);
+
       if (error) throw error;
       const camel = toCamel(data) as any[];
-      return (camel ?? []).map((med: any): PharmacyInventoryItem => {
+      const items = (camel ?? []).map((med: any): PharmacyInventoryItem => {
         const remaining = med.quantityInStock ?? med.quantity_in_stock ?? 0;
         const reorder = med.reorderLevel ?? med.reorder_level ?? 10;
         let status: StockStatus = "In Stock";
@@ -166,6 +270,7 @@ export function usePharmacyInventory() {
           status,
         };
       });
+      return { items, total: count || 0 };
     },
   });
 }
@@ -299,7 +404,7 @@ export function usePharmacyInvoices() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("invoices")
-        .select("*, patient:patients(*)")
+        .select(PHARMACY_INVOICE_COLUMNS)
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;

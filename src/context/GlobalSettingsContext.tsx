@@ -73,11 +73,17 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
 
     async function init() {
       if (!effectiveTenantId) {
+        setSettings(getDefaultSettings());
         setLoading(false);
         return;
       }
 
-      setLoading(true);
+      const cached = loadLocalCache(effectiveTenantId);
+      if (cached) {
+        setSettings(cached);
+      }
+      setLoading(!cached);
+
       const merged = await buildSettings(effectiveTenantId);
       if (cancelled) return;
       setSettings(merged);

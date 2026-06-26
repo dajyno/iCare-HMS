@@ -37,7 +37,7 @@ export function useAppointments(date: Date) {
   });
 }
 
-export function useDoctors() {
+export function useDoctors(enabled = true) {
   return useQuery<DoctorSlot[]>({
     queryKey: ["doctors-grid"],
     queryFn: async () => {
@@ -77,6 +77,7 @@ export function useDoctors() {
     },
     staleTime: 1000 * 30,
     refetchOnWindowFocus: true,
+    enabled,
   });
 }
 

@@ -23,6 +23,34 @@ import SearchableSelect from "@/components/ui/searchable-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
+const PATIENT_OPTION_COLUMNS = "id, patient_id, first_name, last_name";
+const MEDICATION_OPTION_COLUMNS = "id, name, strength, unit_price";
+const LAB_TEST_OPTION_COLUMNS = "id, name, price, category";
+const RADIOLOGY_EXAM_OPTION_COLUMNS = "id, name, price, category:radiology_categories(name)";
+const ACTIVE_CONSULTATION_COLUMNS = [
+  "id",
+  "patient_id",
+  "doctor_id",
+  "status",
+  "chief_complaint",
+  "symptoms",
+  "diagnosis",
+  "clinical_notes",
+  "treatment_plan",
+  "follow_up_date",
+  "created_at",
+].join(", ");
+const PRESCRIPTION_WITH_ITEMS_COLUMNS = [
+  "id",
+  "status",
+  "consultation_id",
+  "patient_id",
+  "date",
+  "items:prescription_items(id, dosage, frequency, duration, instructions, quantity, medication:medications(name, strength))",
+].join(", ");
+const LAB_REQUEST_WITH_TEST_COLUMNS = "id, consultation_id, patient_id, status, payment_status, invoice_id, created_at, test:lab_tests(name, category, price)";
+const RADIOLOGY_REQUEST_WITH_EXAM_COLUMNS = "id, consultation_id, patient_id, status, payment_status, invoice_id, created_at, exam:radiology_exams(name, price)";
+
 const consultationSchema = z.object({
   patientId: z.string().optional(),
   chiefComplaint: z.string().optional(),
@@ -84,7 +112,7 @@ const ConsultationWorkspace = () => {
   const { data: patients, isLoading: patientsLoading } = useQuery({
     queryKey: ["patients"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("patients").select("*").order("registration_date", { ascending: false });
+      const { data, error } = await supabase.from("patients").select(PATIENT_OPTION_COLUMNS).order("registration_date", { ascending: false }).limit(1000);
       if (error) throw error;
       return toCamel(data);
     },
@@ -93,7 +121,7 @@ const ConsultationWorkspace = () => {
   const { data: medications } = useQuery({
     queryKey: ["medications"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("medications").select("*").order("name", { ascending: true });
+      const { data, error } = await supabase.from("medications").select(MEDICATION_OPTION_COLUMNS).order("name", { ascending: true }).limit(1000);
       if (error) throw error;
       return toCamel(data);
     },
@@ -141,7 +169,7 @@ const ConsultationWorkspace = () => {
   const { data: labTests } = useQuery({
     queryKey: ["labTests"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("lab_tests").select("*").eq("status", "active");
+      const { data, error } = await supabase.from("lab_tests").select(LAB_TEST_OPTION_COLUMNS).eq("status", "active").order("name", { ascending: true }).limit(1000);
       if (error) throw error;
       return toCamel(data);
     },
@@ -150,7 +178,7 @@ const ConsultationWorkspace = () => {
   const { data: radiologyExams } = useQuery({
     queryKey: ["radiologyExams"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("radiology_exams").select("*, category:radiology_categories(name)").eq("status", "active");
+      const { data, error } = await supabase.from("radiology_exams").select(RADIOLOGY_EXAM_OPTION_COLUMNS).eq("status", "active").order("name", { ascending: true }).limit(1000);
       if (error) throw error;
       return toCamel(data);
     },
@@ -173,7 +201,7 @@ const ConsultationWorkspace = () => {
   const { data: existingConsultation, isLoading: existingLoading } = useQuery({
     queryKey: ["existing-consultation", lookupId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("consultations").select("*").eq("patient_id", lookupId).in("status", ["VitalsRecorded", "InProgress"]).order("created_at", { ascending: false }).limit(1);
+      const { data, error } = await supabase.from("consultations").select(ACTIVE_CONSULTATION_COLUMNS).eq("patient_id", lookupId).in("status", ["VitalsRecorded", "InProgress"]).order("created_at", { ascending: false }).limit(1);
       if (error) throw error;
       return data && data.length > 0 ? toCamel(data[0]) : null;
     },
@@ -186,7 +214,7 @@ const ConsultationWorkspace = () => {
       if (!consultationId) return [];
       const { data, error } = await supabase
         .from("prescriptions")
-        .select("*, items:prescription_items(*, medication:medications(name, strength))")
+        .select(PRESCRIPTION_WITH_ITEMS_COLUMNS)
         .eq("consultation_id", consultationId)
         .order("date", { ascending: false });
       if (error) throw error;
@@ -201,7 +229,7 @@ const ConsultationWorkspace = () => {
       if (!consultationId) return [];
       const { data, error } = await supabase
         .from("lab_requests")
-        .select("*, test:lab_tests(name, category)")
+        .select(LAB_REQUEST_WITH_TEST_COLUMNS)
         .eq("consultation_id", consultationId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -216,7 +244,7 @@ const ConsultationWorkspace = () => {
       if (!consultationId) return [];
       const { data, error } = await supabase
         .from("radiology_requests")
-        .select("*, exam:radiology_exams(name)")
+        .select(RADIOLOGY_REQUEST_WITH_EXAM_COLUMNS)
         .eq("consultation_id", consultationId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -324,7 +352,7 @@ const ConsultationWorkspace = () => {
       const cId = await ensureConsultation(pId);
       const { data: prescription, error: rxError } = await supabase.from("prescriptions").insert({
         patient_id: pId, doctor_id: user?.id, consultation_id: cId, status: "Pending",
-      }).select("*, items:prescription_items(*, medication:medications(name, strength))").single();
+      }).select(PRESCRIPTION_WITH_ITEMS_COLUMNS).single();
       if (rxError) throw rxError;
       const itemRows = items.map((p: any) => ({
         prescription_id: prescription.id, medication_id: p.medicationId,
@@ -349,7 +377,7 @@ const ConsultationWorkspace = () => {
       if (invError) throw invError;
       const { error: statusError } = await supabase.from("prescriptions").update({ status: "Unpaid" }).eq("id", prescription.id);
       if (statusError) throw statusError;
-      const { data: fullRx } = await supabase.from("prescriptions").select("*, items:prescription_items(*, medication:medications(name, strength))").eq("id", prescription.id).single();
+      const { data: fullRx } = await supabase.from("prescriptions").select(PRESCRIPTION_WITH_ITEMS_COLUMNS).eq("id", prescription.id).single();
       return toCamel(fullRx);
     },
     onSuccess: (savedRx) => {
@@ -377,7 +405,7 @@ const ConsultationWorkspace = () => {
       const inserts = items.map((lr: any) => ({
         patient_id: pId, test_id: lr.testId, consultation_id: cId, status: "Requested",
       }));
-      const { data, error } = await supabase.from("lab_requests").insert(inserts).select("*, test:lab_tests(name, category, price)");
+      const { data, error } = await supabase.from("lab_requests").insert(inserts).select(LAB_REQUEST_WITH_TEST_COLUMNS);
       if (error) throw error;
       const savedData = toCamel(data || []);
       for (const lr of savedData) {
@@ -419,7 +447,7 @@ const ConsultationWorkspace = () => {
       const inserts = items.map((rr: any) => ({
         patient_id: pId, exam_id: rr.examId, requested_by_id: user?.id, status: "Requested",
       }));
-      const { data, error } = await supabase.from("radiology_requests").insert(inserts).select("*, exam:radiology_exams(name, price)");
+      const { data, error } = await supabase.from("radiology_requests").insert(inserts).select(RADIOLOGY_REQUEST_WITH_EXAM_COLUMNS);
       if (error) throw error;
       const savedData = toCamel(data || []);
       for (const rr of savedData) {
@@ -526,7 +554,7 @@ const ConsultationWorkspace = () => {
         const labInserts = formData.labRequests.map((lr: any) => ({
           patient_id: pId, test_id: lr.testId, consultation_id: cId, status: "Requested",
         }));
-        const { data: savedLabs, error } = await supabase.from("lab_requests").insert(labInserts).select("*, test:lab_tests(name, price)");
+        const { data: savedLabs, error } = await supabase.from("lab_requests").insert(labInserts).select(LAB_REQUEST_WITH_TEST_COLUMNS);
         if (error) throw error;
         for (const lr of toCamel(savedLabs || [])) {
           const testPrice = lr.test?.price || 0;
@@ -549,7 +577,7 @@ const ConsultationWorkspace = () => {
         const radInserts = formData.radiologyRequests.map((rr: any) => ({
           patient_id: pId, exam_id: rr.examId, requested_by_id: user?.id, status: "Requested",
         }));
-        const { data: savedRads, error } = await supabase.from("radiology_requests").insert(radInserts).select("*, exam:radiology_exams(name, price)");
+        const { data: savedRads, error } = await supabase.from("radiology_requests").insert(radInserts).select(RADIOLOGY_REQUEST_WITH_EXAM_COLUMNS);
         if (error) throw error;
         for (const rr of toCamel(savedRads || [])) {
           const examPrice = rr.exam?.price || 0;
