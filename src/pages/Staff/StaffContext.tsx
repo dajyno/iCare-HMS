@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import { getCurrentTenantId, setCurrentTenantId, supabase } from "@/src/lib/supabase";
+import { getCurrentTenantId, supabase } from "@/src/lib/supabase";
 import { useAuth } from "@/src/context/AuthContext";
 import { useTenant } from "@/src/context/TenantContext";
 import type { StaffRecord } from "./types";
@@ -67,15 +67,14 @@ export function StaffProvider({ children }: { children: ReactNode }) {
 
   const loadRecords = useCallback(async () => {
     if (!activeTenantId) {
+      setRecords([]);
       setLoading(false);
       return;
     }
 
-    setCurrentTenantId(activeTenantId);
     setLoading(true);
     const { data, error } = await staffTable()
       .select("*")
-      .eq("tenant_id", activeTenantId)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -92,12 +91,6 @@ export function StaffProvider({ children }: { children: ReactNode }) {
   }, [loadRecords]);
 
   const addRecord = async (record: StaffRecord) => {
-    if (!activeTenantId) {
-      return { error: new Error("Workspace is still loading. Please try again.") };
-    }
-
-    if (activeTenantId) setCurrentTenantId(activeTenantId);
-
     const { data, error } = await staffTable()
       .insert(staffToDb(record, activeTenantId))
       .select("*")
@@ -114,16 +107,9 @@ export function StaffProvider({ children }: { children: ReactNode }) {
   };
 
   const updateRecord = async (staffId: string, updates: Partial<StaffRecord>) => {
-    if (!activeTenantId) {
-      return { error: new Error("Workspace is still loading. Please try again.") };
-    }
-
-    if (activeTenantId) setCurrentTenantId(activeTenantId);
-
     const { data, error } = await staffTable()
       .update(staffToDb(updates, activeTenantId))
       .eq("staff_id", staffId)
-      .eq("tenant_id", activeTenantId)
       .select("*")
       .single();
 
@@ -140,17 +126,9 @@ export function StaffProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteRecord = async (staffId: string) => {
-    if (!activeTenantId) {
-      console.error("Failed to delete staff record:", "Workspace is still loading. Please try again.");
-      return;
-    }
-
-    if (activeTenantId) setCurrentTenantId(activeTenantId);
-
     const { error } = await staffTable()
       .delete()
-      .eq("staff_id", staffId)
-      .eq("tenant_id", activeTenantId);
+      .eq("staff_id", staffId);
 
     if (error) {
       console.error("Failed to delete staff record:", error);

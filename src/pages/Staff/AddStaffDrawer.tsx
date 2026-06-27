@@ -21,9 +21,8 @@ import { useStaff } from "./StaffContext";
 import { useCheckSeatLimit } from "@/src/hooks/useSeatLimit";
 import UpgradeSubscriptionModal from "@/src/components/UpgradeSubscriptionModal";
 import type { StaffRecord } from "./types";
-import { DEPARTMENT_CATEGORIES, getPositionsForDepartment, CLINICIAN_POSITIONS, mapPositionToRole } from "./data";
+import { DEPARTMENT_CATEGORIES, getPositionsForDepartment, CLINICIAN_POSITIONS } from "./data";
 import { useQueryClient } from "@tanstack/react-query";
-import { adminSupabase } from "@/src/lib/adminSupabase";
 
 interface Props {
   open: boolean;
@@ -91,53 +90,10 @@ export default function AddStaffModal({ open, onClose }: Props) {
       return;
     }
 
-    setSaving(true);
-
     const seatCheck = await checkSeatLimit();
     if (!seatCheck.allowed) {
-      setSaving(false);
       setShowUpgradeModal(true);
       return;
-    }
-
-    let authUserId: string | undefined;
-    const isClinician = CLINICIAN_POSITIONS.includes(position);
-
-    if (isClinician) {
-      if (!email.trim()) {
-        setSaving(false);
-        setError("Clinical staff need an email so they can be linked for appointment booking.");
-        return;
-      }
-
-      const role = mapPositionToRole(position);
-      const tempPassword = `Temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
-        email: email.trim(),
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: { full_name: `${firstName} ${lastName}`.trim(), role },
-      });
-
-      const authMessage = typeof authError === "string" ? authError : authError?.message;
-
-      if (authData?.user?.id) {
-        authUserId = authData.user.id;
-      } else if (authMessage?.includes("already registered")) {
-        const { data: authUsers } = await (adminSupabase as any).auth.admin.listUsers();
-        const existing = authUsers?.users?.find((u: any) => u.email?.toLowerCase() === email.trim().toLowerCase());
-        authUserId = existing?.id;
-      } else if (authError) {
-        setSaving(false);
-        setError(authMessage || "Failed to link clinical staff for appointment booking.");
-        return;
-      }
-
-      if (!authUserId) {
-        setSaving(false);
-        setError("Could not link this clinical staff member for appointment booking.");
-        return;
-      }
     }
 
     const newRecord: StaffRecord = {
@@ -146,7 +102,7 @@ export default function AddStaffModal({ open, onClose }: Props) {
       position,
       department,
       availability_status: "Active",
-      is_clinician: isClinician,
+      is_clinician: CLINICIAN_POSITIONS.includes(position),
       gender,
       address,
       email,
@@ -155,9 +111,9 @@ export default function AddStaffModal({ open, onClose }: Props) {
       canLogin: false,
       password: "",
       profilePicture: "",
-      authUserId,
     };
 
+    setSaving(true);
     const result = await addRecord(newRecord);
     setSaving(false);
 
