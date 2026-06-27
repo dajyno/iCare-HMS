@@ -22,7 +22,6 @@ import { useCheckSeatLimit } from "@/src/hooks/useSeatLimit";
 import UpgradeSubscriptionModal from "@/src/components/UpgradeSubscriptionModal";
 import type { StaffRecord } from "./types";
 import { DEPARTMENT_CATEGORIES, getPositionsForDepartment, CLINICIAN_POSITIONS } from "./data";
-import { useQueryClient } from "@tanstack/react-query";
 
 interface Props {
   open: boolean;
@@ -30,9 +29,8 @@ interface Props {
 }
 
 export default function AddStaffModal({ open, onClose }: Props) {
-  const { addRecord, records } = useStaff();
+  const { addRecord } = useStaff();
   const checkSeatLimit = useCheckSeatLimit();
-  const queryClient = useQueryClient();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -44,51 +42,21 @@ export default function AddStaffModal({ open, onClose }: Props) {
   const [address, setAddress] = useState("");
   const [position, setPosition] = useState("");
   const [portalContainer, setPortalContainer] = useState<HTMLElement | undefined>(undefined);
-  const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  const resetForm = () => {
-    setFirstName("");
-    setLastName("");
-    setEmail("");
-    setPhone("");
-    setStaffId("");
-    setDepartment("");
-    setGender("");
-    setAddress("");
-    setPosition("");
-    setError("");
-  };
 
   useEffect(() => {
     if (open) {
       const el = document.querySelector<HTMLElement>('[data-slot="dialog-content"]');
       setPortalContainer(el?.parentElement ?? undefined);
-      if (!staffId) {
-        setStaffId(`STF-${Date.now().toString(36).toUpperCase()}`);
-      }
     } else {
       setPortalContainer(undefined);
     }
-  }, [open, staffId]);
+  }, [open]);
 
   const positionOptions = department ? getPositionsForDepartment(department) : [];
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (saving) return;
-    setError("");
-
-    const normalizedStaffId = staffId.trim();
-    if (!firstName.trim() || !lastName.trim() || !position || !normalizedStaffId) {
-      setError("First name, last name, staff ID, and position are required.");
-      return;
-    }
-
-    if (records.some((r) => r.staff_id.toLowerCase() === normalizedStaffId.toLowerCase())) {
-      setError("That Staff ID already exists in this workspace. Use a unique Staff ID.");
-      return;
-    }
+    if (!firstName || !lastName || !position || !staffId) return;
 
     const seatCheck = await checkSeatLimit();
     if (!seatCheck.allowed) {
@@ -97,7 +65,7 @@ export default function AddStaffModal({ open, onClose }: Props) {
     }
 
     const newRecord: StaffRecord = {
-      staff_id: normalizedStaffId,
+      staff_id: staffId,
       name: `${firstName} ${lastName}`.trim(),
       position,
       department,
@@ -113,22 +81,16 @@ export default function AddStaffModal({ open, onClose }: Props) {
       profilePicture: "",
     };
 
-    setSaving(true);
-    const result = await addRecord(newRecord);
-    setSaving(false);
-
-    if (result.error) {
-      const message = result.error?.message || String(result.error);
-      if (result.error?.code === "23505" || message.includes("duplicate key")) {
-        setError("That Staff ID is already used. Enter a different Staff ID and try again.");
-      } else {
-        setError(message || "Failed to add staff record.");
-      }
-      return;
-    }
-
-    resetForm();
-    queryClient.invalidateQueries({ queryKey: ["doctors-grid"] });
+    await addRecord(newRecord);
+    setFirstName("");
+    setLastName("");
+    setEmail("");
+    setPhone("");
+    setStaffId("");
+    setDepartment("");
+    setGender("");
+    setAddress("");
+    setPosition("");
     onClose();
   };
 
@@ -266,24 +228,17 @@ export default function AddStaffModal({ open, onClose }: Props) {
               className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 resize-none"
             />
           </div>
-
-          {error && (
-            <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-              {error}
-            </p>
-          )}
         </form>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={saving}>
+          <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={saving}
             className="bg-sky-600 hover:bg-sky-700"
           >
-            {saving ? "Saving..." : "Save Staff Record"}
+            Save Staff Record
           </Button>
         </DialogFooter>
       </DialogContent>

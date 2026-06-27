@@ -1,10 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getCurrentTenantId, supabase, toCamel } from "@/src/lib/supabase";
+import { supabase, toCamel } from "@/src/lib/supabase";
 import { adminSupabase } from "@/src/lib/adminSupabase";
 import { logAudit } from "@/src/lib/auditLogger";
 import type { Appointment, AppointmentStatus } from "@/src/lib/types";
 import { toast } from "sonner";
-import { useTenant } from "@/src/context/TenantContext";
 
 export interface DoctorSlot {
   id: string;
@@ -39,11 +38,8 @@ export function useAppointments(date: Date) {
 }
 
 export function useDoctors(enabled = true) {
-  const { tenant } = useTenant();
-  const tenantId = tenant?.tenantId || getCurrentTenantId();
-
   return useQuery<DoctorSlot[]>({
-    queryKey: ["doctors-grid", tenantId],
+    queryKey: ["doctors-grid"],
     queryFn: async () => {
       const [usersResult, staffResult] = await Promise.allSettled([
         adminSupabase
@@ -60,38 +56,28 @@ export function useDoctors(enabled = true) {
 
       const doctorMap = new Map<string, string>();
 
-      if (usersResult.status === "fulfilled") {
-        if (usersResult.value.error) {
-          console.error("Failed to fetch user doctors:", usersResult.value.error);
-        }
-        const doctors = toCamel(usersResult.value.data || []) as { id: string; fullName: string }[];
+      if (usersResult.status === "fulfilled" && usersResult.value.data) {
+        const doctors = toCamel(usersResult.value.data) as { id: string; fullName: string }[];
         for (const d of doctors) {
           doctorMap.set(d.id, d.fullName);
         }
-      } else {
-        console.error("Failed to fetch user doctors:", usersResult.reason);
       }
 
-      if (staffResult.status === "fulfilled") {
-        if (staffResult.value.error) {
-          console.error("Failed to fetch staff clinicians:", staffResult.value.error);
-        }
-        const staff = toCamel(staffResult.value.data || []) as { staffId: string; name: string; authUserId: string | null }[];
+      if (staffResult.status === "fulfilled" && staffResult.value.data) {
+        const staff = toCamel(staffResult.value.data) as { staffId: string; name: string; authUserId: string | null }[];
         for (const s of staff) {
           const id = s.authUserId || s.staffId;
           if (!doctorMap.has(id)) {
             doctorMap.set(id, s.name);
           }
         }
-      } else {
-        console.error("Failed to fetch staff clinicians:", staffResult.reason);
       }
 
       return Array.from(doctorMap.entries()).map(([id, name]) => ({ id, name }));
     },
     staleTime: 1000 * 30,
     refetchOnWindowFocus: true,
-    enabled: enabled && !!tenantId,
+    enabled,
   });
 }
 
