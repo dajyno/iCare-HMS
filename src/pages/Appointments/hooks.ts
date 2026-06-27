@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
-import { adminSupabase } from "@/src/lib/adminSupabase";
 import { logAudit } from "@/src/lib/auditLogger";
 import type { Appointment, AppointmentStatus } from "@/src/lib/types";
 import { toast } from "sonner";
@@ -132,7 +131,7 @@ export function useCreateAppointment() {
       reason: string;
       status: AppointmentStatus;
     }) => {
-      const { error } = await (adminSupabase as any).from("appointments").insert({
+      const { error } = await (supabase as any).from("appointments").insert({
         patient_id: data.patientId,
         doctor_id: data.doctorId,
         start_time: data.startTime,
@@ -174,7 +173,7 @@ export function useUpdateAppointment() {
       if (data.notes !== undefined) payload.notes = data.notes;
 
       console.log("[useUpdateAppointment] payload:", payload, "id:", data.id);
-      const { error } = await (adminSupabase as any)
+      const { error } = await (supabase as any)
         .from("appointments")
         .update(payload)
         .eq("id", data.id);
@@ -193,7 +192,7 @@ export function useDeleteAppointment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (adminSupabase as any).from("appointments").delete().eq("id", id);
+      const { error } = await (supabase as any).from("appointments").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -222,21 +221,21 @@ export function useCreateInvoice() {
         status: "Unpaid",
         source_type: "Consultation",
       };
-      const { data: invoiceData, error } = await (adminSupabase as any)
+      const { data: invoiceData, error } = await (supabase as any)
         .from("invoices")
         .insert(payload)
         .select("id")
         .single();
       if (error) throw error;
       const invoiceId = invoiceData.id;
-      await (adminSupabase as any).from("invoice_items").insert({
+      await (supabase as any).from("invoice_items").insert({
         invoice_id: invoiceId,
         description: `Consultation — ${data.doctorName}`,
         quantity: 1,
         unit_price: data.amount,
         total: data.amount,
       });
-      await (adminSupabase as any)
+      await (supabase as any)
         .from("appointments")
         .update({ invoice_id: invoiceId, invoice_amount: data.amount })
         .eq("id", data.appointmentId);
