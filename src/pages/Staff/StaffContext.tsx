@@ -1,13 +1,16 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
-import { supabase } from "@/src/lib/supabase";
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { getCurrentTenantId, supabase } from "@/src/lib/supabase";
 import { useAuth } from "@/src/context/AuthContext";
+import { useTenant } from "@/src/context/TenantContext";
 import type { StaffRecord } from "./types";
+
+type StaffMutationResult = { data?: StaffRecord; error?: any };
 
 interface StaffContextType {
   records: StaffRecord[];
   loading: boolean;
-  addRecord: (record: StaffRecord) => Promise<void>;
-  updateRecord: (staffId: string, updates: Partial<StaffRecord>) => Promise<{ error?: any }>;
+  addRecord: (record: StaffRecord) => Promise<StaffMutationResult>;
+  updateRecord: (staffId: string, updates: Partial<StaffRecord>) => Promise<StaffMutationResult>;
   deleteRecord: (staffId: string) => Promise<void>;
 }
 
@@ -32,7 +35,7 @@ function dbToStaffRecord(row: any): StaffRecord {
   };
 }
 
-function staffToDb(record: Partial<StaffRecord>): Record<string, any> {
+function staffToDb(record: Partial<StaffRecord>, tenantId?: string | null): Record<string, any> {
   const db: Record<string, any> = {};
   if (record.staff_id !== undefined) db.staff_id = record.staff_id;
   if (record.name !== undefined) db.name = record.name;
@@ -48,52 +51,78 @@ function staffToDb(record: Partial<StaffRecord>): Record<string, any> {
   if (record.password !== undefined) db.password = record.password;
   if (record.profilePicture !== undefined) db.profile_picture = record.profilePicture;
   if (record.authUserId !== undefined) db.auth_user_id = record.authUserId;
+  if (tenantId) db.tenant_id = tenantId;
   return db;
 }
 
 export function StaffProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const { tenant } = useTenant();
   const [records, setRecords] = useState<StaffRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const activeTenantId = tenant?.tenantId || user?.tenantId || getCurrentTenantId();
+
   const staffTable = () => supabase.from("staff") as any;
 
-  useEffect(() => {
-    if (!user?.tenantId) return;
-    setLoading(true);
-    staffTable()
-      .select("*")
-      .order("created_at", { ascending: false })
-      .then(({ data, error }: any) => {
-        if (!error && data) {
-          setRecords(data.map(dbToStaffRecord));
-        }
-        setLoading(false);
-      });
-  }, [user?.tenantId]);
-
-  const addRecord = async (record: StaffRecord) => {
-    const { error } = await staffTable().insert(staffToDb(record));
-    if (error) {
-      console.error("Failed to add staff record:", error);
+  const loadRecords = useCallback(async () => {
+    if (!activeTenantId) {
+      setRecords([]);
+      setLoading(false);
       return;
     }
-    setRecords((prev) => [...prev, record]);
+
+    setLoading(true);
+    const { data, error } = await staffTable()
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Failed to load staff records:", error);
+      setRecords([]);
+    } else {
+      setRecords((data || []).map(dbToStaffRecord));
+    }
+    setLoading(false);
+  }, [activeTenantId]);
+
+  useEffect(() => {
+    loadRecords();
+  }, [loadRecords]);
+
+  const addRecord = async (record: StaffRecord) => {
+    const { data, error } = await staffTable()
+      .insert(staffToDb(record, activeTenantId))
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error("Failed to add staff record:", error);
+      return { error };
+    }
+
+    const savedRecord = data ? dbToStaffRecord(data) : record;
+    setRecords((prev) => [savedRecord, ...prev.filter((r) => r.staff_id !== savedRecord.staff_id)]);
+    return { data: savedRecord };
   };
 
   const updateRecord = async (staffId: string, updates: Partial<StaffRecord>) => {
-    const { error } = await staffTable()
-      .update(staffToDb(updates))
-      .eq("staff_id", staffId);
+    const { data, error } = await staffTable()
+      .update(staffToDb(updates, activeTenantId))
+      .eq("staff_id", staffId)
+      .select("*")
+      .single();
 
     if (error) {
       console.error("Failed to update staff record:", error);
       return { error };
     }
+
+    const savedRecord = data ? dbToStaffRecord(data) : undefined;
     setRecords((prev) =>
-      prev.map((r) => (r.staff_id === staffId ? { ...r, ...updates } : r))
+      prev.map((r) => (r.staff_id === staffId ? savedRecord || { ...r, ...updates } : r))
     );
-    return {};
+    return { data: savedRecord };
   };
 
   const deleteRecord = async (staffId: string) => {
