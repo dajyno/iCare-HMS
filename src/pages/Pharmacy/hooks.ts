@@ -16,7 +16,6 @@ const PRESCRIPTION_QUEUE_COLUMNS = [
   "doctor_id",
   "status",
   "date",
-  "created_at",
   "patient:patients(id, patient_id, first_name, last_name, date_of_birth)",
 ].join(", ");
 
@@ -28,7 +27,6 @@ const PRESCRIPTION_ITEM_COLUMNS = [
   "frequency",
   "duration",
   "instructions",
-  "route",
   "quantity",
 ].join(", ");
 
@@ -90,7 +88,7 @@ function toPharmacyPrescription(row: any): PharmacyPrescription {
     patientCode: p.patientId ?? p.patient_id ?? "N/A",
     patientName: `${p.firstName ?? p.first_name ?? ""} ${p.lastName ?? p.last_name ?? ""}`.trim(),
     patientDob: p.dateOfBirth ?? p.date_of_birth ?? "",
-    prescriptionDate: row.date ?? row.created_at ?? "",
+    prescriptionDate: row.date ?? "",
     prescribedBy: (row.doctorName) ? `Dr. ${row.doctorName}` : `Doctor #${(row.doctorId ?? row.doctor_id ?? "?").slice(0, 6)}`,
     orderStatus: getOrderStatus(row.status),
     invoiceId: inv.id ?? undefined,
@@ -108,7 +106,7 @@ function toPharmacyPrescription(row: any): PharmacyPrescription {
         dosage: item.dosage,
         frequency: item.frequency,
         duration: item.duration,
-        route: item.route ?? "Oral",
+        route: item.route ?? item.instructions ?? "Oral",
         qtyPrescribed: item.qtyPrescribed ?? item.quantity ?? 1,
         qtyDispensed: 0,
         unitPrice: med.unitPrice ?? med.unit_price ?? 0,
