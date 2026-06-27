@@ -6,14 +6,34 @@ import { computeLineItemAmount, MOCK_MEDICATIONS, MOCK_LAB_TESTS } from "./billi
 import { createIncomeFromPayment } from "../Accounting/hooks";
 import { toast } from "sonner";
 
+const INVOICE_LIST_COLUMNS = [
+  "id",
+  "invoice_number",
+  "patient_id",
+  "total_amount",
+  "amount_paid",
+  "balance",
+  "status",
+  "source_type",
+  "prescription_id",
+  "payment_method",
+  "created_by",
+  "paid_at",
+  "created_at",
+  "updated_at",
+  "patient:patients(id, patient_id, first_name, last_name)",
+  "items:invoice_items(id, invoice_id, description, quantity, unit_price, total)",
+].join(", ");
+
 export function useInvoices() {
   return useQuery<InvoiceSummary[]>({
     queryKey: ["invoices"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("invoices")
-        .select("*, patient:patients(*), items:invoice_items(*)")
-        .order("created_at", { ascending: false });
+        .select(INVOICE_LIST_COLUMNS)
+        .order("created_at", { ascending: false })
+        .limit(500);
       if (error) return [];
       return (toCamel(data) as InvoiceSummary[]) || [];
     },
@@ -97,11 +117,15 @@ export function useMedications(query: string) {
       try {
         const { data, error } = await (supabase as any)
           .from("medications")
-          .select("id, name, price")
+          .select("id, name, unit_price")
           .ilike("name", `%${query}%`)
           .limit(10);
         if (error) return filtered;
-        const results = toCamel(data) as CatalogItem[];
+        const results = ((toCamel(data) as any[]) || []).map((item) => ({
+          id: item.id,
+          name: item.name,
+          price: item.unitPrice ?? 0,
+        })) as CatalogItem[];
         return results.length > 0 ? results : filtered;
       } catch {
         return filtered;

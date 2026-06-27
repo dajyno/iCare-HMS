@@ -156,7 +156,7 @@ const PatientProfile = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("prescriptions")
-        .select("*, items:prescription_items(*, medication:medications(name, strength))")
+        .select("id, patient_id, doctor_id, consultation_id, date, status, items:prescription_items(id, prescription_id, medication_id, dosage, frequency, duration, instructions, quantity, medication:medications(name, strength))")
         .eq("patient_id", id)
         .order("date", { ascending: false });
       if (error) {
@@ -423,7 +423,7 @@ const PatientProfile = () => {
       const { data: rx, error: rxError } = await supabase
         .from("prescriptions")
         .insert(prescription)
-        .select()
+        .select("id")
         .single();
       if (rxError) throw rxError;
       if (items && items.length > 0) {
@@ -450,7 +450,7 @@ const PatientProfile = () => {
       const { data: inv, error: invError } = await supabase
         .from("invoices")
         .insert(invoice)
-        .select()
+        .select("id")
         .single();
       if (invError) throw invError;
       if (inv && items && items.length > 0) {

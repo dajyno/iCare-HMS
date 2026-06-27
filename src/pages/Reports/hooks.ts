@@ -164,23 +164,23 @@ export function useReportsDashboard(filters?: GlobalFilters) {
 
         const { count: registrations } = await supabase
           .from("patients")
-          .select("*", { count: "exact", head: true })
+          .select("id", { count: "exact", head: true })
           .gte("registration_date", today);
 
         const { count: regYesterday } = await supabase
           .from("patients")
-          .select("*", { count: "exact", head: true })
+          .select("id", { count: "exact", head: true })
           .gte("registration_date", yesterday)
           .lt("registration_date", today);
 
         const { count: admissions } = await supabase
           .from("admissions")
-          .select("*", { count: "exact", head: true })
+          .select("id", { count: "exact", head: true })
           .eq("status", "Admitted");
 
         const { count: totalBeds } = await supabase
           .from("beds")
-          .select("*", { count: "exact", head: true });
+          .select("id", { count: "exact", head: true });
 
         const occupancyRate = totalBeds && totalBeds > 0 ? Math.round(((admissions ?? 0) / totalBeds) * 100) : MOCK_CLINICAL.bedOccupancyRate;
 
@@ -215,17 +215,17 @@ export function useReportsDashboard(filters?: GlobalFilters) {
 
         const { count: activeStaff } = await adminSupabase
           .from("staff")
-          .select("*", { count: "exact", head: true })
+          .select("id", { count: "exact", head: true })
           .eq("availability_status", "Active");
 
         const { count: consultsToday } = await supabase
           .from("consultations")
-          .select("*", { count: "exact", head: true })
+          .select("id", { count: "exact", head: true })
           .gte("created_at", today);
 
         const { count: consultsYesterday } = await supabase
           .from("consultations")
-          .select("*", { count: "exact", head: true })
+          .select("id", { count: "exact", head: true })
           .gte("created_at", yesterday)
           .lt("created_at", today);
 
@@ -234,23 +234,23 @@ export function useReportsDashboard(filters?: GlobalFilters) {
         try {
           const { count: totalLab } = await supabase
             .from("lab_requests")
-            .select("*", { count: "exact", head: true });
+            .select("id", { count: "exact", head: true });
           const { count: completedLab } = await supabase
             .from("lab_results")
-            .select("*", { count: "exact", head: true });
+            .select("id", { count: "exact", head: true });
           const { count: totalPharm } = await supabase
             .from("prescriptions")
-            .select("*", { count: "exact", head: true });
+            .select("id", { count: "exact", head: true });
           const { count: completedPharm } = await supabase
             .from("prescriptions")
-            .select("*", { count: "exact", head: true })
+            .select("id", { count: "exact", head: true })
             .in("status", ["Dispensed", "PartiallyDispensed"]);
           const { count: totalRad } = await supabase
             .from("radiology_requests")
-            .select("*", { count: "exact", head: true });
+            .select("id", { count: "exact", head: true });
           const { count: completedRad } = await supabase
             .from("radiology_results")
-            .select("*", { count: "exact", head: true });
+            .select("id", { count: "exact", head: true });
 
           const labRate = totalLab && totalLab > 0 ? ((completedLab ?? 0) / totalLab) * 100 : 0;
           const pharmRate = totalPharm && totalPharm > 0 ? ((completedPharm ?? 0) / totalPharm) * 100 : 0;
@@ -400,12 +400,12 @@ export function useDrillDownData(metricKey: MetricKey, filters?: GlobalFilters) 
           }
           case "task-completion": {
             const [labTotal, labCompleted, pharmTotal, pharmCompleted, radTotal, radCompleted] = await Promise.all([
-              supabase.from("lab_requests").select("*", { count: "exact", head: true }),
-              supabase.from("lab_results").select("*", { count: "exact", head: true }),
-              supabase.from("prescriptions").select("*", { count: "exact", head: true }),
-              supabase.from("prescriptions").select("*", { count: "exact", head: true }).in("status", ["Dispensed", "PartiallyDispensed"]),
-              supabase.from("radiology_requests").select("*", { count: "exact", head: true }),
-              supabase.from("radiology_results").select("*", { count: "exact", head: true }),
+              supabase.from("lab_requests").select("id", { count: "exact", head: true }),
+              supabase.from("lab_results").select("id", { count: "exact", head: true }),
+              supabase.from("prescriptions").select("id", { count: "exact", head: true }),
+              supabase.from("prescriptions").select("id", { count: "exact", head: true }).in("status", ["Dispensed", "PartiallyDispensed"]),
+              supabase.from("radiology_requests").select("id", { count: "exact", head: true }),
+              supabase.from("radiology_results").select("id", { count: "exact", head: true }),
             ]);
             const labTotalC = labTotal.count ?? 0;
             const labCompC = labCompleted.count ?? 0;
@@ -466,7 +466,7 @@ export function useOccupancyTrend(filters?: GlobalFilters) {
 
       const { count: totalBeds } = await supabase
         .from("beds")
-        .select("*", { count: "exact", head: true });
+        .select("id", { count: "exact", head: true });
 
       // Iterate months from start to end of filter range
       const start = new Date(dateFrom);
