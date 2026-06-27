@@ -54,6 +54,18 @@ export function useDoctors(enabled = true) {
           .neq("availability_status", "On Leave"),
       ]);
 
+      if (usersResult.status === "rejected") {
+        console.error("useDoctors: users query failed:", usersResult.reason);
+      } else if (usersResult.value.error) {
+        console.error("useDoctors: users query returned error:", usersResult.value.error);
+      }
+
+      if (staffResult.status === "rejected") {
+        console.error("useDoctors: staff query failed:", staffResult.reason);
+      } else if (staffResult.value.error) {
+        console.error("useDoctors: staff query returned error:", staffResult.value.error);
+      }
+
       const doctorMap = new Map<string, string>();
 
       if (usersResult.status === "fulfilled" && usersResult.value.data) {

@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   List,
   Grid,
+  Loader2,
 } from "lucide-react";
 import { format, addDays, subDays } from "date-fns";
 import { useAppointments, useDoctors, useUpdateAppointment } from "./hooks";
@@ -29,7 +30,7 @@ const AppointmentList = () => {
   const [prefillSlot, setPrefillSlot] = useState<{ doctor: DoctorSlot; time: string } | null>(null);
 
   const { data: appointments = [] } = useAppointments(selectedDate);
-  const { data: doctors = [] } = useDoctors();
+  const { data: doctors = [], isLoading: doctorsLoading, isError: doctorsError } = useDoctors();
 
   const conflictIds = useMemo(() => detectConflicts(appointments), [appointments]);
 
@@ -165,6 +166,20 @@ const AppointmentList = () => {
           <ChevronRight className="w-5 h-5" />
         </button>
       </div>
+
+      {/* Doctors loading / error */}
+      {doctorsLoading && doctors.length === 0 && (
+        <div className="flex items-center justify-center py-12 text-slate-400">
+          <Loader2 className="w-5 h-5 animate-spin mr-2" />
+          <span className="text-sm">Loading consultants...</span>
+        </div>
+      )}
+      {doctorsError && doctors.length === 0 && (
+        <div className="flex items-center justify-center gap-2 px-4 py-12 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          Failed to load consultants list. Check the console for details.
+        </div>
+      )}
 
       {/* Content */}
       <AnimatePresence mode="wait">
