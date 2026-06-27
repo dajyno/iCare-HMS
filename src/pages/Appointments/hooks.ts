@@ -42,12 +42,12 @@ export function useDoctors(enabled = true) {
     queryKey: ["doctors-grid"],
     queryFn: async () => {
       const [usersResult, staffResult] = await Promise.allSettled([
-        adminSupabase
+        supabase
           .from("users")
           .select("id, full_name")
           .eq("role", "Doctor")
           .eq("status", "active"),
-        (adminSupabase as any)
+        supabase
           .from("staff")
           .select("staff_id, name, auth_user_id")
           .eq("is_clinician", true)
