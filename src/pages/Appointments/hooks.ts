@@ -77,9 +77,9 @@ export function useDoctors(enabled = true) {
       if (staffResult.status === "fulfilled" && staffResult.value.data) {
         const staff = toCamel(staffResult.value.data) as { staffId: string; name: string; authUserId: string | null }[];
         for (const s of staff) {
-          const id = s.authUserId || s.staffId;
-          if (!doctorMap.has(id)) {
-            doctorMap.set(id, s.name);
+          if (!s.authUserId) continue;
+          if (!doctorMap.has(s.authUserId)) {
+            doctorMap.set(s.authUserId, s.name);
           }
         }
       }

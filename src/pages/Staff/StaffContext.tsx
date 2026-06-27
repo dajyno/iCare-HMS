@@ -59,7 +59,7 @@ export function StaffProvider({ children }: { children: ReactNode }) {
   const staffTable = () => supabase.from("staff") as any;
 
   useEffect(() => {
-    if (!user?.tenantId) return;
+    if (!user) return;
     setLoading(true);
     staffTable()
       .select("*")
@@ -70,7 +70,7 @@ export function StaffProvider({ children }: { children: ReactNode }) {
         }
         setLoading(false);
       });
-  }, [user?.tenantId]);
+  }, [user?.id]);
 
   const addRecord = async (record: StaffRecord) => {
     const { error } = await staffTable().insert(staffToDb(record));

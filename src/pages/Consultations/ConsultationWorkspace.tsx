@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
-import { adminSupabase } from "@/src/lib/adminSupabase";
 import { logAudit } from "@/src/lib/auditLogger";
 import { useAuth } from "../../context/AuthContext";
+import { useDoctors, useCreateAppointment } from "../Appointments/hooks";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -127,44 +127,7 @@ const ConsultationWorkspace = () => {
     },
   });
 
-  const { data: doctors } = useQuery({
-    queryKey: ["doctors"],
-    queryFn: async () => {
-      const [usersResult, staffResult] = await Promise.allSettled([
-        adminSupabase
-          .from("users")
-          .select("id, full_name")
-          .eq("role", "Doctor")
-          .eq("status", "active"),
-        (adminSupabase as any)
-          .from("staff")
-          .select("staff_id, name, auth_user_id")
-          .eq("is_clinician", true)
-          .neq("availability_status", "On Leave"),
-      ]);
-
-      const doctorMap = new Map<string, string>();
-
-      if (usersResult.status === "fulfilled" && usersResult.value.data) {
-        const doctors = toCamel(usersResult.value.data) as { id: string; fullName: string }[];
-        for (const d of doctors) {
-          doctorMap.set(d.id, d.fullName);
-        }
-      }
-
-      if (staffResult.status === "fulfilled" && staffResult.value.data) {
-        const staff = toCamel(staffResult.value.data) as { staffId: string; name: string; authUserId: string | null }[];
-        for (const s of staff) {
-          const id = s.authUserId || s.staffId;
-          if (!doctorMap.has(id)) {
-            doctorMap.set(id, s.name);
-          }
-        }
-      }
-
-      return Array.from(doctorMap.entries()).map(([id, name]) => ({ id, name }));
-    },
-  });
+  const { data: doctors = [] } = useDoctors();
 
   const { data: labTests } = useQuery({
     queryKey: ["labTests"],
@@ -319,6 +282,8 @@ const ConsultationWorkspace = () => {
     logAudit("Started consultation", "Consultation", data.id);
     return data.id;
   };
+
+  const createAppt = useCreateAppointment();
 
   const saveClinicalNotes = useMutation({
     mutationFn: async (formData: any) => {
@@ -650,6 +615,43 @@ const ConsultationWorkspace = () => {
     else setError("Please fix the form errors before submitting.");
   };
 
+  const handleSaveFollowUp = () => {
+    if (!selectedPatient?.id) {
+      setError("Please select a patient first");
+      return;
+    }
+    const doctorId = watch("followUpDoctorId");
+    const followUpDate = watch("followUpDate");
+    const followUpTime = watch("followUpTime");
+    if (!doctorId || !followUpDate || !followUpTime) {
+      setError("Please select doctor, date, and time for follow-up");
+      return;
+    }
+    const startTime = new Date(`${followUpDate}T${followUpTime}`);
+    const endTime = new Date(startTime.getTime() + 30 * 60 * 1000);
+    createAppt.mutate(
+      {
+        patientId: selectedPatient.id,
+        doctorId,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        reason: "Follow-up appointment",
+        status: "Confirmed",
+      },
+      {
+        onSuccess: () => {
+          toast.success("Follow-up appointment saved");
+          setValue("followUpDoctorId", "" as any);
+          setValue("followUpDate", "" as any);
+          setValue("followUpTime", "" as any);
+        },
+        onError: (err: any) => {
+          setError(err?.message || "Failed to save follow-up appointment");
+        },
+      }
+    );
+  };
+
   if (patientsLoading || existingLoading) {
     return (
       <div className="space-y-6 animate-in fade-in duration-500 max-w-5xl mx-auto pb-20">
@@ -803,6 +805,11 @@ const ConsultationWorkspace = () => {
                         <Label htmlFor="followUpTime">Time</Label>
                         <Input id="followUpTime" type="time" {...register("followUpTime")} />
                       </div>
+                    </div>
+                    <div className="flex justify-end mt-4">
+                      <Button type="button" size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={handleSaveFollowUp} disabled={createAppt.isPending}>
+                        {createAppt.isPending ? "Saving..." : <><Save className="w-3 h-3 mr-1" /> Save Follow-up</>}
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
