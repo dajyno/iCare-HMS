@@ -59,6 +59,7 @@ export function useDoctors(enabled = true) {
           .select("staff_id, name, auth_user_id")
           .eq("tenant_id", tenantId)
           .eq("is_clinician", true)
+          .not("auth_user_id", "is", null)
           .neq("availability_status", "On Leave"),
       ]);
 
@@ -82,9 +83,8 @@ export function useDoctors(enabled = true) {
         }
         const staff = toCamel(staffResult.value.data || []) as { staffId: string; name: string; authUserId: string | null }[];
         for (const s of staff) {
-          const id = s.authUserId || s.staffId;
-          if (!doctorMap.has(id)) {
-            doctorMap.set(id, s.name);
+          if (s.authUserId && !doctorMap.has(s.authUserId)) {
+            doctorMap.set(s.authUserId, s.name);
           }
         }
       } else {
