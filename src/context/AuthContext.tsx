@@ -48,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .maybeSingle();
 
       if (staffRow) {
-        const role = mapPositionToRole(staffRow.position) as User["role"];
+        const role = (authUser.user_metadata?.role || mapPositionToRole(staffRow.position)) as User["role"];
         setUser({
           id: userId,
           email: authUser.email || "",
