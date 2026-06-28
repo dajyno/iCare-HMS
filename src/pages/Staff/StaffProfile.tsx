@@ -190,13 +190,13 @@ export default function StaffProfile() {
         .eq("id", staff.authUserId)
         .maybeSingle();
       if (existingUser) {
-        const { error: roleError } = await adminSupabase
+        const { error: userError } = await adminSupabase
           .from("users")
-          .update({ role: mapPositionToRole(position) })
+          .update({ full_name: name, role: mapPositionToRole(position) })
           .eq("id", staff.authUserId);
-        if (roleError) {
-          console.error("Failed to sync role to users table:", roleError);
-          toast.error("Staff record saved but role sync failed");
+        if (userError) {
+          console.error("Failed to sync to users table:", userError);
+          toast.error("Staff record saved but user sync failed");
           return;
         }
       }
@@ -237,6 +237,14 @@ export default function StaffProfile() {
         });
         if (error) {
           if (error.message?.includes("already registered")) {
+            const { data: existingUser } = await adminSupabase
+              .from("users")
+              .select("id")
+              .eq("email", staff.email)
+              .maybeSingle();
+            if (existingUser) {
+              await updateRecord(staff.staff_id, { authUserId: existingUser.id });
+            }
             toast.success("Login access granted (account already exists)");
           } else {
             toast.error(error.message);

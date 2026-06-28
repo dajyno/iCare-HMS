@@ -120,6 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (tenantId) setCurrentTenantId(tenantId);
+      await ensureStaffRecord(userId);
       await fetchProfile(userId, authUser);
       logAudit("Logged in", "User", userId);
     };
@@ -208,7 +209,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (signUpData?.session) {
-        await ensureStaffRecord(signUpData.session.user.id);
         await handlePostAuth(signUpData.session.user.id, signUpData.session.user);
         return;
       }
@@ -218,7 +218,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { data } = await supabase.auth.getSession();
       if (data.session?.user) {
-        await ensureStaffRecord(data.session.user.id);
         await handlePostAuth(data.session.user.id, data.session.user);
       }
       return;
