@@ -77,9 +77,9 @@ const Profile = () => {
     refetchOnWindowFocus: true,
   });
 
-  const profileRole = staffRecord?.position
+  const profileRole = user?.role || (staffRecord?.position
     ? mapPositionToRole(staffRecord.position)
-    : user?.role;
+    : undefined);
 
   const openEdit = () => {
     setEditName(user?.fullName || "");
