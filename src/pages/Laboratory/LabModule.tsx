@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { useAuth } from "../../context/AuthContext";
 import { Plus, FolderEdit } from "lucide-react";
@@ -23,6 +23,9 @@ const LabModule = () => {
   const [selectedBatch, setSelectedBatch] = useState<any[] | null>(null);
   const [viewingResult, setViewingResult] = useState<any>(null);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
     if (viewParam === "newExam") {
@@ -31,15 +34,28 @@ const LabModule = () => {
   }, [viewParam]);
 
   const { data: requests, isLoading, error } = useQuery({
-    queryKey: ["lab-requests"],
+    queryKey: ["lab-requests", page, pageSize],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("lab_requests")
-        .select("*, patient:patients(*), test:lab_tests(*), consultation:consultations(*)")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return toCamel(data);
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+
+      const [countResult, dataResult] = await Promise.all([
+        supabase
+          .from("lab_requests")
+          .select("*", { count: "exact", head: true }),
+        supabase
+          .from("lab_requests")
+          .select("*, patient:patients(*), test:lab_tests(*)")
+          .order("created_at", { ascending: false })
+          .range(from, to),
+      ]);
+
+      setTotalCount(countResult.count ?? 0);
+
+      if (dataResult.error) throw dataResult.error;
+      return toCamel(dataResult.data);
     },
+    placeholderData: keepPreviousData,
   });
 
   const markCollectedMutation = useMutation({
@@ -185,6 +201,11 @@ const LabModule = () => {
                 onSelectOrder={handleSelectOrder}
                 onViewResult={handleViewResult}
                 onMarkCollected={handleMarkCollected}
+                page={page}
+                pageSize={pageSize}
+                totalCount={totalCount}
+                onPageChange={setPage}
+                onPageSizeChange={(s: number) => { setPageSize(s); setPage(1); }}
               />
             </motion.div>
           ) : (

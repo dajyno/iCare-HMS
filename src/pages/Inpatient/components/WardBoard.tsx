@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import Pagination from "@/components/ui/pagination";
 import type { ActiveAdmission } from "../inpatientTypes";
 import StatusBadge from "./StatusBadge";
 
@@ -26,9 +27,19 @@ const columnHelper = createColumnHelper<ActiveAdmission & { wardBed: string }>()
 const WardBoard = ({
   admissions,
   onSelectPatient,
+  page,
+  pageSize,
+  totalCount,
+  onPageChange,
+  onPageSizeChange,
 }: {
   admissions: ActiveAdmission[];
   onSelectPatient: (admission: ActiveAdmission) => void;
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
 }) => {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -217,19 +228,13 @@ const WardBoard = ({
         </table>
       </div>
 
-      <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between text-xs text-slate-400">
-        <span>
-          {admissions.filter((a) => a.careStatus !== "Discharged").length} active
-          {admissions.some((a) => a.careStatus === "Discharged") && (
-            <span className="text-slate-300 ml-1">
-              &middot; {admissions.filter((a) => a.careStatus === "Discharged").length} discharged
-            </span>
-          )}
-        </span>
-        <span className="text-[10px] text-slate-300">
-          Click a row to open diagnostics workspace
-        </span>
-      </div>
+      <Pagination
+        currentPage={page}
+        pageSize={pageSize}
+        totalItems={totalCount}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+      />
     </div>
   );
 };

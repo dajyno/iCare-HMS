@@ -3,7 +3,6 @@ import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
-  getPaginationRowModel,
   createColumnHelper,
   flexRender,
   SortingState,
@@ -28,8 +27,6 @@ import {
 } from "@/components/ui/table";
 import Pagination from "@/components/ui/pagination";
 import StatusBadge from "./StatusBadge";
-import useSmoothScroll from "./useSmoothScroll";
-
 const PaymentBadge = ({ status }: { status: string }) => {
   const isPaid = status === "Paid";
   return (
@@ -64,7 +61,6 @@ interface LabOrder {
   patientId: string;
   gender: string;
   dateOfBirth: string;
-  prescribedBy: string;
   status: string;
   dbStatus: string;
   paymentStatus: string;
@@ -79,16 +75,25 @@ const LabOrderTable = ({
   onSelectOrder,
   onViewResult,
   onMarkCollected,
+  page,
+  pageSize,
+  totalCount,
+  onPageChange,
+  onPageSizeChange,
 }: {
   orders: any[];
   onSelectOrder: (order: any) => void;
   onViewResult: (order: any) => void;
   onMarkCollected: (order: any) => void;
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
 }) => {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [collectingIds, setCollectingIds] = useState<Set<string>>(new Set());
-  const scrollRef = useSmoothScroll<HTMLDivElement>();
 
   const getGroupKey = (o: any): string | null => {
     return o.batchId || o.consultationId || null;
@@ -126,7 +131,6 @@ const LabOrderTable = ({
           patientId: o.patient?.id ?? "",
           gender: o.patient?.gender ?? "",
           dateOfBirth: o.patient?.dateOfBirth ?? "",
-          prescribedBy: o.consultation?.doctor?.fullName ?? "—",
           status: anyAvail ? "To Do" : mapStatus(batch[0]?.status),
           dbStatus: anyAvail ? "Requested" : batch[0]?.status,
           paymentStatus: allPaid ? "Paid" : "Unpaid",
@@ -142,7 +146,6 @@ const LabOrderTable = ({
           patientId: o.patient?.id ?? "",
           gender: o.patient?.gender ?? "",
           dateOfBirth: o.patient?.dateOfBirth ?? "",
-          prescribedBy: o.consultation?.doctor?.fullName ?? "—",
           status: mapStatus(o.status),
           dbStatus: o.status,
           paymentStatus: o.paymentStatus ?? "Unpaid",
@@ -162,7 +165,6 @@ const LabOrderTable = ({
         r.orderCode.toLowerCase().includes(q) ||
         r.testName.toLowerCase().includes(q) ||
         r.patientName.toLowerCase().includes(q) ||
-        r.prescribedBy.toLowerCase().includes(q) ||
         r.status.toLowerCase().includes(q) ||
         r.paymentStatus.toLowerCase().includes(q)
     );
@@ -181,7 +183,7 @@ const LabOrderTable = ({
       columnHelper.accessor("testName", {
         header: "Test Type",
         cell: (info) => (
-          <span className="text-sm font-medium text-slate-900">
+          <span className="text-sm font-medium text-slate-900 truncate max-w-[200px]">
             {info.getValue()}
           </span>
         ),
@@ -190,12 +192,6 @@ const LabOrderTable = ({
         header: "Patient",
         cell: (info) => (
           <span className="text-sm text-slate-700">{info.getValue()}</span>
-        ),
-      }),
-      columnHelper.accessor("prescribedBy", {
-        header: "Prescribed By",
-        cell: (info) => (
-          <span className="text-sm text-slate-500">{info.getValue()}</span>
         ),
       }),
       columnHelper.accessor("paymentStatus", {
@@ -264,8 +260,6 @@ const LabOrderTable = ({
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: 12 } },
   });
 
   const rows = table.getRowModel().rows;
@@ -276,7 +270,7 @@ const LabOrderTable = ({
         <div>
           <h2 className="text-sm font-bold text-slate-900">Order Queue</h2>
           <p className="text-[11px] text-slate-500">
-            {filteredData.length} request{filteredData.length !== 1 ? "s" : ""}
+            {totalCount} request{totalCount !== 1 ? "s" : ""}
           </p>
         </div>
         <div className="relative w-full sm:w-64">
@@ -291,7 +285,7 @@ const LabOrderTable = ({
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div ref={scrollRef} className="overflow-x-auto overflow-y-auto max-h-[580px]">
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((hg) => (
@@ -374,11 +368,11 @@ const LabOrderTable = ({
         </div>
 
         <Pagination
-          currentPage={table.getState().pagination.pageIndex + 1}
-          pageSize={table.getState().pagination.pageSize}
-          totalItems={filteredData.length}
-          onPageChange={(p) => table.setPageIndex(p - 1)}
-          onPageSizeChange={(s) => table.setPageSize(s)}
+          currentPage={page}
+          pageSize={pageSize}
+          totalItems={totalCount}
+          onPageChange={onPageChange}
+          onPageSizeChange={onPageSizeChange}
         />
       </div>
     </div>

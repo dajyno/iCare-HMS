@@ -59,6 +59,9 @@ export function useInpatientState() {
   const [loadingWards, setLoadingWards] = useState(true);
   const [loadingAdmissions, setLoadingAdmissions] = useState(true);
   const [diagnostic, setDiagnostic] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [admissionTotalCount, setAdmissionTotalCount] = useState(0);
   const realtimeRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
@@ -113,51 +116,71 @@ export function useInpatientState() {
       }
     }
 
-    async function fetchAdmissions(): Promise<any[] | null> {
+    async function fetchAdmissions(fetchPage?: number, fetchPageSize?: number): Promise<{ data: any[] | null; count: number } | null> {
       try {
-        // Diagnostic: count all admitted admissions (ignores join failures)
-        try {
-          const { count } = await (supabase as any)
+        const from = fetchPage && fetchPageSize ? (fetchPage - 1) * fetchPageSize : 0;
+        const to = fetchPageSize ? from + fetchPageSize - 1 : 0;
+        const hasPagination = !!fetchPageSize;
+
+        const countPromise = (supabase as any)
+          .from("admissions")
+          .select("id", { count: "exact", head: true })
+          .in("status", ["Admitted", "Discharged"]);
+
+        const BASE_SELECT = "*, patient:patients(patient_id, id, first_name, last_name, date_of_birth, allergies), ward:wards(name), bed:beds(bed_number), discharge:discharges!left(discharge_date)";
+        const DOCTOR_SELECT = "*, admitting_doctor:admitting_doctor_id(full_name)," + BASE_SELECT.slice(1);
+
+        function queryAdmissions(selectCols: string) {
+          const q = (supabase as any)
             .from("admissions")
-            .select("id", { count: "exact", head: true })
-            .eq("status", "Admitted");
-          console.log(`[admissions] Diagnostic count of admitted rows: ${count}`);
-        } catch (e) {
-          console.warn("[admissions] Diagnostic count failed:", e);
+            .select(selectCols)
+            .in("status", ["Admitted", "Discharged"])
+            .order("admission_date", { ascending: false });
+          if (hasPagination) q.range(from, to);
+          return q;
         }
 
-        const { data, error } = await supabase
-          .from("admissions")
-          .select("*, patient:patients(*), ward:wards(name), bed:beds(bed_number), discharge:discharges!left(discharge_date)")
-          .in("status", ["Admitted", "Discharged"])
-          .order("admission_date", { ascending: false });
+        let [{ count }, rawResult] = await Promise.all([
+          countPromise,
+          queryAdmissions(DOCTOR_SELECT),
+        ]);
         if (cancelled) return null;
+
+        if (rawResult.error) {
+          // FK join likely doesn't exist; retry without it
+          console.warn("[admissions] FK join failed, retrying without:", rawResult.error);
+          rawResult = await queryAdmissions(BASE_SELECT);
+          if (cancelled || rawResult.error) return null;
+        }
+
+        const { data, error } = rawResult;
         if (error) {
           console.warn("[admissions] Supabase query error:", error);
           return null;
         }
-        console.log(`[admissions] Fetched ${data?.length ?? 0} rows`, data);
+        console.log(`[admissions] Fetched ${data?.length ?? 0} rows (total: ${count})`, data);
         if (!data || data.length === 0) {
-          return [];
+          return { data: [], count: count ?? 0 };
         }
 
-        // Batch-resolve doctor names from admitting_doctor_id
-        const doctorIds = data
-          .map((a: any) => a.admitting_doctor_id)
-          .filter(Boolean);
+        // Batch-resolve doctor names (only for IDs not resolved by FK join)
+        const unresolvedIds = data
+          .filter((a: any) => a.admitting_doctor_id && !a.admitting_doctor?.full_name)
+          .map((a: any) => a.admitting_doctor_id);
         const doctorMap = new Map<string, string>();
-        if (doctorIds.length > 0) {
+        if (unresolvedIds.length > 0) {
+          const uniqueIds = [...new Set(unresolvedIds)];
           const { data: users } = await (supabase as any)
             .from("users")
             .select("id, full_name")
-            .in("id", doctorIds);
+            .in("id", uniqueIds);
           if (users) {
             for (const u of users) {
               if (u.full_name) doctorMap.set(u.id, u.full_name);
             }
           }
           // Fallback: try staff table for IDs not found in users
-          const unmatched = doctorIds.filter((id: string) => !doctorMap.has(id));
+          const unmatched = uniqueIds.filter((id: string) => !doctorMap.has(id));
           if (unmatched.length > 0) {
             const { data: staff } = await (supabase as any)
               .from("staff")
@@ -171,7 +194,7 @@ export function useInpatientState() {
           }
         }
 
-        return (data).map((a: any) => ({
+        const mapped = (data).map((a: any) => ({
           admissionId: a.id,
           wardCode: a.ward?.name ?? "Unknown",
           bedNo: a.bed?.bed_number ?? "Unknown",
@@ -189,7 +212,7 @@ export function useInpatientState() {
               ? a.patient.allergies.split(",").map((s: string) => s.trim()).filter(Boolean)
               : [],
           },
-          attendingPhysician: doctorMap.get(a.admitting_doctor_id) ?? "Unassigned",
+          attendingPhysician: a.admitting_doctor?.full_name ?? doctorMap.get(a.admitting_doctor_id) ?? "Unassigned",
           admissionDate: a.admission_date,
           dischargeDate: a.discharge?.discharge_date ?? undefined,
           daysAdmitted: computeDaysAdmitted(a.admission_date, a.discharge?.discharge_date ?? undefined),
@@ -198,6 +221,7 @@ export function useInpatientState() {
           medicationSchedule: [],
           fluidLedger: { intake: [], output: [] },
         }));
+        return { data: mapped, count: count ?? 0 };
       } catch (err) {
         console.warn("[admissions] Fetch exception:", err);
         return null;
@@ -335,9 +359,9 @@ export function useInpatientState() {
       try {
         setLoadingWards(true);
         setLoadingAdmissions(true);
-        let [wardConfig, activeAdmissions] = await Promise.all([
+        let [wardConfig, admissionResult] = await Promise.all([
           fetchWards(),
-          fetchAdmissions(),
+          fetchAdmissions(page, pageSize),
         ]);
         setLoadingWards(false);
         setLoadingAdmissions(false);
@@ -345,6 +369,8 @@ export function useInpatientState() {
         wardConfig = await migrateLegacyWards(wardConfig);
         if (cancelled) return;
 
+        const activeAdmissions = admissionResult?.data ?? null;
+        if (admissionResult) setAdmissionTotalCount(admissionResult.count);
         const persisted = loadPersistedState();
 
         if (activeAdmissions === null) {
@@ -352,7 +378,11 @@ export function useInpatientState() {
             "Failed to load admissions from database. Check console for details. " +
             "Falling back to locally saved data."
           );
-          activeAdmissions = persisted.activeAdmissions;
+          setState({
+            wardConfiguration: wardConfig ?? [],
+            activeAdmissions: persisted.activeAdmissions,
+          });
+          return;
         } else if (activeAdmissions.length === 0 && !persisted.activeAdmissions.length) {
           setDiagnostic(
             "No admitted patients found in the database. " +
@@ -367,21 +397,9 @@ export function useInpatientState() {
           wardConfig = persisted.wardConfiguration;
         }
 
-        // Load clinical data from DB, fall back to localStorage
-        let clinicalMap: Map<string, any> | null = null;
-        if (activeAdmissions && activeAdmissions.length > 0) {
-          try {
-            clinicalMap = await fetchClinicalData(activeAdmissions);
-          } catch (e) {
-            console.warn("[clinical] Failed to load clinical data from DB:", e);
-          }
-        }
-
-        const mergeClinical = (admissions: any[]) =>
+        // Merge persisted clinical data (if any) for admissions that exist in DB
+        const mergePersistedClinical = (admissions: any[]) =>
           admissions.map((a: any) => {
-            const clinical = clinicalMap?.get(a.admissionId);
-            if (clinical) return { ...a, ...clinical };
-            // Fallback: merge from persisted localStorage
             const persistedAdm = persisted.activeAdmissions.find((p: any) => p.admissionId === a.admissionId);
             if (persistedAdm) return { ...a, careStatus: persistedAdm.careStatus, vitalsHistory: persistedAdm.vitalsHistory, medicationSchedule: persistedAdm.medicationSchedule, fluidLedger: persistedAdm.fluidLedger, clinicalNotes: persistedAdm.clinicalNotes };
             return a;
@@ -389,7 +407,7 @@ export function useInpatientState() {
 
         setState({
           wardConfiguration: wardConfig ?? [],
-          activeAdmissions: mergeClinical(activeAdmissions ?? []),
+          activeAdmissions: mergePersistedClinical(activeAdmissions),
         });
       } catch (err) {
         console.error("fetchInitialData failed:", err);
@@ -415,30 +433,19 @@ export function useInpatientState() {
               if (cancelled) return;
               console.log("[realtime] admissions change:", payload.eventType);
 
-              // Re-fetch admissions in background
-              const fresh = await fetchAdmissions();
-              if (cancelled || fresh === null) return;
-
-              let clinicalMap: Map<string, any> | null = null;
-              if (fresh.length > 0) {
-                try {
-                  clinicalMap = await fetchClinicalData(fresh);
-                } catch (e) {
-                  console.warn("[realtime] clinical fetch failed:", e);
-                }
-              }
-              if (cancelled) return;
+              // Re-fetch admissions in background (current page)
+              const result = await fetchAdmissions(page, pageSize);
+              if (cancelled || result === null) return;
+              if (result) setAdmissionTotalCount(result.count);
 
               setState((prev) => {
-                const merge = (admissions: any[]) =>
-                  admissions.map((a: any) => {
-                    const c = clinicalMap?.get(a.admissionId);
-                    if (c) return { ...a, ...c };
-                    const p = prev.activeAdmissions.find((pa: any) => pa.admissionId === a.admissionId);
-                    if (p) return { ...a, vitalsHistory: p.vitalsHistory, medicationSchedule: p.medicationSchedule, fluidLedger: p.fluidLedger, clinicalNotes: p.clinicalNotes };
-                    return a;
-                  });
-                return { ...prev, activeAdmissions: merge(fresh) };
+                // Preserve any already-loaded clinical data for each admission
+                const merged = (result?.data ?? []).map((a: any) => {
+                  const p = prev.activeAdmissions.find((pa: any) => pa.admissionId === a.admissionId);
+                  if (p) return { ...a, vitalsHistory: p.vitalsHistory, medicationSchedule: p.medicationSchedule, fluidLedger: p.fluidLedger, clinicalNotes: p.clinicalNotes };
+                  return a;
+                });
+                return { ...prev, activeAdmissions: merged };
               });
             }
           )
@@ -458,6 +465,81 @@ export function useInpatientState() {
         realtimeRef.current = null;
       }
     };
+  }, [page, pageSize]);
+
+  const loadAdmissionClinicalData = useCallback(async (admissionId: string) => {
+    const s = supabase as any;
+
+    const clinical: any = { vitalsHistory: [], medicationSchedule: [], fluidLedger: { intake: [], output: [] }, clinicalNotes: "" };
+
+    await Promise.all([
+      (async () => {
+        const { data } = await s
+          .from("inpatient_vitals")
+          .select("*")
+          .eq("admission_id", admissionId)
+          .order("recorded_at", { ascending: true });
+        if (data) {
+          clinical.vitalsHistory = data.map((v: any) => ({
+            timestamp: v.recorded_at,
+            bp: v.bp,
+            pulse: v.pulse,
+            temp: Number(v.temp),
+            spo2: v.spo2,
+            observations: v.observations || "",
+          }));
+        }
+      })(),
+      (async () => {
+        const { data } = await s
+          .from("inpatient_medication_schedules")
+          .select("*")
+          .eq("admission_id", admissionId)
+          .order("created_at", { ascending: true });
+        if (data) {
+          clinical.medicationSchedule = data.map((m: any) => ({
+            scheduleEntryId: m.id,
+            drugId: m.drug_id,
+            name: m.drug_name,
+            quantity: m.quantity,
+            unitPrice: Number(m.unit_price),
+            frequency: m.frequency,
+            assignedSlots: m.assigned_slots || [],
+            administrationLog: m.admin_log || [],
+          }));
+        }
+      })(),
+      (async () => {
+        const { data } = await s
+          .from("inpatient_fluid_entries")
+          .select("*")
+          .eq("admission_id", admissionId)
+          .order("recorded_at", { ascending: true });
+        if (data) {
+          for (const f of data) {
+            const entry = { itemId: f.id, timestamp: f.recorded_at, source: f.source, volume: Number(f.volume) };
+            if (f.type === "intake") clinical.fluidLedger.intake.push(entry);
+            else clinical.fluidLedger.output.push(entry);
+          }
+        }
+      })(),
+      (async () => {
+        const { data } = await s
+          .from("inpatient_clinical_notes")
+          .select("admission_id, content")
+          .eq("admission_id", admissionId);
+        if (data && data.length > 0) {
+          clinical.clinicalNotes = data[0].content;
+        }
+      })(),
+    ]);
+
+    setState((prev) => ({
+      ...prev,
+      activeAdmissions: prev.activeAdmissions.map((a) =>
+        a.admissionId === admissionId ? { ...a, ...clinical } : a
+      ),
+    }));
   }, []);
 
   const computeFluidBalance = useCallback(
@@ -1194,6 +1276,12 @@ export function useInpatientState() {
     wards,
     loading,
     diagnostic,
+    page,
+    pageSize,
+    admissionTotalCount,
+    setPage,
+    setPageSize,
+    loadAdmissionClinicalData,
     computeFluidBalance,
     searchPatients,
     searchMedications,

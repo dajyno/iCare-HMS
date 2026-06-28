@@ -30,6 +30,12 @@ const InpatientOverview = () => {
     state,
     loading,
     diagnostic,
+    page,
+    pageSize,
+    admissionTotalCount,
+    setPage,
+    setPageSize,
+    loadAdmissionClinicalData,
     computeFluidBalance,
     searchPatients,
     finalizeAdmission,
@@ -59,8 +65,12 @@ const InpatientOverview = () => {
   const handleSelectPatient = useCallback(
     (admission: ActiveAdmission) => {
       setSelectedAdmissionId(admission.admissionId);
+      // Load clinical data only when the patient is opened
+      if (admission.vitalsHistory.length === 0) {
+        loadAdmissionClinicalData(admission.admissionId);
+      }
     },
-    []
+    [loadAdmissionClinicalData]
   );
 
   const handleCloseWorkspace = useCallback(() => {
@@ -214,6 +224,11 @@ const InpatientOverview = () => {
             <WardBoard
               admissions={state.activeAdmissions}
               onSelectPatient={handleSelectPatient}
+              page={page}
+              pageSize={pageSize}
+              totalCount={admissionTotalCount}
+              onPageChange={setPage}
+              onPageSizeChange={(s: number) => { setPageSize(s); setPage(1); }}
             />
           </motion.div>
         )}

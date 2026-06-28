@@ -40,6 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (data && !error) {
       setUser(toCamel(data) as unknown as User);
+      if (data.tenant_id) setCurrentTenantId(data.tenant_id);
     } else if (authUser) {
       const { data: staffRow } = await (supabase.from("staff") as any)
         .select("name, position")

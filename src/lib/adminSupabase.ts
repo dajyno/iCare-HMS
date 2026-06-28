@@ -192,28 +192,27 @@ const rawAdminSupabase = new AdminClient();
 // ─────────────────────────────────────────────
 
 function addTenantFilter(table: string, builder: any): any {
-  const tenantId = getCurrentTenantId();
-  if (!tenantId || SKIP_TENANT_TABLES.has(table)) return builder;
+  if (!getCurrentTenantId() || SKIP_TENANT_TABLES.has(table)) return builder;
 
   return new Proxy(builder, {
     get(bTarget: any, bProp: string, bReceiver: any) {
       if (bProp === "select") {
-        return (...args: any[]) => bTarget.select(...args).eq("tenant_id", tenantId);
+        return (...args: any[]) => bTarget.select(...args).eq("tenant_id", getCurrentTenantId());
       }
       if (bProp === "update") {
-        return (...args: any[]) => bTarget.update(...args).eq("tenant_id", tenantId);
+        return (...args: any[]) => bTarget.update(...args).eq("tenant_id", getCurrentTenantId());
       }
       if (bProp === "delete") {
-        return (...args: any[]) => bTarget.delete(...args).eq("tenant_id", tenantId);
+        return (...args: any[]) => bTarget.delete(...args).eq("tenant_id", getCurrentTenantId());
       }
       if (bProp === "insert") {
         return (...args: any[]) => {
           const data = args[0];
           if (Array.isArray(data)) {
-            return bTarget.insert(data.map((item: any) => ({ ...item, tenant_id: tenantId })), args[1]);
+            return bTarget.insert(data.map((item: any) => ({ ...item, tenant_id: getCurrentTenantId() })), args[1]);
           }
           if (data && typeof data === "object") {
-            return bTarget.insert({ ...data, tenant_id: tenantId }, args[1]);
+            return bTarget.insert({ ...data, tenant_id: getCurrentTenantId() }, args[1]);
           }
           return bTarget.insert(data, args[1]);
         };
@@ -222,10 +221,10 @@ function addTenantFilter(table: string, builder: any): any {
         return (...args: any[]) => {
           const data = args[0];
           if (Array.isArray(data)) {
-            return bTarget.upsert(data.map((item: any) => ({ ...item, tenant_id: tenantId })), args[1]);
+            return bTarget.upsert(data.map((item: any) => ({ ...item, tenant_id: getCurrentTenantId() })), args[1]);
           }
           if (data && typeof data === "object") {
-            return bTarget.upsert({ ...data, tenant_id: tenantId }, args[1]);
+            return bTarget.upsert({ ...data, tenant_id: getCurrentTenantId() }, args[1]);
           }
           return bTarget.upsert(data, args[1]);
         };
