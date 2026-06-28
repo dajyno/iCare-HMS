@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Calendar } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
 import { TableSkeleton } from "@/src/components/skeletons/TableSkeleton";
 import { cn } from "@/lib/utils";
 import Pagination from "@/components/ui/pagination";
@@ -34,15 +34,11 @@ export default function TransactionLedger({ transactions, loading, selectedDate,
             {transactions ? `Showing ${transactions.length} records` : "Live feed"}
           </p>
         </div>
-        <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider bg-slate-50 px-2.5 py-1 rounded-full border border-slate-100 flex items-center gap-1.5 cursor-pointer">
-          <Calendar className="w-3 h-3" />
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => onDateChange(e.target.value)}
-            className="bg-transparent border-none outline-none text-[10px] font-semibold text-slate-400 uppercase tracking-wider w-[110px] p-0 [color-scheme:light]"
-          />
-        </label>
+        <DatePicker
+          value={selectedDate}
+          onChange={onDateChange}
+          className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider bg-slate-50 px-2.5 py-1 rounded-full border border-slate-100 h-auto gap-1.5 w-[130px]"
+        />
       </div>
 
       {loading ? (

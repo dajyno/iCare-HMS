@@ -1,7 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion } from "motion/react";
-import { Search, X, User, Loader2, ChevronRight, Clock, AlertTriangle } from "lucide-react";
+import { Search, X, User, Loader2, ChevronRight, AlertTriangle } from "lucide-react";
 import { usePatients, useCreateAppointment, findConflicts, type DoctorSlot } from "./hooks";
+import { DatePicker } from "@/components/ui/date-picker";
+import { TimePicker } from "@/components/ui/time-picker";
 import { APPOINTMENT_REASONS } from "./types";
 import type { Appointment } from "@/src/lib/types";
 
@@ -269,11 +271,9 @@ export default function NewAppointmentModal({
               <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
                 Date
               </label>
-              <input
-                type="date"
+              <DatePicker
                 value={selectedDate}
-                onChange={(e) => {
-                  const nd = e.target.value;
+                onChange={(nd) => {
                   setSelectedDate(nd);
                   setConflicts([]);
                   if (startTime) {
@@ -285,28 +285,20 @@ export default function NewAppointmentModal({
                     setEndTime(`${nd}T${tp}`);
                   }
                 }}
-                className="w-full h-10 text-sm rounded-xl border border-slate-200 bg-white px-3 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
               />
             </div>
             <div>
               <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
                 Start Time
               </label>
-              <div className="relative">
-                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="time"
-                  value={startTime ? startTime.split("T")[1]?.slice(0, 5) || "" : ""}
-                  onChange={(e) => {
-                    const t = e.target.value;
-                    if (t) {
-                      const iso = `${selectedDate}T${t}:00`;
-                      handleStartTimeChange(iso);
-                    }
-                  }}
-                  className="w-full pl-9 pr-3 h-10 text-sm rounded-xl border border-slate-200 bg-white outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
-                />
-              </div>
+              <TimePicker
+                value={startTime}
+                onChange={(t) => {
+                  if (t) {
+                    handleStartTimeChange(`${selectedDate}T${t}:00`);
+                  }
+                }}
+              />
             </div>
           </div>
 
@@ -315,21 +307,15 @@ export default function NewAppointmentModal({
             <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
               End Time
             </label>
-            <div className="relative">
-              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="time"
-                value={endTime ? endTime.split("T")[1]?.slice(0, 5) || "" : ""}
-                onChange={(e) => {
-                    const t = e.target.value;
-                    if (t) {
-                      setEndTime(`${selectedDate}T${t}:00`);
-                      setConflicts([]);
-                    }
-                }}
-                className="w-full pl-9 pr-3 h-10 text-sm rounded-xl border border-slate-200 bg-white outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
-              />
-            </div>
+            <TimePicker
+              value={endTime}
+              onChange={(t) => {
+                if (t) {
+                  setEndTime(`${selectedDate}T${t}:00`);
+                  setConflicts([]);
+                }
+              }}
+            />
           </div>
 
           {/* Reason */}

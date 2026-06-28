@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { usePatients, useCreateInvoice } from "./billingHooks";
@@ -1276,10 +1277,9 @@ function GeneralContent({
             </div>
             <div>
               <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">Date</Label>
-              <Input
-                type="date"
+              <DatePicker
                 value={item.date}
-                onChange={(e) => updateLineItem(idx, "date", e.target.value)}
+                onChange={(v) => updateLineItem(idx, "date", v)}
                 className="h-9 text-sm bg-slate-50/50 border-slate-200"
               />
             </div>
@@ -1373,10 +1373,9 @@ function GeneralContent({
                     </select>
                   </td>
                   <td className="px-3 py-2">
-                    <Input
-                      type="date"
+                    <DatePicker
                       value={item.date}
-                      onChange={(e) => updateLineItem(idx, "date", e.target.value)}
+                      onChange={(v) => updateLineItem(idx, "date", v)}
                       className="h-8 text-xs border-0 bg-transparent px-1 focus:bg-white focus:border"
                     />
                   </td>

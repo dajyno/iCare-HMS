@@ -12,6 +12,7 @@ import { PageSkeleton } from "@/src/components/skeletons/PageSkeleton";
 import { TableSkeleton } from "@/src/components/skeletons/TableSkeleton";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, SheetContent } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -301,7 +302,7 @@ const FamilyPatients = () => {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Date of Birth *</Label>
-                  <Input type="date" required value={newForm.dateOfBirth || ""} onChange={(e) => setNewForm({ ...newForm, dateOfBirth: e.target.value })} />
+                  <DatePicker value={newForm.dateOfBirth || ""} onChange={(v) => setNewForm({ ...newForm, dateOfBirth: v })} fromYear={1930} toYear={new Date().getFullYear()} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Phone *</Label>

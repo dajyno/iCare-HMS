@@ -1,8 +1,10 @@
 import { useState, useCallback } from "react";
 import { motion } from "motion/react";
-import { X, Loader2, Clock, AlertTriangle, DollarSign } from "lucide-react";
+import { X, Loader2, AlertTriangle, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import type { Appointment, AppointmentStatus } from "@/src/lib/types";
+import { DatePicker } from "@/components/ui/date-picker";
+import { TimePicker } from "@/components/ui/time-picker";
 import type { DoctorSlot } from "./hooks";
 import { useUpdateAppointment, useDeleteAppointment, useCreateInvoice, findConflicts } from "./hooks";
 import { STATUS_COLORS, STATUS_LABELS, STATUS_TRANSITIONS, APPOINTMENT_REASONS } from "./types";
@@ -217,11 +219,9 @@ export default function EditAppointmentModal({
               <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
                 Date
               </label>
-              <input
-                type="date"
+              <DatePicker
                 value={dateStr}
-                onChange={(e) => {
-                  const d = e.target.value;
+                onChange={(d) => {
                   setConflicts([]);
                   if (startTime) {
                     const timePart = startTime.split("T")[1];
@@ -232,28 +232,21 @@ export default function EditAppointmentModal({
                     setEndTime(`${d}T${timePart}`);
                   }
                 }}
-                className="w-full h-10 text-sm rounded-xl border border-slate-200 bg-white px-3 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
               />
             </div>
             <div>
               <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
                 Start Time
               </label>
-              <div className="relative">
-                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="time"
-                  value={startTime ? startTime.split("T")[1]?.slice(0, 5) || "" : ""}
-                    onChange={(e) => {
-                      const t = e.target.value;
-                      if (t) {
-                        setStartTime(`${dateStr}T${t}:00`);
-                        setConflicts([]);
-                      }
-                    }}
-                  className="w-full pl-9 pr-3 h-10 text-sm rounded-xl border border-slate-200 bg-white outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
-                />
-              </div>
+              <TimePicker
+                value={startTime}
+                onChange={(t) => {
+                  if (t) {
+                    setStartTime(`${dateStr}T${t}:00`);
+                    setConflicts([]);
+                  }
+                }}
+              />
             </div>
           </div>
 
@@ -262,21 +255,15 @@ export default function EditAppointmentModal({
             <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
               End Time
             </label>
-            <div className="relative">
-              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="time"
-                value={endTime ? endTime.split("T")[1]?.slice(0, 5) || "" : ""}
-                    onChange={(e) => {
-                      const t = e.target.value;
-                      if (t) {
-                        setEndTime(`${dateStr}T${t}:00`);
-                        setConflicts([]);
-                      }
-                    }}
-                className="w-full pl-9 pr-3 h-10 text-sm rounded-xl border border-slate-200 bg-white outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
-              />
-            </div>
+            <TimePicker
+              value={endTime}
+              onChange={(t) => {
+                if (t) {
+                  setEndTime(`${dateStr}T${t}:00`);
+                  setConflicts([]);
+                }
+              }}
+            />
           </div>
 
           {/* Reason */}

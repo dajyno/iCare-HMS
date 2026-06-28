@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import SearchableSelect from "@/components/ui/searchable-select";
@@ -1209,7 +1210,7 @@ const PatientProfile = () => {
                 </div>
                 <div>
                   <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Date of Birth</Label>
-                  <Input type="date" value={editForm.dateOfBirth || ""} onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none" />
+                  <DatePicker value={editForm.dateOfBirth || ""} onChange={(v) => setEditForm({ ...editForm, dateOfBirth: v })} fromYear={1930} toYear={new Date().getFullYear()} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none" />
                 </div>
                 <div>
                   <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Category <span className="text-red-500">*</span></Label>
@@ -1350,7 +1351,7 @@ const PatientProfile = () => {
             <div className="space-y-1.5"><Label>Clinical Notes</Label><Textarea value={consultForm.clinicalNotes || ""} onChange={(e) => setConsultForm({ ...consultForm, clinicalNotes: e.target.value })} /></div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5"><Label>Treatment Plan</Label><Textarea value={consultForm.treatmentPlan || ""} onChange={(e) => setConsultForm({ ...consultForm, treatmentPlan: e.target.value })} /></div>
-              <div className="space-y-1.5"><Label>Follow-up Date</Label><Input type="date" value={consultForm.followUpDate || ""} onChange={(e) => setConsultForm({ ...consultForm, followUpDate: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>Follow-up Date</Label><DatePicker value={consultForm.followUpDate || ""} onChange={(v) => setConsultForm({ ...consultForm, followUpDate: v })} /></div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowConsultModal(false)}>Cancel</Button>
@@ -1579,7 +1580,7 @@ const PatientProfile = () => {
               </div>
               <div className="space-y-1.5">
                 <Label>Date of Birth *</Label>
-                <Input type="date" required value={dependantForm.dateOfBirth} onChange={(e) => setDependantForm({ ...dependantForm, dateOfBirth: e.target.value })} />
+                <DatePicker value={dependantForm.dateOfBirth} onChange={(v) => setDependantForm({ ...dependantForm, dateOfBirth: v })} fromYear={1930} toYear={new Date().getFullYear()} />
               </div>
               <div className="space-y-1.5">
                 <Label>Blood Group</Label>

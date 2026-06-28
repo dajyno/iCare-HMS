@@ -19,6 +19,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
+import { TimePicker } from "@/components/ui/time-picker";
 import SearchableSelect from "@/components/ui/searchable-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -798,12 +800,12 @@ const ConsultationWorkspace = () => {
                         </select>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="followUpDate">Date</Label>
-                        <Input id="followUpDate" type="date" {...register("followUpDate")} />
+                        <Label>Date</Label>
+                        <DatePicker value={watch("followUpDate") || ""} onChange={(v) => setValue("followUpDate", v)} />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="followUpTime">Time</Label>
-                        <Input id="followUpTime" type="time" {...register("followUpTime")} />
+                        <Label>Time</Label>
+                        <TimePicker value={watch("followUpTime") || ""} onChange={(v) => setValue("followUpTime", v)} />
                       </div>
                     </div>
                     <div className="flex justify-end mt-4">

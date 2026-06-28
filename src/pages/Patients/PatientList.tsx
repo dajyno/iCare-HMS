@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import SearchableSelect from "@/components/ui/searchable-select";
@@ -524,7 +525,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Date of Birth <span className="text-red-500">*</span></Label>
-                  <Input type="date" required value={newForm.dateOfBirth || ""} onChange={(e) => setNewForm({ ...newForm, dateOfBirth: e.target.value })} />
+                  <DatePicker value={newForm.dateOfBirth || ""} onChange={(v) => setNewForm({ ...newForm, dateOfBirth: v })} fromYear={1930} toYear={new Date().getFullYear()} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Folder Type <span className="text-red-500">*</span></Label>
@@ -679,7 +680,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
                   </div>
                   <div className="space-y-1.5">
                     <Label>Date of Birth</Label>
-                    <Input type="date" value={editForm.dateOfBirth ? editForm.dateOfBirth.substring(0, 10) : ""} onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })} />
+                    <DatePicker value={editForm.dateOfBirth ? editForm.dateOfBirth.substring(0, 10) : ""} onChange={(v) => setEditForm({ ...editForm, dateOfBirth: v })} fromYear={1930} toYear={new Date().getFullYear()} />
                   </div>
                   <div className="space-y-1.5">
                     <Label>Category</Label>

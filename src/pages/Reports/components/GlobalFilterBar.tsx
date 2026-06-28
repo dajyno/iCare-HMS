@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Calendar, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { GlobalFilters } from "../types";
 
@@ -52,27 +52,19 @@ export default function GlobalFilterBar({ filters, onChange }: GlobalFilterBarPr
     <div className="flex flex-wrap items-end gap-3 p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
       <div className="space-y-1">
         <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">From</label>
-        <div className="relative">
-          <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-          <Input
-            type="date"
-            value={local.dateFrom ?? ""}
-            onChange={(e) => setLocal({ ...local, dateFrom: e.target.value || null })}
-            className="w-36 pl-8 h-9 text-sm"
-          />
-        </div>
+        <DatePicker
+          value={local.dateFrom ?? ""}
+          onChange={(v) => setLocal({ ...local, dateFrom: v || null })}
+          className="w-36 h-9 text-sm"
+        />
       </div>
       <div className="space-y-1">
         <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">To</label>
-        <div className="relative">
-          <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-          <Input
-            type="date"
-            value={local.dateTo ?? ""}
-            onChange={(e) => setLocal({ ...local, dateTo: e.target.value || null })}
-            className="w-36 pl-8 h-9 text-sm"
-          />
-        </div>
+        <DatePicker
+          value={local.dateTo ?? ""}
+          onChange={(v) => setLocal({ ...local, dateTo: v || null })}
+          className="w-36 h-9 text-sm"
+        />
       </div>
       <div className="space-y-1">
         <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Department</label>
