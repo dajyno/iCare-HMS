@@ -35,7 +35,7 @@ async function proxyFetch(body: any): Promise<{ data: any; error: any; count?: n
 }
 
 // Tables that should NOT receive automatic tenant filtering
-const SKIP_TENANT_TABLES = new Set<string>();
+const SKIP_TENANT_TABLES = new Set<string>(["users"]);
 
 // ─────────────────────────────────────────────
 // QueryBuilder — chainable, thenable, mimics Supabase query builder
