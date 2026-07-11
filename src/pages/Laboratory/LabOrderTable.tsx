@@ -41,18 +41,6 @@ const PaymentBadge = ({ status }: { status: string }) => {
   );
 };
 
-const mapStatus = (dbStatus: string) => {
-  const map: Record<string, string> = {
-    Requested: "To Do",
-    SampleCollected: "In Progress",
-    InProgress: "In Progress",
-    AwaitingValidation: "Waiting for Results",
-    Completed: "Done",
-    Cancelled: "Failed",
-  };
-  return map[dbStatus] ?? dbStatus;
-};
-
 interface LabOrder {
   id: string;
   orderCode: string;
@@ -95,76 +83,19 @@ const LabOrderTable = ({
   const [globalFilter, setGlobalFilter] = useState("");
   const [collectingIds, setCollectingIds] = useState<Set<string>>(new Set());
 
-  const getGroupKey = (o: any): string | null => {
-    return o.batchId || o.consultationId || null;
-  };
-
-  const data = useMemo<LabOrder[]>(() => {
-    if (!Array.isArray(orders)) return [];
-
-    const groups = new Map<string, any[]>();
-    for (const o of orders) {
-      const key = getGroupKey(o);
-      if (key) {
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key)!.push(o);
-      }
-    }
-
-    const seen = new Set<string>();
-    const result: LabOrder[] = [];
-
-    for (const o of orders) {
-      const key = getGroupKey(o);
-      if (key) {
-        if (seen.has(key)) continue;
-        seen.add(key);
-        const batch = groups.get(key)!;
-        const anyAvail = batch.some((b: any) => b.status === "Requested");
-        const allPaid = batch.every((b: any) => b.paymentStatus === "Paid");
-        const testNames = batch.map((b: any) => b.test?.name ?? "").filter(Boolean);
-        result.push({
-          id: key,
-          orderCode: `BATCH-${key.slice(-4).toUpperCase()}`,
-          testName: testNames.length > 1 ? `${testNames.length} Tests` : (testNames[0] ?? "Unknown"),
-          patientName: `${o.patient?.firstName ?? ""} ${o.patient?.lastName ?? ""}`.trim(),
-          patientId: o.patient?.id ?? "",
-          gender: o.patient?.gender ?? "",
-          dateOfBirth: o.patient?.dateOfBirth ?? "",
-          status: anyAvail ? "To Do" : mapStatus(batch[0]?.status),
-          dbStatus: anyAvail ? "Requested" : batch[0]?.status,
-          paymentStatus: allPaid ? "Paid" : "Unpaid",
-          raw: batch.length > 1 ? batch : batch[0],
-          isBatch: batch.length > 1,
-        });
-      } else {
-        result.push({
-          id: o.id,
-          orderCode: `REQ-${o.id.slice(-6).toUpperCase()}`,
-          testName: o.test?.name ?? "Unknown Test",
-          patientName: `${o.patient?.firstName ?? ""} ${o.patient?.lastName ?? ""}`.trim(),
-          patientId: o.patient?.id ?? "",
-          gender: o.patient?.gender ?? "",
-          dateOfBirth: o.patient?.dateOfBirth ?? "",
-          status: mapStatus(o.status),
-          dbStatus: o.status,
-          paymentStatus: o.paymentStatus ?? "Unpaid",
-          raw: o,
-          isBatch: false,
-        });
-      }
-    }
-    return result;
+  const data = useMemo(() => {
+    return Array.isArray(orders) ? orders : [];
   }, [orders]);
 
   const filteredData = useMemo(() => {
     if (!globalFilter.trim()) return data;
     const q = globalFilter.toLowerCase();
     return data.filter(
-      (r) =>
+      (r: any) =>
         r.orderCode.toLowerCase().includes(q) ||
         r.testName.toLowerCase().includes(q) ||
         r.patientName.toLowerCase().includes(q) ||
+        r.prescribedBy.toLowerCase().includes(q) ||
         r.status.toLowerCase().includes(q) ||
         r.paymentStatus.toLowerCase().includes(q)
     );

@@ -25,7 +25,6 @@ const LabModule = () => {
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
     if (viewParam === "newExam") {
@@ -33,27 +32,112 @@ const LabModule = () => {
     }
   }, [viewParam]);
 
+  const mapStatus = (dbStatus: string) => {
+    const map: Record<string, string> = {
+      Requested: "To Do",
+      SampleCollected: "In Progress",
+      InProgress: "In Progress",
+      AwaitingValidation: "Waiting for Results",
+      Completed: "Done",
+      Cancelled: "Failed",
+    };
+    return map[dbStatus] ?? dbStatus;
+  };
+
+  const getGroupKey = (o: any): string | null => {
+    return o.batchId || o.consultationId || null;
+  };
+
+  const groupLabRequests = (orders: any[]): any[] => {
+    if (!Array.isArray(orders)) return [];
+
+    const groups = new Map<string, any[]>();
+    for (const o of orders) {
+      const key = getGroupKey(o);
+      if (key) {
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(o);
+      }
+    }
+
+    const seen = new Set<string>();
+    const result: any[] = [];
+
+    for (const o of orders) {
+      const key = getGroupKey(o);
+      if (key) {
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const batch = groups.get(key)!;
+        const anyAvail = batch.some((b: any) => b.status === "Requested");
+        const allPaid = batch.every((b: any) => b.paymentStatus === "Paid");
+        const testNames = batch.map((b: any) => b.test?.name ?? "").filter(Boolean);
+        result.push({
+          id: key,
+          orderCode: `BATCH-${key.slice(-4).toUpperCase()}`,
+          testName: testNames.length > 1 ? `${testNames.length} Tests` : (testNames[0] ?? "Unknown"),
+          patientName: `${o.patient?.firstName ?? ""} ${o.patient?.lastName ?? ""}`.trim(),
+          patientId: o.patient?.id ?? "",
+          gender: o.patient?.gender ?? "",
+          dateOfBirth: o.patient?.dateOfBirth ?? "",
+          prescribedBy: o.consultation?.doctor?.fullName ?? "—",
+          status: anyAvail ? "To Do" : mapStatus(batch[0]?.status),
+          dbStatus: anyAvail ? "Requested" : batch[0]?.status,
+          paymentStatus: allPaid ? "Paid" : "Unpaid",
+          raw: batch.length > 1 ? batch : batch[0],
+          isBatch: batch.length > 1,
+        });
+      } else {
+        result.push({
+          id: o.id,
+          orderCode: `REQ-${o.id.slice(-6).toUpperCase()}`,
+          testName: o.test?.name ?? "Unknown Test",
+          patientName: `${o.patient?.firstName ?? ""} ${o.patient?.lastName ?? ""}`.trim(),
+          patientId: o.patient?.id ?? "",
+          gender: o.patient?.gender ?? "",
+          dateOfBirth: o.patient?.dateOfBirth ?? "",
+          prescribedBy: o.consultation?.doctor?.fullName ?? "—",
+          status: mapStatus(o.status),
+          dbStatus: o.status,
+          paymentStatus: o.paymentStatus ?? "Unpaid",
+          raw: o,
+          isBatch: false,
+        });
+      }
+    }
+    return result;
+  };
+
+  const { data: totalGroupedCount = 0 } = useQuery({
+    queryKey: ["lab-requests-count"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("lab_requests")
+        .select("id, batch_id, consultation_id");
+      const camel = toCamel(data ?? []);
+      const keys = new Set<string>();
+      for (const item of camel) {
+        const key = item.batchId || item.consultationId || item.id;
+        keys.add(key);
+      }
+      return keys.size;
+    },
+  });
+
   const { data: requests, isLoading, error } = useQuery({
     queryKey: ["lab-requests", page, pageSize],
     queryFn: async () => {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      const [countResult, dataResult] = await Promise.all([
-        supabase
-          .from("lab_requests")
-          .select("*", { count: "exact", head: true }),
-        supabase
-          .from("lab_requests")
-          .select("*, patient:patients(*), test:lab_tests(*)")
-          .order("created_at", { ascending: false })
-          .range(from, to),
-      ]);
+      const { data: dataResult, error: dataError } = await supabase
+        .from("lab_requests")
+        .select("*, patient:patients(*), test:lab_tests(*), consultation:consultations(*)")
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
-      setTotalCount(countResult.count ?? 0);
-
-      if (dataResult.error) throw dataResult.error;
-      return toCamel(dataResult.data);
+      if (dataError) throw dataError;
+      return groupLabRequests(toCamel(dataResult ?? []));
     },
     placeholderData: keepPreviousData,
   });
@@ -68,6 +152,7 @@ const LabModule = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["lab-requests-count"] });
     },
   });
 
@@ -203,7 +288,7 @@ const LabModule = () => {
                 onMarkCollected={handleMarkCollected}
                 page={page}
                 pageSize={pageSize}
-                totalCount={totalCount}
+                totalCount={totalGroupedCount}
                 onPageChange={setPage}
                 onPageSizeChange={(s: number) => { setPageSize(s); setPage(1); }}
               />
