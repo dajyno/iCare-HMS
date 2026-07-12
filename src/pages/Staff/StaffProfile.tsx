@@ -218,6 +218,20 @@ export default function StaffProfile() {
       password: canLogin ? password : "",
       availability_status: availabilityStatus as any,
     });
+
+    // New: Update password in Auth if changed and already linked
+    if (canLogin && password.length >= 6 && staff.authUserId && password !== staff.password) {
+      try {
+        const { error } = await adminSupabase.auth.admin.updateUserById(staff.authUserId, { password });
+        if (error) throw error;
+        toast.success("Password updated in authentication system");
+      } catch (err: any) {
+        toast.error("Failed to update authentication password");
+        console.error(err);
+        return;
+      }
+    }
+
     if (canLogin && password.length >= 6 && staff.email) {
       if (!staff.canLogin) {
         const seatCheck = await checkSeatLimit();
@@ -228,65 +242,68 @@ export default function StaffProfile() {
       }
       saveCustomAccount(staff.email, { name: staff.name, role: staffRole });
 
-      try {
-        const { data, error } = await adminSupabase.auth.admin.createUser({
-          email: staff.email,
-          password,
-          email_confirm: true,
-          user_metadata: { full_name: staff.name, role: staffRole },
-        });
-        if (error) {
-          const errMsg = typeof error === "string" ? error : error.message || "";
-          if (errMsg.includes("already registered")) {
-            const { data: existingUser } = await adminSupabase
-              .from("users")
-              .select("id")
-              .eq("email", staff.email)
-              .maybeSingle();
-            const targetUserId = existingUser?.id;
-            if (!targetUserId) {
-              const { data: authList } = await adminSupabase.auth.admin.listUsers();
-              const authUser = authList?.users?.find(
-                (u: any) => u.email?.toLowerCase() === staff.email.toLowerCase()
-              );
-              if (authUser) {
-                const { error: insertErr } = await adminSupabase
-                  .from("users")
-                  .insert({
-                    id: authUser.id,
-                    full_name: staff.name,
-                    email: staff.email,
-                    role: staffRole,
-                    status: "active",
-                  });
-                if (!insertErr) {
-                  await updateRecord(staff.staff_id, { authUserId: authUser.id });
-                  await adminSupabase.auth.admin.updateUserById(authUser.id, {
-                    password,
-                    user_metadata: { full_name: staff.name, role: staffRole },
-                  });
+      // Only attempt to create if not already linked
+      if (!staff.authUserId) {
+        try {
+          const { data, error } = await adminSupabase.auth.admin.createUser({
+            email: staff.email,
+            password,
+            email_confirm: true,
+            user_metadata: { full_name: staff.name, role: staffRole },
+          });
+          if (error) {
+            const errMsg = typeof error === "string" ? error : error.message || "";
+            if (errMsg.includes("already registered")) {
+              const { data: existingUser } = await adminSupabase
+                .from("users")
+                .select("id")
+                .eq("email", staff.email)
+                .maybeSingle();
+              const targetUserId = existingUser?.id;
+              if (!targetUserId) {
+                const { data: authList } = await adminSupabase.auth.admin.listUsers();
+                const authUser = authList?.users?.find(
+                  (u: any) => u.email?.toLowerCase() === staff.email.toLowerCase()
+                );
+                if (authUser) {
+                  const { error: insertErr } = await adminSupabase
+                    .from("users")
+                    .insert({
+                      id: authUser.id,
+                      full_name: staff.name,
+                      email: staff.email,
+                      role: staffRole,
+                      status: "active",
+                    });
+                  if (!insertErr) {
+                    await updateRecord(staff.staff_id, { authUserId: authUser.id });
+                    await adminSupabase.auth.admin.updateUserById(authUser.id, {
+                      password,
+                      user_metadata: { full_name: staff.name, role: staffRole },
+                    });
+                  }
                 }
+              } else {
+                await updateRecord(staff.staff_id, { authUserId: targetUserId });
+                await adminSupabase.auth.admin.updateUserById(targetUserId, {
+                  password,
+                  user_metadata: { full_name: staff.name, role: staffRole },
+                });
               }
+              toast.success("Login access granted (account already exists)");
             } else {
-              await updateRecord(staff.staff_id, { authUserId: targetUserId });
-              await adminSupabase.auth.admin.updateUserById(targetUserId, {
-                password,
-                user_metadata: { full_name: staff.name, role: staffRole },
-              });
+              toast.error(errMsg || "Failed to create account");
             }
-            toast.success("Login access granted (account already exists)");
-          } else {
-            toast.error(errMsg || "Failed to create account");
+            return;
           }
+          if (data?.user?.id) {
+            await updateRecord(staff.staff_id, { authUserId: data.user.id });
+          }
+          toast.success("Login access granted");
+        } catch (err: any) {
+          toast.error(err?.message || "Failed to create account");
           return;
         }
-        if (data?.user?.id) {
-          await updateRecord(staff.staff_id, { authUserId: data.user.id });
-        }
-        toast.success("Login access granted");
-      } catch (err: any) {
-        toast.error(err?.message || "Failed to create account");
-        return;
       }
     } else if (!canLogin && staff.email) {
       removeCustomAccount(staff.email);
