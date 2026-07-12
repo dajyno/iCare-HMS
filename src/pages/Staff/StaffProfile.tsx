@@ -236,7 +236,8 @@ export default function StaffProfile() {
           user_metadata: { full_name: staff.name, role: staffRole },
         });
         if (error) {
-          if (error.message?.includes("already registered")) {
+          const errMsg = typeof error === "string" ? error : error.message || "";
+          if (errMsg.includes("already registered")) {
             const { data: existingUser } = await adminSupabase
               .from("users")
               .select("id")
@@ -247,16 +248,17 @@ export default function StaffProfile() {
             }
             toast.success("Login access granted (account already exists)");
           } else {
-            toast.error(error.message);
+            toast.error(errMsg || "Failed to create account");
           }
-        } else {
-          if (data?.user?.id) {
-            await updateRecord(staff.staff_id, { authUserId: data.user.id });
-          }
-          toast.success("Login access granted");
+          return;
         }
+        if (data?.user?.id) {
+          await updateRecord(staff.staff_id, { authUserId: data.user.id });
+        }
+        toast.success("Login access granted");
       } catch (err: any) {
         toast.error(err?.message || "Failed to create account");
+        return;
       }
     } else if (!canLogin && staff.email) {
       removeCustomAccount(staff.email);
