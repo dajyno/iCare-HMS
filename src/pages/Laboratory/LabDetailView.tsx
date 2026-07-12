@@ -176,7 +176,7 @@ const LabDetailView = ({
       if (markCompleted) {
         const { error } = await supabase
           .from("lab_requests")
-          .update({ status: "Completed" })
+          .update({ status: "Completed", completed_by_name: (user as any)?.full_name ?? null })
           .eq("id", o.id);
         if (error) throw error;
       }
@@ -499,12 +499,20 @@ const LabDetailView = ({
                     })()}
                     <div className="flex items-center gap-4 pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex-wrap">
                       <span>Requested: {o?.createdAt ? format(new Date(o.createdAt), "MMM dd, yyyy HH:mm") : "—"}</span>
-                      <span className="text-slate-300">·</span>
-                      <span>by <span className="font-medium text-slate-600">{user?.fullName ?? "—"}</span></span>
+                      {o?.requestedByName && (
+                        <>
+                          <span className="text-slate-300">·</span>
+                          <span>by <span className="font-medium text-slate-600">{o.requestedByName}</span></span>
+                        </>
+                      )}
                       <span className="text-slate-300">|</span>
                       <span>Completed: {(() => { const r = existingResults?.find((r: any) => r.requestId === o.id); return r?.date ? format(new Date(r.date), "MMM dd, yyyy HH:mm") : "—"; })()}</span>
-                      <span className="text-slate-300">·</span>
-                      <span>by <span className="font-medium text-slate-600">{user?.fullName ?? "—"}</span></span>
+                      {o?.completedByName && (
+                        <>
+                          <span className="text-slate-300">·</span>
+                          <span>by <span className="font-medium text-slate-600">{o.completedByName}</span></span>
+                        </>
+                      )}
                     </div>
                   </div>
                 ) : (

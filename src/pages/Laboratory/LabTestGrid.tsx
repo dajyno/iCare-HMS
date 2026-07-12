@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { computeTotalWithVat } from "../Billing/billingTypes";
 import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
+import { useAuth } from "../../context/AuthContext";
 import {
   Search,
   AlertTriangle,
@@ -41,6 +42,7 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
     { id: "row-0", name: "", price: "" },
   ]);
   const [hormoneValues, setHormoneValues] = useState<Record<string, string>>({});
+  const { user } = useAuth();
   const { settings } = useGlobalSettings();
   const queryClient = useQueryClient();
 
@@ -256,6 +258,7 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
         batch_id: batchId,
         status: "Requested" as const,
         payment_status: "Unpaid",
+        requested_by_name: user?.fullName ?? null,
       }));
 
       const { data: createdRequests, error: reqError } = await supabase
