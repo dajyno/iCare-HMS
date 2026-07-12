@@ -130,14 +130,43 @@ const LabModule = () => {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      const { data: dataResult, error: dataError } = await supabase
+      const { data: lightData, error: lightError } = await supabase
+        .from("lab_requests")
+        .select("id, batch_id, consultation_id, created_at")
+        .order("created_at", { ascending: false });
+
+      if (lightError) throw lightError;
+
+      const orderedKeys: string[] = [];
+      const seen = new Set<string>();
+      for (const item of lightData ?? []) {
+        const key = item.batch_id || item.consultation_id || item.id;
+        if (!seen.has(key)) {
+          seen.add(key);
+          orderedKeys.push(key);
+        }
+      }
+
+      const pageKeys = orderedKeys.slice(from, to + 1);
+      if (pageKeys.length === 0) return [];
+
+      const keySet = new Set(pageKeys);
+      const rawIds: string[] = [];
+      for (const item of lightData ?? []) {
+        const key = item.batch_id || item.consultation_id || item.id;
+        if (keySet.has(key)) {
+          rawIds.push(item.id);
+        }
+      }
+
+      const { data: fullData, error: fullError } = await supabase
         .from("lab_requests")
         .select("*, patient:patients(*), test:lab_tests(*), consultation:consultations(*)")
-        .order("created_at", { ascending: false })
-        .range(from, to);
+        .in("id", rawIds)
+        .order("created_at", { ascending: false });
 
-      if (dataError) throw dataError;
-      return groupLabRequests(toCamel(dataResult ?? []));
+      if (fullError) throw fullError;
+      return groupLabRequests(toCamel(fullData ?? []));
     },
     placeholderData: keepPreviousData,
   });

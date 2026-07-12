@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "motion/react";
+import { useAuth } from "@/src/context/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { logAudit } from "@/src/lib/auditLogger";
@@ -57,6 +58,7 @@ const RadiologyDiagnosticView = ({
 }) => {
   const queryClient = useQueryClient();
   const allCompleted = requests.every((r: any) => r.status === "Completed");
+  const { user } = useAuth();
   const isPaid = requests.every((r: any) => r.paymentStatus === "Paid");
 
   const [findingsMap, setFindingsMap] = useState<Record<string, string>>({});
@@ -118,7 +120,12 @@ const RadiologyDiagnosticView = ({
         if (existing) {
           const { error } = await supabase
             .from("radiology_results")
-            .update({ findings, conclusion })
+            .update({
+              findings,
+              conclusion,
+              technician_id: user?.id ?? null,
+              radiologist_id: user?.id ?? null,
+            })
             .eq("id", existing.id);
           if (error) throw error;
         } else {
@@ -127,6 +134,8 @@ const RadiologyDiagnosticView = ({
             patient_id: req.patientId,
             findings,
             conclusion,
+            technician_id: user?.id ?? null,
+            radiologist_id: user?.id ?? null,
           });
           if (error) throw error;
         }
@@ -152,7 +161,12 @@ const RadiologyDiagnosticView = ({
         if (existing) {
           const { error } = await supabase
             .from("radiology_results")
-            .update({ findings, conclusion })
+            .update({
+              findings,
+              conclusion,
+              technician_id: user?.id ?? null,
+              radiologist_id: user?.id ?? null,
+            })
             .eq("id", existing.id);
           if (error) throw error;
         } else {
@@ -161,6 +175,8 @@ const RadiologyDiagnosticView = ({
             patient_id: req.patientId,
             findings,
             conclusion,
+            technician_id: user?.id ?? null,
+            radiologist_id: user?.id ?? null,
           });
           if (error) throw error;
         }
@@ -276,7 +292,7 @@ const RadiologyDiagnosticView = ({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="px-6 py-4 border-b border-slate-200 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -297,7 +313,7 @@ const RadiologyDiagnosticView = ({
         </DialogHeader>
 
         {/* Patient Info Bar */}
-        <div className="px-6 py-3 bg-slate-50 border-b border-slate-200 shrink-0">
+        <div className="px-4 sm:px-6 py-3 bg-slate-50 border-b border-slate-200 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
               <User className="w-4 h-4 text-indigo-500" />
@@ -323,7 +339,7 @@ const RadiologyDiagnosticView = ({
         </div>
 
         {/* Per-Exam Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4">
           {requests.map((req: any, idx: number) => (
             <div key={req.id} className="bg-white rounded-xl border border-slate-200 shadow-sm">
               <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
@@ -335,7 +351,7 @@ const RadiologyDiagnosticView = ({
                 </div>
                 <StatusBadge status={req.status} />
               </div>
-              <div className="p-5 space-y-4">
+              <div className="p-4 sm:p-5 space-y-4">
                 <div className="space-y-1.5">
                   <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                     Observation / Findings
@@ -351,7 +367,7 @@ const RadiologyDiagnosticView = ({
                         setFindingsMap((prev) => ({ ...prev, [req.id]: e.target.value }))
                       }
                       placeholder="Enter radiological findings / observations..."
-                      className="min-h-[100px] text-sm leading-relaxed"
+                      className="min-h-[80px] sm:min-h-[100px] text-sm leading-relaxed"
                     />
                   )}
                 </div>
@@ -370,7 +386,7 @@ const RadiologyDiagnosticView = ({
                         setConclusionMap((prev) => ({ ...prev, [req.id]: e.target.value }))
                       }
                       placeholder="Enter conclusion and recommendations..."
-                      className="min-h-[100px] text-sm leading-relaxed"
+                      className="min-h-[80px] sm:min-h-[100px] text-sm leading-relaxed"
                     />
                   )}
                 </div>
@@ -379,36 +395,34 @@ const RadiologyDiagnosticView = ({
           ))}
         </div>
 
-        {/* Pricing Summary */}
-        <div className="shrink-0 border-t border-slate-200 bg-white px-6 py-3">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100">
-                <th className="text-left pb-2 font-medium">Examination</th>
-                <th className="text-right pb-2 font-medium">Price (₦)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {requests.map((req: any) => (
-                <tr key={req.id} className="border-b border-slate-50">
-                  <td className="py-2 text-sm text-slate-900">{req.exam?.name ?? "—"}</td>
-                  <td className="py-2 text-right font-mono text-sm text-slate-700">
-                    ₦{Number(req.exam?.price ?? 0).toFixed(2)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td className="pt-3 text-right text-sm font-bold text-slate-900">
-                  Total
-                </td>
-                <td className="pt-3 text-right font-mono text-sm font-bold text-slate-900">
-                  ₦{requests.reduce((sum: number, req: any) => sum + Number(req.exam?.price ?? 0), 0).toFixed(2)}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
+        {/* Compact Pricing Badge */}
+        <div className="shrink-0 border-t border-slate-200 bg-slate-50/50 px-4 sm:px-6 py-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <DollarSign className="w-4 h-4 text-slate-400" />
+            <span className="text-sm font-semibold text-slate-900">
+              ₦{requests.reduce((sum: number, req: any) => sum + Number(req.exam?.price ?? 0), 0).toFixed(2)}
+            </span>
+            <span className="text-[11px] text-slate-400">·</span>
+            <span className="text-xs text-slate-500">
+              {requests.length} examination{requests.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+        </div>
+
+        {/* Staff Info */}
+        <div className="shrink-0 border-t border-slate-200 bg-white px-4 sm:px-6 py-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-6">
+            <div className="flex items-center gap-2">
+              <Stethoscope className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Performed By:</span>
+              <span className="text-sm font-medium text-slate-900">{user?.fullName ?? "—"}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Interpreted By:</span>
+              <span className="text-sm font-medium text-slate-900">{user?.fullName ?? "—"}</span>
+            </div>
+          </div>
         </div>
 
         {/* Unpaid Banner */}
