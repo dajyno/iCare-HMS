@@ -54,7 +54,7 @@ const PrescriptionTerminal = () => {
   const [globalFilter, setGlobalFilter] = useState("");
   const deferredFilter = useDeferredValue(globalFilter);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(14);
+  const [pageSize, setPageSize] = useState(10);
   const { data: prescriptionResult, isLoading, error } = usePrescriptionQueue({
     page,
     pageSize,

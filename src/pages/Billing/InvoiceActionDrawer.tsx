@@ -6,10 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { STATUS_STYLES, SOURCE_STYLES } from "./billingTypes";
+import { STATUS_STYLES, SOURCE_STYLES, computeVatAmount } from "./billingTypes";
 import { useUpdateInvoiceStatus } from "./billingHooks";
 import type { InvoiceSummary } from "./billingTypes";
-import { getHospitalName } from "@/src/lib/hospitalConfig";
+import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
 import { format } from "date-fns";
 import { useBankAccounts } from "../Accounting/hooks";
 import SearchableSelect from "@/components/ui/searchable-select";
@@ -24,6 +24,7 @@ interface InvoiceActionDrawerProps {
 const PAYMENT_METHODS = ["Cash", "Card", "Bank Transfer", "Insurance Split"] as const;
 
 const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProps) => {
+  const { settings } = useGlobalSettings();
   const updateStatus = useUpdateInvoiceStatus();
   const [payAmount, setPayAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<"Cash" | "Card" | "Bank Transfer" | "Insurance Split">("Cash");
@@ -67,7 +68,7 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
 
   const handleGeneratePrint = useCallback(() => {
     if (!invoice) return;
-    const hospitalName = getHospitalName();
+    const hospitalName = settings.hospitalName;
     const patientName = invoice.patient
       ? `${invoice.patient.firstName ?? ""} ${invoice.patient.lastName ?? ""}`.trim()
       : "—";
@@ -91,6 +92,20 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
       .join("");
 
     const subtotal = invoice.items?.reduce((s, i) => s + i.total, 0) ?? 0;
+    const vatAmount = computeVatAmount(subtotal, settings.vatPercentage, settings.vatEnabled);
+    const grandTotal = subtotal + vatAmount;
+
+    const vatRow = settings.vatEnabled && settings.vatPercentage > 0
+      ? `<tr class="total-row"><td colspan="3">VAT (${settings.vatPercentage}%)</td><td class="right">₦${vatAmount.toFixed(2)}</td></tr>`
+      : "";
+
+    const paymentTerms = settings.invoicePaymentTerms
+      ? `<div style="margin-top:16px; font-size:11px; color:#64748b;"><strong style="color:#1e293b;">Payment Terms:</strong><br/>${settings.invoicePaymentTerms}</div>`
+      : "";
+
+    const conditions = settings.invoiceConditions
+      ? `<div style="margin-top:8px; font-size:11px; color:#64748b;"><strong style="color:#1e293b;">Conditions & Footnotes:</strong><br/>${settings.invoiceConditions}</div>`
+      : "";
 
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
@@ -116,6 +131,8 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
           .total-row td.right { font-size: 16px; font-family: 'Courier New', monospace; }
           .paid-badge { display: inline-block; background: #dcfce7; color: #166534; padding: 2px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
           .footer { margin-top: 32px; text-align: center; font-size: 11px; color: #94a3b8; }
+          .defaults-section { margin-top: 16px; font-size: 11px; color: #64748b; }
+          .defaults-section strong { color: #1e293b; }
           @media print { body { padding: 20px; } }
         </style>
       </head>
@@ -141,6 +158,8 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
           </tbody>
           <tfoot>
             <tr class="total-row"><td colspan="3">Subtotal</td><td class="right">₦${subtotal.toFixed(2)}</td></tr>
+            ${vatRow}
+            <tr class="total-row"><td colspan="3">Total</td><td class="right">₦${grandTotal.toFixed(2)}</td></tr>
             <tr class="total-row"><td colspan="3">Amount Paid</td><td class="right">₦${invoice.amountPaid.toFixed(2)}</td></tr>
             <tr class="total-row"><td colspan="3">Balance</td><td class="right">₦${invoice.balance.toFixed(2)}</td></tr>
           </tfoot>
@@ -149,6 +168,8 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
         <div style="text-align:center; font-size:14px; font-weight:700; margin-top:4px;">
           Total Paid: ₦${invoice.amountPaid.toFixed(2)}
         </div>
+        ${paymentTerms}
+        ${conditions}
         <div class="footer">This is a system-generated receipt from ${hospitalName}</div>
       </body>
       </html>
@@ -156,7 +177,7 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
     printWindow.document.close();
     printWindow.focus();
     setTimeout(() => printWindow.print(), 300);
-  }, [invoice]);
+  }, [invoice, settings]);
 
   const subtotal = invoice?.items?.reduce((s, i) => s + i.total, 0) ?? 0;
 
@@ -274,6 +295,14 @@ const InvoiceActionDrawer = ({ invoice, open, onClose }: InvoiceActionDrawerProp
                       ₦{subtotal.toFixed(2)}
                     </span>
                   </div>
+                  {settings.vatEnabled && settings.vatPercentage > 0 && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-500">VAT ({settings.vatPercentage}%)</span>
+                      <span className="font-mono tabular-nums text-slate-700">
+                        ₦{computeVatAmount(subtotal, settings.vatPercentage, settings.vatEnabled).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-500">Amount Paid</span>
                     <span className="font-mono tabular-nums text-emerald-600">

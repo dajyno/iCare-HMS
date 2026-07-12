@@ -9,10 +9,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Printer, Edit3, Beaker, CalendarClock, FileText } from "lucide-react";
+import { Printer, Edit3, Beaker, CalendarClock, FileText, User } from "lucide-react";
 import { format } from "date-fns";
 import StatusBadge from "./StatusBadge";
-import { getHospitalName } from "@/src/lib/hospitalConfig";
+import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
+import { useAuth } from "../../context/AuthContext";
 
 const mapStatus = (dbStatus: string) => {
   const map: Record<string, string> = {
@@ -51,9 +52,12 @@ const LabResultDialog = ({
     enabled: open,
   });
 
+  const { settings } = useGlobalSettings();
+  const { user } = useAuth();
+
   const handlePrint = useCallback(() => {
     if (!order || !result) return;
-    const hospitalName = getHospitalName();
+    const hospitalName = settings.hospitalName;
     const orderId = `REQ-${order.id?.slice(-6)?.toUpperCase() ?? "—"}`;
     const patientName = order?.patient
       ? `${order.patient.firstName ?? ""} ${order.patient.lastName ?? ""}`.trim()
@@ -205,10 +209,16 @@ const LabResultDialog = ({
                 <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
                   <CalendarClock className="w-3.5 h-3.5" />
                   <span>Requested: {order?.createdAt ? format(new Date(order.createdAt), "MMM dd, yyyy HH:mm") : "—"}</span>
+                  <span className="text-slate-300">·</span>
+                  <User className="w-3 h-3 text-slate-400" />
+                  <span className="font-medium text-slate-600">{user?.fullName ?? "—"}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
                   <CalendarClock className="w-3.5 h-3.5" />
                   <span>Completed: {result?.date ? format(new Date(result.date), "MMM dd, yyyy HH:mm") : "—"}</span>
+                  <span className="text-slate-300">·</span>
+                  <User className="w-3 h-3 text-slate-400" />
+                  <span className="font-medium text-slate-600">{user?.fullName ?? "—"}</span>
                 </div>
                 {(result as any)?.editedAt || (result as any)?.editedBy ? (
                   <div className="flex items-center gap-1.5 text-[11px] text-slate-500">

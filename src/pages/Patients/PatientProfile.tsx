@@ -5,6 +5,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { generateInvoiceNumber } from "@/src/lib/invoiceNumber";
 import { useAuth } from "@/src/context/AuthContext";
+import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
+import { computeTotalWithVat } from "../Billing/billingTypes";
 import {
   ArrowLeft, User, Phone, Mail, MapPin, Calendar, Edit, Save,
   Stethoscope, FlaskConical, Pill, Activity, AlertCircle, Loader2,
@@ -35,6 +37,7 @@ const PatientProfile = () => {
   const { id, hospital_slug } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { settings } = useGlobalSettings();
   const { user: currentUser } = useAuth();
   const [showEditModal, setShowEditModal] = useState(false);
   const [editForm, setEditForm] = useState<any>({});
@@ -650,16 +653,17 @@ const PatientProfile = () => {
     e.preventDefault();
     const qty = parseInt(billForm.quantity) || 1;
     const unitPrice = parseFloat(billForm.unitPrice) || 0;
-    const total = qty * unitPrice;
+    const subtotal = qty * unitPrice;
+    const totalAmount = computeTotalWithVat(subtotal, settings.vatPercentage, settings.vatEnabled);
     const invNum = await generateInvoiceNumber(supabase);
     createInvoice.mutate({
       patient_id: id,
       invoice_number: invNum,
-      total_amount: total,
+      total_amount: totalAmount,
       amount_paid: 0,
-      balance: total,
+      balance: totalAmount,
       status: "Unpaid",
-      items: [{ description: billForm.description, quantity: qty, unit_price: unitPrice, total }],
+      items: [{ description: billForm.description, quantity: qty, unit_price: unitPrice, total: subtotal }],
     });
   };
 

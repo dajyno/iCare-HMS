@@ -50,7 +50,7 @@ const InventoryMatrix = () => {
   const [globalFilter, setGlobalFilter] = useState("");
   const [oosFilter, setOosFilter] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const [pageSize, setPageSize] = useState(10);
   const { data: inventoryResult, isLoading, error } = usePharmacyInventory({
     page,
     pageSize,

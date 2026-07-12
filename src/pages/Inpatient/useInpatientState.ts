@@ -1,6 +1,8 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { generateInvoiceNumber } from "@/src/lib/invoiceNumber";
+import { computeTotalWithVat } from "../Billing/billingTypes";
+import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
 import { toast } from "sonner";
 import type {
   InpatientMasterState,
@@ -54,6 +56,7 @@ async function getDefaultDepartmentId(): Promise<string | null> {
 }
 
 export function useInpatientState() {
+  const { settings } = useGlobalSettings();
   const [state, setState] = useState<InpatientMasterState>(loadPersistedState);
   const [loading, setLoading] = useState(true);
   const [loadingWards, setLoadingWards] = useState(true);
@@ -1011,9 +1014,10 @@ export function useInpatientState() {
         return sum + adminCount * (m.unitPrice || 150) * (m.quantity || 1);
       }, 0);
 
-      const totalAmount = bedStayCost + medsTotal || 0;
+      const subtotal = bedStayCost + medsTotal || 0;
 
-      if (totalAmount <= 0) return null;
+      if (subtotal <= 0) return null;
+      const totalAmount = computeTotalWithVat(subtotal, settings.vatPercentage, settings.vatEnabled);
 
       try {
         const invoiceNumber = await generateInvoiceNumber(supabase);

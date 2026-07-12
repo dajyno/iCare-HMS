@@ -92,6 +92,15 @@ export function computeSubtotal(items: LineItem[]): number {
   return items.reduce((sum, item) => sum + computeLineItemAmount(item.price, item.qty), 0);
 }
 
+export function computeVatAmount(subtotal: number, vatPercentage: number, vatEnabled: boolean): number {
+  if (!vatEnabled || vatPercentage <= 0) return 0;
+  return subtotal * vatPercentage / 100;
+}
+
+export function computeTotalWithVat(subtotal: number, vatPercentage: number, vatEnabled: boolean): number {
+  return subtotal + computeVatAmount(subtotal, vatPercentage, vatEnabled);
+}
+
 export function generateItemCode(idx: number): string {
   return `G-${String(idx + 1).padStart(2, "0")}`;
 }

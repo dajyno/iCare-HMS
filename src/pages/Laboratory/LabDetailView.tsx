@@ -23,7 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import StatusBadge from "./StatusBadge";
 import { format } from "date-fns";
 import { supabase, toCamel } from "@/src/lib/supabase";
-import { getHospitalName } from "@/src/lib/hospitalConfig";
+import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "sonner";
 
@@ -56,6 +56,7 @@ const LabDetailView = ({
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+  const { settings } = useGlobalSettings();
   const { user } = useAuth();
 
   const resultValuesRef = useRef(resultValues);
@@ -245,7 +246,7 @@ const LabDetailView = ({
   }, []);
 
   const handlePrintAll = useCallback(() => {
-    const hospitalName = getHospitalName();
+    const hospitalName = settings.hospitalName;
     const batchId = orders.length > 1
       ? `BATCH-${order?.consultationId?.slice(-4).toUpperCase() || order?.batchId?.slice(-4).toUpperCase()}`
       : `REQ-${order.id?.slice(-6).toUpperCase()}`;
@@ -496,9 +497,14 @@ const LabDetailView = ({
                       }
                       return null;
                     })()}
-                    <div className="flex items-center gap-4 pt-2 border-t border-slate-100 text-[11px] text-slate-500">
+                    <div className="flex items-center gap-4 pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex-wrap">
                       <span>Requested: {o?.createdAt ? format(new Date(o.createdAt), "MMM dd, yyyy HH:mm") : "—"}</span>
+                      <span className="text-slate-300">·</span>
+                      <span>by <span className="font-medium text-slate-600">{user?.fullName ?? "—"}</span></span>
+                      <span className="text-slate-300">|</span>
                       <span>Completed: {(() => { const r = existingResults?.find((r: any) => r.requestId === o.id); return r?.date ? format(new Date(r.date), "MMM dd, yyyy HH:mm") : "—"; })()}</span>
+                      <span className="text-slate-300">·</span>
+                      <span>by <span className="font-medium text-slate-600">{user?.fullName ?? "—"}</span></span>
                     </div>
                   </div>
                 ) : (

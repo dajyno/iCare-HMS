@@ -5,6 +5,8 @@ import { supabase, toCamel } from "@/src/lib/supabase";
 import { logAudit } from "@/src/lib/auditLogger";
 import { useAuth } from "../../context/AuthContext";
 import { useDoctors, useCreateAppointment } from "../Appointments/hooks";
+import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
+import { computeTotalWithVat } from "../Billing/billingTypes";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -85,6 +87,7 @@ const ConsultationWorkspace = () => {
   const { patientId, hospital_slug } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { settings } = useGlobalSettings();
   const { user } = useAuth();
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [consultationId, setConsultationId] = useState<string | null>(null);
@@ -331,10 +334,11 @@ const ConsultationWorkspace = () => {
       const medIds = items.map((p: any) => p.medicationId);
       const { data: medPrices } = await supabase.from("medications").select("id, unit_price").in("id", medIds);
       const priceMap = new Map((medPrices || []).map((m: any) => [m.id, m.unit_price || 0]));
-      const totalAmount = itemRows.reduce((sum, item) => {
+      const subtotal = itemRows.reduce((sum, item) => {
         const unitPrice = Number(priceMap.get(item.medication_id) || 0);
         return sum + unitPrice * (Number(item.quantity) || 1);
       }, 0);
+      const totalAmount = computeTotalWithVat(subtotal, settings.vatPercentage, settings.vatEnabled);
       const { error: invError } = await supabase.from("invoices").insert({
         invoice_number: `PHA-${Date.now()}`,
         patient_id: pId, prescription_id: prescription.id,
@@ -377,11 +381,12 @@ const ConsultationWorkspace = () => {
       const savedData = toCamel(data || []);
       for (const lr of savedData) {
         const testPrice = lr.test?.price || 0;
+        const vatAmount = computeTotalWithVat(testPrice, settings.vatPercentage, settings.vatEnabled);
         const { data: inv, error: invError } = await supabase.from("invoices").insert({
           invoice_number: `LAB-${Date.now()}-${lr.id.substring(0, 8)}`,
           patient_id: pId,
           source_type: "Laboratory", status: "Unpaid",
-          total_amount: testPrice, amount_paid: 0, balance: testPrice,
+          total_amount: vatAmount, amount_paid: 0, balance: vatAmount,
         }).select("id").single();
         if (invError) throw invError;
         await supabase.from("invoice_items").insert({
@@ -419,11 +424,12 @@ const ConsultationWorkspace = () => {
       const savedData = toCamel(data || []);
       for (const rr of savedData) {
         const examPrice = rr.exam?.price || 0;
+        const vatAmount = computeTotalWithVat(examPrice, settings.vatPercentage, settings.vatEnabled);
         const { data: inv, error: invError } = await supabase.from("invoices").insert({
           invoice_number: `RAD-${Date.now()}-${rr.id.substring(0, 8)}`,
           patient_id: pId,
           source_type: "Radiology", status: "Unpaid",
-          total_amount: examPrice, amount_paid: 0, balance: examPrice,
+          total_amount: vatAmount, amount_paid: 0, balance: vatAmount,
         }).select("id").single();
         if (invError) throw invError;
         await supabase.from("invoice_items").insert({
@@ -502,10 +508,11 @@ const ConsultationWorkspace = () => {
         const medIds = formData.prescriptions.map((p: any) => p.medicationId);
         const { data: medPrices } = await supabase.from("medications").select("id, unit_price").in("id", medIds);
         const priceMap = new Map((medPrices || []).map((m: any) => [m.id, m.unit_price || 0]));
-        const totalAmount = itemRows.reduce((sum, item) => {
+        const subtotal = itemRows.reduce((sum, item) => {
           const unitPrice = Number(priceMap.get(item.medication_id) || 0);
           return sum + unitPrice * (Number(item.quantity) || 1);
         }, 0);
+        const totalAmount = computeTotalWithVat(subtotal, settings.vatPercentage, settings.vatEnabled);
         const { error: invError } = await supabase.from("invoices").insert({
           invoice_number: `PHA-${Date.now()}`,
           patient_id: pId, prescription_id: prescription.id,
@@ -525,11 +532,12 @@ const ConsultationWorkspace = () => {
         if (error) throw error;
         for (const lr of toCamel(savedLabs || [])) {
           const testPrice = lr.test?.price || 0;
+          const vatAmount = computeTotalWithVat(testPrice, settings.vatPercentage, settings.vatEnabled);
           const { data: inv, error: invError } = await supabase.from("invoices").insert({
             invoice_number: `LAB-${Date.now()}-${lr.id.substring(0, 8)}`,
             patient_id: pId,
             source_type: "Laboratory", status: "Unpaid",
-            total_amount: testPrice, amount_paid: 0, balance: testPrice,
+            total_amount: vatAmount, amount_paid: 0, balance: vatAmount,
           }).select("id").single();
           if (invError) throw invError;
           await supabase.from("invoice_items").insert({
@@ -548,11 +556,12 @@ const ConsultationWorkspace = () => {
         if (error) throw error;
         for (const rr of toCamel(savedRads || [])) {
           const examPrice = rr.exam?.price || 0;
+          const vatAmount = computeTotalWithVat(examPrice, settings.vatPercentage, settings.vatEnabled);
           const { data: inv, error: invError } = await supabase.from("invoices").insert({
             invoice_number: `RAD-${Date.now()}-${rr.id.substring(0, 8)}`,
             patient_id: pId,
             source_type: "Radiology", status: "Unpaid",
-            total_amount: examPrice, amount_paid: 0, balance: examPrice,
+            total_amount: vatAmount, amount_paid: 0, balance: vatAmount,
           }).select("id").single();
           if (invError) throw invError;
           await supabase.from("invoice_items").insert({

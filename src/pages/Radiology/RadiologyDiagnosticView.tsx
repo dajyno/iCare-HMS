@@ -26,7 +26,7 @@ import {
   DollarSign,
   Printer,
 } from "lucide-react";
-import { getHospitalName } from "@/src/lib/hospitalConfig";
+import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -58,6 +58,7 @@ const RadiologyDiagnosticView = ({
 }) => {
   const queryClient = useQueryClient();
   const allCompleted = requests.every((r: any) => r.status === "Completed");
+  const { settings } = useGlobalSettings();
   const { user } = useAuth();
   const isPaid = requests.every((r: any) => r.paymentStatus === "Paid");
 
@@ -208,7 +209,7 @@ const RadiologyDiagnosticView = ({
 
   const handlePrint = useCallback(() => {
     if (!requests.length) return;
-    const hospitalName = getHospitalName();
+    const hospitalName = settings.hospitalName;
     const firstReq = requests[0];
     const patientName = firstReq?.patient
       ? `${firstReq.patient.firstName ?? ""} ${firstReq.patient.lastName ?? ""}`.trim()

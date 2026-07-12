@@ -2,6 +2,8 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion } from "motion/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
+import { computeTotalWithVat } from "../Billing/billingTypes";
+import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
 import {
   Search,
   AlertTriangle,
@@ -39,6 +41,7 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
     { id: "row-0", name: "", price: "" },
   ]);
   const [hormoneValues, setHormoneValues] = useState<Record<string, string>>({});
+  const { settings } = useGlobalSettings();
   const queryClient = useQueryClient();
 
   const { data: patients } = useQuery({
@@ -280,10 +283,11 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
       let invoiceError: any = null;
       for (let attempt = 0; attempt < 2; attempt++) {
         const invoiceNumber = await generateInvoiceNumber(supabase);
-        const totalAmount = createdRequests.reduce((sum: number, req: any) => {
+        const subtotal = createdRequests.reduce((sum: number, req: any) => {
           const info = priceMap.get(req.test_id);
           return sum + (info?.price ?? 0);
         }, 0);
+        const totalAmount = computeTotalWithVat(subtotal, settings.vatPercentage, settings.vatEnabled);
 
         const { data: invData, error: invError } = await supabase
           .from("invoices")

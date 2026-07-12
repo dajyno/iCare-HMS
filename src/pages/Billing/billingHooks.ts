@@ -2,7 +2,8 @@ import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tansta
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { logAudit } from "@/src/lib/auditLogger";
 import type { LineItem, InvoiceSummary, CatalogItem } from "./billingTypes";
-import { computeLineItemAmount, MOCK_MEDICATIONS, MOCK_LAB_TESTS } from "./billingTypes";
+import { computeLineItemAmount, computeTotalWithVat, MOCK_MEDICATIONS, MOCK_LAB_TESTS } from "./billingTypes";
+import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
 import { createIncomeFromPayment } from "../Accounting/hooks";
 import { toast } from "sonner";
 
@@ -163,6 +164,7 @@ export function useLabTests(query: string) {
 
 export function useCreateInvoice() {
   const queryClient = useQueryClient();
+  const { settings } = useGlobalSettings();
 
   return useMutation({
     mutationFn: async ({
@@ -178,10 +180,11 @@ export function useCreateInvoice() {
       lineItems: LineItem[];
       invoiceNumber: string;
     }) => {
-      const totalAmount = lineItems.reduce(
+      const subtotal = lineItems.reduce(
         (sum, item) => sum + computeLineItemAmount(item.price, item.qty),
         0
       );
+      const totalAmount = computeTotalWithVat(subtotal, settings.vatPercentage, settings.vatEnabled);
 
       const supabaseInvoicePayload: Record<string, any> = {
         invoice_number: invoiceNumber,

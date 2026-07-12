@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { logAudit } from "@/src/lib/auditLogger";
 import type { Appointment, AppointmentStatus } from "@/src/lib/types";
+import { computeTotalWithVat } from "../Billing/billingTypes";
+import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
 import { toast } from "sonner";
 
 export interface DoctorSlot {
@@ -204,6 +206,7 @@ export function useDeleteAppointment() {
 }
 
 export function useCreateInvoice() {
+  const { settings } = useGlobalSettings();
   return useMutation({
     mutationFn: async (data: {
       patientId: string;
@@ -212,12 +215,13 @@ export function useCreateInvoice() {
       appointmentId: string;
     }) => {
       const invNumber = `INV-APT-${Date.now()}`;
+      const totalAmount = computeTotalWithVat(data.amount, settings.vatPercentage, settings.vatEnabled);
       const payload = {
         invoice_number: invNumber,
         patient_id: data.patientId,
-        total_amount: data.amount,
+        total_amount: totalAmount,
         amount_paid: 0,
-        balance: data.amount,
+        balance: totalAmount,
         status: "Unpaid",
         source_type: "Consultation",
       };

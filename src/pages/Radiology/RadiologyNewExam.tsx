@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { generateInvoiceNumber } from "@/src/lib/invoiceNumber";
+import { computeTotalWithVat } from "../Billing/billingTypes";
+import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
 import {
   Search,
   ChevronDown,
@@ -20,6 +22,7 @@ import ChipGrid from "./ChipGrid";
 import { toast } from "sonner";
 
 const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; initialPatientId?: string }) => {
+  const { settings } = useGlobalSettings();
   const queryClient = useQueryClient();
   const [selectedExams, setSelectedExams] = useState<Set<string>>(new Set());
   const [patientId, setPatientId] = useState(initialPatientId || "");
@@ -244,10 +247,11 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
       let invoiceError: any = null;
       for (let attempt = 0; attempt < 2; attempt++) {
         const invoiceNumber = await generateInvoiceNumber(supabase);
-        const totalAmount = createdRequests.reduce((sum: number, req: any) => {
+        const subtotal = createdRequests.reduce((sum: number, req: any) => {
           const info = priceMap.get(req.exam_id);
           return sum + (info?.price ?? 0);
         }, 0);
+        const totalAmount = computeTotalWithVat(subtotal, settings.vatPercentage, settings.vatEnabled);
 
         const { data: invData, error: invError } = await supabase
           .from("invoices")

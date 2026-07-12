@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/src/lib/supabase";
 import { generateInvoiceNumber } from "@/src/lib/invoiceNumber";
+import { computeTotalWithVat } from "../../Billing/billingTypes";
+import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
 import { useAuth } from "@/src/context/AuthContext";
 import {
   Dialog,
@@ -32,6 +34,7 @@ interface PrescriptionLineItem {
 const ROUTES = ["Oral", "IV", "IM", "Subcutaneous", "Topical", "Inhalation", "Ophthalmic", "Otic", "Rectal", "Sublingual"];
 
 const NewPrescriptionDialog = ({ open, onOpenChange, initialPatientId }: { open: boolean; onOpenChange: (open: boolean) => void; initialPatientId?: string }) => {
+  const { settings } = useGlobalSettings();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [patientQuery, setPatientQuery] = useState("");
@@ -104,9 +107,10 @@ const NewPrescriptionDialog = ({ open, onOpenChange, initialPatientId }: { open:
       const priceMap: Record<string, number> = {};
       if (medPrices) for (const m of medPrices) priceMap[m.id] = m.unit_price ?? 0;
 
-      const totalAmount = items.filter((i) => i.medicationId).reduce(
+      const subtotal = items.filter((i) => i.medicationId).reduce(
         (s, i) => s + (priceMap[i.medicationId] ?? 0) * (i.quantity || 1), 0
       );
+      const totalAmount = computeTotalWithVat(subtotal, settings.vatPercentage, settings.vatEnabled);
 
       const { data: invData, error: invError } = await (supabase as any)
         .from("invoices")
