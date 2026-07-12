@@ -148,7 +148,7 @@ const LabDetailView = ({
         unit: unit || null,
         reference_range: o.test?.referenceRange ?? null,
         interpretation: interp || null,
-        edited_by: (user as any)?.full_name ?? null,
+        edited_by: user?.fullName ?? null,
         edited_at: new Date().toISOString(),
         tenant_id: (user as any)?.tenantId ?? null,
       };
@@ -176,7 +176,7 @@ const LabDetailView = ({
       if (markCompleted) {
         const { error } = await supabase
           .from("lab_requests")
-          .update({ status: "Completed", completed_by_name: (user as any)?.full_name ?? null })
+          .update({ status: "Completed", completed_by_name: user?.fullName ?? null })
           .eq("id", o.id);
         if (error) throw error;
       }
