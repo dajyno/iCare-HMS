@@ -245,6 +245,10 @@ export default function StaffProfile() {
               .maybeSingle();
             if (existingUser) {
               await updateRecord(staff.staff_id, { authUserId: existingUser.id });
+              await adminSupabase.auth.admin.updateUserById(existingUser.id, {
+                password,
+                user_metadata: { full_name: staff.name, role: staffRole },
+              });
             }
             toast.success("Login access granted (account already exists)");
           } else {
