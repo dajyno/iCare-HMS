@@ -243,9 +243,33 @@ export default function StaffProfile() {
               .select("id")
               .eq("email", staff.email)
               .maybeSingle();
-            if (existingUser) {
-              await updateRecord(staff.staff_id, { authUserId: existingUser.id });
-              await adminSupabase.auth.admin.updateUserById(existingUser.id, {
+            const targetUserId = existingUser?.id;
+            if (!targetUserId) {
+              const { data: authList } = await adminSupabase.auth.admin.listUsers();
+              const authUser = authList?.users?.find(
+                (u: any) => u.email?.toLowerCase() === staff.email.toLowerCase()
+              );
+              if (authUser) {
+                const { error: insertErr } = await adminSupabase
+                  .from("users")
+                  .insert({
+                    id: authUser.id,
+                    full_name: staff.name,
+                    email: staff.email,
+                    role: staffRole,
+                    status: "active",
+                  });
+                if (!insertErr) {
+                  await updateRecord(staff.staff_id, { authUserId: authUser.id });
+                  await adminSupabase.auth.admin.updateUserById(authUser.id, {
+                    password,
+                    user_metadata: { full_name: staff.name, role: staffRole },
+                  });
+                }
+              }
+            } else {
+              await updateRecord(staff.staff_id, { authUserId: targetUserId });
+              await adminSupabase.auth.admin.updateUserById(targetUserId, {
                 password,
                 user_metadata: { full_name: staff.name, role: staffRole },
               });

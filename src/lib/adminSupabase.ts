@@ -20,10 +20,15 @@ async function proxyFetch(body: any): Promise<{ data: any; error: any; count?: n
     if (!response.ok) {
       let message = "Request failed";
       try {
-        const err = await response.json();
-        message = err.error || message;
+        const text = await response.text();
+        try {
+          const err = JSON.parse(text);
+          message = err.error || message;
+        } catch {
+          message = text || message;
+        }
       } catch {
-        message = (await response.text()) || message;
+        message = "Request failed";
       }
       return { data: null, error: message };
     }
