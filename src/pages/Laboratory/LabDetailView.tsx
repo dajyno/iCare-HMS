@@ -141,6 +141,20 @@ const LabDetailView = ({
         if (!interp.startsWith("[ATTACHMENT:")) interp = fileTag + interp;
       }
 
+      let attachmentUrl: string | null = null;
+      if (latestFile && val) {
+        const filePath = `lab-results/${o.id}/${latestFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from("lab-attachments")
+          .upload(filePath, latestFile, { upsert: true });
+        if (!uploadError) {
+          const { data: urlData } = supabase.storage
+            .from("lab-attachments")
+            .getPublicUrl(filePath);
+          attachmentUrl = urlData?.publicUrl ?? null;
+        }
+      }
+
       const upsertPayload: any = {
         request_id: o.id,
         patient_id: o.patientId,
@@ -150,6 +164,7 @@ const LabDetailView = ({
         interpretation: interp || null,
         edited_by: user?.fullName ?? null,
         edited_at: new Date().toISOString(),
+        attachment_url: attachmentUrl,
         tenant_id: (user as any)?.tenantId ?? null,
       };
 
@@ -157,21 +172,7 @@ const LabDetailView = ({
         .from("lab_results")
         .upsert(upsertPayload, { onConflict: "request_id", ignoreDuplicates: false });
 
-      if (error && error.message?.includes("edited_at")) {
-        delete upsertPayload.edited_at;
-        const { error: retryError } = await supabase
-          .from("lab_results")
-          .upsert(upsertPayload, { onConflict: "request_id", ignoreDuplicates: false });
-        if (retryError) throw retryError;
-      } else if (error && error.message?.includes("edited_by")) {
-        delete upsertPayload.edited_by;
-        const { error: retryError } = await supabase
-          .from("lab_results")
-          .upsert(upsertPayload, { onConflict: "request_id", ignoreDuplicates: false });
-        if (retryError) throw retryError;
-      } else if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       if (markCompleted) {
         const { error } = await supabase
@@ -474,10 +475,26 @@ const LabDetailView = ({
                     </p>
                     {existingResults.find((r: any) => r.requestId === o.id)?.interpretation?.startsWith("[ATTACHMENT:") && (
                       <div className="flex items-center gap-2 p-2 bg-slate-50 rounded border border-slate-200">
-                        <FileText className="w-3.5 h-3.5 text-[#005EB8]" />
-                        <span className="text-[11px] text-slate-700 font-medium">
-                          {existingResults.find((r: any) => r.requestId === o.id)?.interpretation?.match(/\[ATTACHMENT:(.+?)\]/)?.[1]}
-                        </span>
+                        {existingResults.find((r: any) => r.requestId === o.id)?.attachmentUrl ? (
+                          <a
+                            href={existingResults.find((r: any) => r.requestId === o.id)?.attachmentUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-[#005EB8] hover:underline"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            <span className="text-[11px] font-medium">
+                              {existingResults.find((r: any) => r.requestId === o.id)?.interpretation?.match(/\[ATTACHMENT:(.+?)\]/)?.[1]}
+                            </span>
+                          </a>
+                        ) : (
+                          <>
+                            <FileText className="w-3.5 h-3.5 text-[#005EB8]" />
+                            <span className="text-[11px] text-slate-700 font-medium">
+                              {existingResults.find((r: any) => r.requestId === o.id)?.interpretation?.match(/\[ATTACHMENT:(.+?)\]/)?.[1]}
+                            </span>
+                          </>
+                        )}
                       </div>
                     )}
                     {(() => {

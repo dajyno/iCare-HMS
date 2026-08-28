@@ -201,6 +201,10 @@ export interface LabRequest {
   consultation_id?: string | null;
   consultationId?: string | null;
   status: "Requested" | "SampleCollected" | "InProgress" | "AwaitingValidation" | "Completed" | "Cancelled";
+  requested_by_name?: string | null;
+  requestedByName?: string | null;
+  completed_by_name?: string | null;
+  completedByName?: string | null;
   created_at: string;
   createdAt?: string;
   invoice_id?: string | null;
@@ -224,6 +228,7 @@ export interface LabResult {
   date: string;
   edited_by?: string | null;
   edited_at?: string | null;
+  attachment_url?: string | null;
 }
 
 export interface AppNotification {

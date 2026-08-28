@@ -349,6 +349,7 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
     onSuccess: () => {
       toast.success("Laboratory request created successfully");
       queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["lab-requests-count"] });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["lab-tests"] });
       queryClient.invalidateQueries({ queryKey: ["lab-tests-all"] });

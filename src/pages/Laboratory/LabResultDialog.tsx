@@ -196,10 +196,26 @@ const LabResultDialog = ({
 
               {result.interpretation?.startsWith("[ATTACHMENT:") && (
                 <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                  <FileText className="w-4 h-4 text-[#005EB8]" />
-                  <span className="text-xs text-slate-700 font-medium">
-                    {result.interpretation.match(/\[ATTACHMENT:(.+?)\]/)?.[1] ?? "Attached file"}
-                  </span>
+                  {(result as any).attachment_url ? (
+                    <a
+                      href={(result as any).attachment_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-[#005EB8] hover:underline"
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span className="text-xs font-medium">
+                        {result.interpretation.match(/\[ATTACHMENT:(.+?)\]/)?.[1] ?? "Attached file"}
+                      </span>
+                    </a>
+                  ) : (
+                    <>
+                      <FileText className="w-4 h-4 text-[#005EB8]" />
+                      <span className="text-xs text-slate-700 font-medium">
+                        {result.interpretation.match(/\[ATTACHMENT:(.+?)\]/)?.[1] ?? "Attached file"}
+                      </span>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -227,10 +243,10 @@ const LabResultDialog = ({
                     </>
                   )}
                 </div>
-                {(result as any)?.editedAt || (result as any)?.editedBy ? (
+                {(result as any)?.edited_at || (result as any)?.edited_by ? (
                   <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
                     <Edit3 className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Edited by <span className="font-medium text-slate-700">{(result as any)?.editedBy ?? "Lab Technician"}</span>{(result as any)?.editedAt && <span> on {format(new Date((result as any).editedAt), "MMM dd, yyyy HH:mm")}</span>}</span>
+                    <span>Edited by <span className="font-medium text-slate-700">{(result as any)?.edited_by ?? "Lab Technician"}</span>{(result as any)?.edited_at && <span> on {format(new Date((result as any).edited_at), "MMM dd, yyyy HH:mm")}</span>}</span>
                   </div>
                 ) : null}
               </div>

@@ -396,6 +396,8 @@ const PatientProfile = () => {
     onSuccess: () => {
       toast.success("Lab request created successfully");
       queryClient.invalidateQueries({ queryKey: ["patient-labs", id] });
+      queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["lab-requests-count"] });
       setShowLabModal(false);
       setLabForm({});
     },
@@ -621,6 +623,7 @@ const PatientProfile = () => {
       patient_id: id,
       test_id: labForm.testId,
       status: "Requested",
+      requested_by_name: currentUser?.fullName ?? null,
     });
   };
 
