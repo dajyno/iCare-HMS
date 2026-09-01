@@ -133,6 +133,7 @@ const NewPrescriptionDialog = ({ open, onOpenChange, initialPatientId }: { open:
       const invItemsPayload = items.filter((i) => i.medicationId).map((item) => ({
         invoice_id: invId,
         description: item.medicationName,
+        category: "Pharmacy",
         quantity: item.quantity || 1,
         unit_price: priceMap[item.medicationId] ?? 0,
         total: (priceMap[item.medicationId] ?? 0) * (item.quantity || 1),

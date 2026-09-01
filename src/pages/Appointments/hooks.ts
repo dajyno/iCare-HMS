@@ -235,6 +235,7 @@ export function useCreateInvoice() {
       await (supabase as any).from("invoice_items").insert({
         invoice_id: invoiceId,
         description: `Consultation — ${data.doctorName}`,
+        category: "Consultation",
         quantity: 1,
         unit_price: data.amount,
         total: data.amount,

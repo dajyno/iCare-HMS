@@ -218,6 +218,7 @@ create table public.lab_requests (
   status          text not null default 'Requested' check (status in ('Requested','SampleCollected','InProgress','AwaitingValidation','Completed','Cancelled')),
   payment_status  text not null default 'Unpaid' check (payment_status in ('Unpaid','Paid')),
   invoice_id      uuid,
+  referred_by     text,
   created_at      timestamptz not null default now()
 );
 
@@ -258,6 +259,7 @@ create table public.invoice_items (
   id          uuid primary key default gen_random_uuid(),
   invoice_id  uuid not null references public.invoices(id) on delete cascade,
   description text not null,
+  category    text,
   quantity    integer not null,
   unit_price  double precision not null,
   total       double precision not null
@@ -975,6 +977,7 @@ create table if not exists public.radiology_requests (
   status text not null default 'Requested' check (status in ('Requested','InProgress','Completed','Cancelled')),
   payment_status text not null default 'Unpaid' check (payment_status in ('Unpaid','Paid')),
   invoice_id uuid references public.invoices(id) on delete set null,
+  referred_by text,
   requested_by_id uuid,
   radiologist_id uuid,
   notes text,

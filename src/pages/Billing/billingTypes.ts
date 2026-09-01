@@ -1,4 +1,4 @@
-export type InvoiceSourceType = "Pharmacy" | "Lab & Radiology" | "Consultation" | "General" | "Admin" | "Inpatient";
+export type InvoiceSourceType = "Pharmacy" | "Lab" | "Radiology" | "Consultation" | "General" | "Admin" | "Inpatient";
 
 export type LineItemType = "Service" | "Product" | "Other";
 
@@ -60,7 +60,8 @@ export const INITIAL_FORM_STATE: NewInvoiceFormState = {
 export const SOURCE_TABS = [
   "All",
   "Pharmacy",
-  "Lab & Radiology",
+  "Lab",
+  "Radiology",
   "Consultation",
   "General",
   "Admin",
@@ -77,7 +78,8 @@ export const STATUS_STYLES: Record<string, string> = {
 
 export const SOURCE_STYLES: Record<string, string> = {
   Pharmacy: "bg-sky-50 text-sky-700 border-sky-200",
-  "Lab & Radiology": "bg-purple-50 text-purple-700 border-purple-200",
+  Lab: "bg-purple-50 text-purple-700 border-purple-200",
+  Radiology: "bg-violet-50 text-violet-700 border-violet-200",
   Consultation: "bg-teal-50 text-teal-700 border-teal-200",
   General: "bg-indigo-50 text-indigo-700 border-indigo-200",
   Admin: "bg-amber-50 text-amber-700 border-amber-200",
@@ -155,12 +157,19 @@ export const MOCK_MEDICATIONS: CatalogItem[] = [
 export const MOCK_LAB_TESTS: CatalogItem[] = [
   { id: "lab-1", name: "Complete Blood Count", price: 45 },
   { id: "lab-2", name: "Malaria Test", price: 30 },
-  { id: "lab-3", name: "Chest X-Ray", price: 80 },
-  { id: "lab-4", name: "Urinalysis", price: 25 },
-  { id: "lab-5", name: "Blood Glucose", price: 15 },
-  { id: "lab-6", name: "CT Scan (Head)", price: 250 },
-  { id: "lab-7", name: "Lipid Profile", price: 55 },
-  { id: "lab-8", name: "Liver Function Test", price: 60 },
+  { id: "lab-3", name: "Urinalysis", price: 25 },
+  { id: "lab-4", name: "Blood Glucose", price: 15 },
+  { id: "lab-5", name: "Lipid Profile", price: 55 },
+  { id: "lab-6", name: "Liver Function Test", price: 60 },
+];
+
+export const MOCK_RADIOLOGY_TESTS: CatalogItem[] = [
+  { id: "rad-1", name: "Chest X-Ray", price: 80 },
+  { id: "rad-2", name: "CT Scan (Head)", price: 250 },
+  { id: "rad-3", name: "Ultrasound (Abdomen)", price: 120 },
+  { id: "rad-4", name: "MRI (Brain)", price: 400 },
+  { id: "rad-5", name: "X-Ray (Lumbar Spine)", price: 70 },
+  { id: "rad-6", name: "Mammogram", price: 140 },
 ];
 
 export const MOCK_INVOICES: InvoiceSummary[] = [

@@ -28,6 +28,7 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
   const [patientId, setPatientId] = useState(initialPatientId || "");
   const [patientQuery, setPatientQuery] = useState("");
   const [folderNo, setFolderNo] = useState("");
+  const [referredBy, setReferredBy] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [customSaved, setCustomSaved] = useState<{ name: string; price: number }[]>([]);
   const [customInputRows, setCustomInputRows] = useState<{ id: string; name: string; price: string }[]>([
@@ -52,7 +53,7 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
     queryFn: async () => {
       const { data, error } = await supabase
         .from("radiology_categories")
-        .select("*, radiology_exams(id, name)")
+        .select("*, radiology_exams(id, name, price)")
         .order("name");
       if (error) throw error;
       return toCamel(data);
@@ -61,12 +62,18 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
 
   const displayCategories = useMemo(() => {
     if (dbCategories && dbCategories.length > 0) {
-      return dbCategories.map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        icon: "Scan",
-        exams: [...new Set((c.radiologyExams || []).map((e: any) => e.name))],
-      }));
+      return dbCategories.map((c: any) => {
+        const exams = new Map<string, number>();
+        for (const e of c.radiologyExams || []) {
+          if (e?.name) exams.set(e.name, Number(e.price ?? 0));
+        }
+        return {
+          id: c.id,
+          name: c.name,
+          icon: "Scan",
+          exams: [...exams.entries()],
+        };
+      });
     }
     return [];
   }, [dbCategories]);
@@ -213,6 +220,7 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
           batch_id: batchId,
           status: "Requested" as const,
           payment_status: "Unpaid",
+          referred_by: referredBy.trim() ? referredBy.trim() : null,
         }));
 
       if (validRequests.length === 0) {
@@ -233,13 +241,13 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
         .filter(Boolean);
       const { data: examPrices } = await supabase
         .from("radiology_exams")
-        .select("id, name, price")
+        .select("id, name, price, category:radiology_categories(name)")
         .in("id", examIds);
 
-      const priceMap = new Map<string, { name: string; price: number }>();
+      const priceMap = new Map<string, { name: string; price: number; category?: string | null }>();
       if (examPrices) {
         for (const e of examPrices) {
-          priceMap.set(e.id, { name: e.name, price: Number(e.price ?? 0) });
+          priceMap.set(e.id, { name: e.name, price: Number(e.price ?? 0), category: e.category?.name });
         }
       }
 
@@ -262,7 +270,7 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
             amount_paid: 0,
             balance: totalAmount,
             status: "Unpaid",
-            source_type: "Lab & Radiology",
+            source_type: "Radiology",
           })
           .select("id")
           .maybeSingle();
@@ -292,6 +300,7 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
         return {
           invoice_id: invoiceId,
           description: info?.name ?? "Radiology Exam",
+          category: info?.category ?? null,
           quantity: 1,
           unit_price: info?.price ?? 0,
           total: info?.price ?? 0,
@@ -412,6 +421,19 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
               )}
               {!patientId && <div className="h-[18px]" />}
             </div>
+
+            <div className="min-w-[220px] flex-1">
+              <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                Referred By
+              </Label>
+              <Input
+                value={referredBy}
+                onChange={(e) => setReferredBy(e.target.value)}
+                placeholder="Optional — e.g. Dr. Smith or external clinic"
+                className="h-9 text-sm"
+              />
+              <div className="h-[18px]" />
+            </div>
           </div>
         </div>
 
@@ -425,7 +447,7 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
           ) : displayCategories.map((category) => {
             const isExpanded = expandedCategories.has(category.id);
             const catSelectedCount =
-              category.exams.filter((t) => selectedExams.has(t)).length;
+              category.exams.filter(([name]: [string, number]) => selectedExams.has(name)).length;
 
             return (
               <div
@@ -464,10 +486,11 @@ const RadiologyNewExam = ({ onBack, initialPatientId }: { onBack: () => void; in
                       className="overflow-hidden"
                     >
                       <div className="p-3 space-y-1.5">
-                        {category.exams.map((exam) => (
+                        {category.exams.map(([exam, price]: [string, number]) => (
                           <ChipGrid
                             key={exam}
                             label={exam}
+                            sublabel={`₦${price.toFixed(2)}`}
                             selected={selectedExams.has(exam)}
                             onToggle={() => toggleExam(exam)}
                           />

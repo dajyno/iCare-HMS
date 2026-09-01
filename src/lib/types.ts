@@ -209,6 +209,8 @@ export interface LabRequest {
   createdAt?: string;
   invoice_id?: string | null;
   invoiceId?: string | null;
+  referred_by?: string | null;
+  referredBy?: string | null;
   payment_status?: string | null;
   paymentStatus?: string | null;
   patient?: Patient;
@@ -358,6 +360,8 @@ export interface RadiologyRequest {
   updatedAt?: string;
   invoice_id?: string | null;
   invoiceId?: string | null;
+  referred_by?: string | null;
+  referredBy?: string | null;
   payment_status?: string | null;
   paymentStatus?: string | null;
   patient?: Patient;
@@ -388,6 +392,7 @@ export interface InvoiceItem {
   invoice_id: string;
   invoiceId?: string;
   description: string;
+  category?: string;
   quantity: number;
   unit_price: number;
   unitPrice?: number;

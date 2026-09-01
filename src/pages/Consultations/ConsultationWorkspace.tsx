@@ -53,7 +53,7 @@ const PRESCRIPTION_WITH_ITEMS_COLUMNS = [
   "items:prescription_items(id, dosage, frequency, duration, instructions, quantity, medication:medications(name, strength))",
 ].join(", ");
 const LAB_REQUEST_WITH_TEST_COLUMNS = "id, consultation_id, patient_id, status, payment_status, invoice_id, created_at, test:lab_tests(name, category, price)";
-const RADIOLOGY_REQUEST_WITH_EXAM_COLUMNS = "id, consultation_id, patient_id, status, payment_status, invoice_id, created_at, exam:radiology_exams(name, price)";
+const RADIOLOGY_REQUEST_WITH_EXAM_COLUMNS = "id, consultation_id, patient_id, status, payment_status, invoice_id, created_at, exam:radiology_exams(name, price, category:radiology_categories(name))";
 
 const consultationSchema = z.object({
   patientId: z.string().optional(),
@@ -385,12 +385,13 @@ const ConsultationWorkspace = () => {
         const { data: inv, error: invError } = await supabase.from("invoices").insert({
           invoice_number: `LAB-${Date.now()}-${lr.id.substring(0, 8)}`,
           patient_id: pId,
-          source_type: "Laboratory", status: "Unpaid",
+          source_type: "Lab", status: "Unpaid",
           total_amount: vatAmount, amount_paid: 0, balance: vatAmount,
         }).select("id").single();
         if (invError) throw invError;
         await supabase.from("invoice_items").insert({
           invoice_id: inv.id, description: lr.test?.name || "Lab test",
+          category: lr.test?.category ?? null,
           quantity: 1, unit_price: testPrice, total: testPrice,
         });
         await supabase.from("lab_requests").update({ invoice_id: inv.id, payment_status: "Unpaid" }).eq("id", lr.id);
@@ -434,6 +435,7 @@ const ConsultationWorkspace = () => {
         if (invError) throw invError;
         await supabase.from("invoice_items").insert({
           invoice_id: inv.id, description: rr.exam?.name || "Radiology exam",
+          category: rr.exam?.category?.name ?? null,
           quantity: 1, unit_price: examPrice, total: examPrice,
         });
         await supabase.from("radiology_requests").update({ invoice_id: inv.id, payment_status: "Unpaid" }).eq("id", rr.id);
@@ -536,12 +538,13 @@ const ConsultationWorkspace = () => {
           const { data: inv, error: invError } = await supabase.from("invoices").insert({
             invoice_number: `LAB-${Date.now()}-${lr.id.substring(0, 8)}`,
             patient_id: pId,
-            source_type: "Laboratory", status: "Unpaid",
+            source_type: "Lab", status: "Unpaid",
             total_amount: vatAmount, amount_paid: 0, balance: vatAmount,
           }).select("id").single();
           if (invError) throw invError;
           await supabase.from("invoice_items").insert({
             invoice_id: inv.id, description: lr.test?.name || "Lab test",
+            category: lr.test?.category ?? null,
             quantity: 1, unit_price: testPrice, total: testPrice,
           });
           await supabase.from("lab_requests").update({ invoice_id: inv.id, payment_status: "Unpaid" }).eq("id", lr.id);
@@ -566,6 +569,7 @@ const ConsultationWorkspace = () => {
           if (invError) throw invError;
           await supabase.from("invoice_items").insert({
             invoice_id: inv.id, description: rr.exam?.name || "Radiology exam",
+            category: rr.exam?.category?.name ?? null,
             quantity: 1, unit_price: examPrice, total: examPrice,
           });
           await supabase.from("radiology_requests").update({ invoice_id: inv.id, payment_status: "Unpaid" }).eq("id", rr.id);

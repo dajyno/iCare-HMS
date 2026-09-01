@@ -189,6 +189,8 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         { label: "Analytics Hub", href: p("/reports") },
         { label: "Clinical", href: p("/reports/clinical") },
         { label: "Revenue", href: p("/reports/revenue") },
+        { label: "Service Type Revenue", href: p("/reports/revenue-by-service-type") },
+        { label: "Referrals", href: p("/reports/referrals") },
       ]},
       { icon: Settings, label: "System Settings", href: p("/settings") },
     ];

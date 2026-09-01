@@ -51,6 +51,8 @@ const StaffProfile = lazy(() => import("./pages/Staff/StaffProfile"));
 const ReportsHub = lazy(() => import("./pages/Reports/ReportsHub"));
 const ClinicalReports = lazy(() => import("./pages/Reports/ClinicalReports"));
 const RevenueDashboard = lazy(() => import("./pages/Reports/Revenue/RevenueDashboard"));
+const RevenueByServiceType = lazy(() => import("./pages/Reports/RevenueByServiceType/RevenueByServiceType"));
+const ReferralReport = lazy(() => import("./pages/Reports/ReferralReport/ReferralReport"));
 
 const IndividualPatients = () => <PatientList defaultCategory="Individual" />;
 const CorporatePatients = () => <PatientList defaultCategory="Corporate" />;
@@ -158,6 +160,8 @@ export default function App() {
                   <Route path="reports" element={<ReportsHub />} />
                   <Route path="reports/clinical" element={<ClinicalReports />} />
                   <Route path="reports/revenue" element={<RevenueDashboard />} />
+                  <Route path="reports/revenue-by-service-type" element={<RevenueByServiceType />} />
+                  <Route path="reports/referrals" element={<ReferralReport />} />
                   <Route path="settings" element={<WithStaffProvider><Settings /></WithStaffProvider>} />
                   <Route path="profile" element={<Profile />} />
                   <Route index element={<Navigate to="dashboard" replace />} />

@@ -1044,6 +1044,7 @@ export function useInpatientState() {
               {
                 invoice_id: invoice.id,
                 description: `Bed Stay - ${admission.wardCode} ${admission.bedNo} (${bedStayDays} days @ ₦${bedRatePerDay}/day)`,
+                category: "Inpatient",
                 quantity: bedStayDays,
                 unit_price: bedRatePerDay,
                 total: bedStayCost,
@@ -1051,6 +1052,7 @@ export function useInpatientState() {
               {
                 invoice_id: invoice.id,
                 description: `Administered Medications (${admission.medicationSchedule.length} drugs)`,
+                category: "Inpatient",
                 quantity: 1,
                 unit_price: medsTotal,
                 total: medsTotal,

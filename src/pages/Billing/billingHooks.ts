@@ -23,8 +23,18 @@ const INVOICE_LIST_COLUMNS = [
   "created_at",
   "updated_at",
   "patient:patients(id, patient_id, first_name, last_name)",
-  "items:invoice_items(id, invoice_id, description, quantity, unit_price, total)",
+  "items:invoice_items(id, invoice_id, description, category, quantity, unit_price, total)",
 ].join(", ");
+
+function lineItemCategory(code: string): string {
+  if (code.startsWith("ADM")) return "Admin";
+  if (code.startsWith("CONS")) return "Consultation";
+  if (code.startsWith("INP")) return "Inpatient";
+  if (code.startsWith("PHM")) return "Pharmacy";
+  if (code.startsWith("LAB")) return "Lab";
+  if (code.startsWith("RAD")) return "Radiology";
+  return "General";
+}
 
 export function useInvoices() {
   return useQuery<InvoiceSummary[]>({
@@ -210,6 +220,7 @@ export function useCreateInvoice() {
         .map((item) => ({
           invoice_id: invoiceId,
           description: item.name,
+          category: lineItemCategory(item.code),
           quantity: item.qty,
           unit_price: item.price,
           total: computeLineItemAmount(item.price, item.qty),
@@ -286,7 +297,7 @@ async function processPaymentSideEffects(
     queryClient.invalidateQueries({ queryKey: ["admissions"] });
   }
 
-  if (sourceType === "Lab & Radiology") {
+  if (sourceType === "Lab" || sourceType === "Lab & Radiology") {
     try {
       await (supabase as any)
         .from("lab_requests")
@@ -296,7 +307,9 @@ async function processPaymentSideEffects(
       // Local fallback
     }
     queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
+  }
 
+  if (sourceType === "Radiology" || sourceType === "Lab & Radiology") {
     try {
       await (supabase as any)
         .from("radiology_requests")
