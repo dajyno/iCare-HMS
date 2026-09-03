@@ -25,6 +25,7 @@ export interface GlobalSettings {
   databaseLastBackup: string | null;
 
   baseCurrency: string;
+  vatEnabled: boolean;
   vatPercentage: number;
   invoicePaymentTerms: string;
   invoiceConditions: string;

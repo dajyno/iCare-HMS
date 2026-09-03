@@ -51,10 +51,15 @@ const StaffProfile = lazy(() => import("./pages/Staff/StaffProfile"));
 const ReportsHub = lazy(() => import("./pages/Reports/ReportsHub"));
 const ClinicalReports = lazy(() => import("./pages/Reports/ClinicalReports"));
 const RevenueDashboard = lazy(() => import("./pages/Reports/Revenue/RevenueDashboard"));
+const RevenueByServiceType = lazy(() => import("./pages/Reports/RevenueByServiceType/RevenueByServiceType"));
+const ReferralReport = lazy(() => import("./pages/Reports/ReferralReport/ReferralReport"));
 
 const IndividualPatients = () => <PatientList defaultCategory="Individual" />;
 const CorporatePatients = () => <PatientList defaultCategory="Corporate" />;
 const HmoPatients = () => <PatientList defaultCategory="HMO" />;
+const WithStaffProvider = ({ children }: { children: React.ReactNode }) => (
+  <StaffProvider>{children}</StaffProvider>
+);
 
 const PageLoading = () => (
   <div className="h-screen w-screen flex items-center justify-center">
@@ -103,7 +108,6 @@ export default function App() {
         <TenantProvider>
           <AuthProvider>
             <AdminAuthProvider>
-              <StaffProvider>
               <GlobalSettingsProvider>
               <Suspense fallback={<PageLoading />}>
               <Routes>
@@ -135,28 +139,30 @@ export default function App() {
                   <Route path="consultations/workspace" element={<ConsultationWorkspace />} />
                   <Route path="consultations/workspace/:patientId" element={<ConsultationWorkspace />} />
                   <Route path="consultations/vitals" element={<VitalSigns />} />
-                  <Route path="laboratory" element={<LabModule />} />
+                  <Route path="laboratory" element={<WithStaffProvider><LabModule /></WithStaffProvider>} />
                   <Route path="radiology" element={<RadiologyModule />} />
                   <Route path="pharmacy" element={<Navigate to="prescriptions" replace />} />
                   <Route path="pharmacy/prescriptions" element={<PrescriptionTerminal />} />
                   <Route path="pharmacy/inventory" element={<InventoryMatrix />} />
                   <Route path="pharmacy/analytics" element={<BillingAnalytics />} />
-                  <Route path="billing" element={<BillingOverview />} />
+                  <Route path="billing" element={<WithStaffProvider><BillingOverview /></WithStaffProvider>} />
                   <Route path="accounting" element={<AccountingPage />} />
                   <Route path="accounting/registries" element={<RegistriesPage />} />
                   <Route path="accounting/ledger" element={<LedgerPage />} />
                   <Route path="accounting/banks" element={<BanksPage />} />
                   <Route path="accounting/reports" element={<ReportsPage />} />
                   <Route path="inventory" element={<InventoryList />} />
-                  <Route path="inpatient" element={<InpatientOverview />} />
-                  <Route path="staff" element={<StaffLayout />}>
+                  <Route path="inpatient" element={<WithStaffProvider><InpatientOverview /></WithStaffProvider>} />
+                  <Route path="staff" element={<WithStaffProvider><StaffLayout /></WithStaffProvider>}>
                     <Route index element={<StaffList />} />
                     <Route path=":id" element={<StaffProfile />} />
                   </Route>
                   <Route path="reports" element={<ReportsHub />} />
                   <Route path="reports/clinical" element={<ClinicalReports />} />
                   <Route path="reports/revenue" element={<RevenueDashboard />} />
-                  <Route path="settings" element={<Settings />} />
+                  <Route path="reports/revenue-by-service-type" element={<RevenueByServiceType />} />
+                  <Route path="reports/referrals" element={<ReferralReport />} />
+                  <Route path="settings" element={<WithStaffProvider><Settings /></WithStaffProvider>} />
                   <Route path="profile" element={<Profile />} />
                   <Route index element={<Navigate to="dashboard" replace />} />
                 </Route>
@@ -169,7 +175,6 @@ export default function App() {
               </Routes>
               </Suspense>
               </GlobalSettingsProvider>
-              </StaffProvider>
             </AdminAuthProvider>
           </AuthProvider>
         </TenantProvider>

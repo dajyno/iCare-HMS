@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Loader2, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import SearchableSelect from "@/components/ui/searchable-select";
@@ -120,8 +121,8 @@ const NewExpenseModal = ({ open, onClose, banks }: Props) => {
                 </select>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="exp-date">Date</Label>
-                <Input id="exp-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+                <Label>Date</Label>
+                <DatePicker value={date} onChange={(v) => setDate(v)} placeholder="Select date" />
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -1,9 +1,8 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
-  getPaginationRowModel,
   createColumnHelper,
   flexRender,
   SortingState,
@@ -47,10 +46,19 @@ import type { PharmacyInventoryItem } from "../types";
 const columnHelper = createColumnHelper<PharmacyInventoryItem>();
 
 const InventoryMatrix = () => {
-  const { data: items, isLoading, error } = usePharmacyInventory();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [oosFilter, setOosFilter] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const { data: inventoryResult, isLoading, error } = usePharmacyInventory({
+    page,
+    pageSize,
+    search: globalFilter,
+    outOfStockOnly: oosFilter,
+  });
+  const items = inventoryResult?.items || [];
+  const totalItems = inventoryResult?.total || 0;
   const [addOpen, setAddOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [editItem, setEditItem] = useState<PharmacyInventoryItem | null>(null);
@@ -68,23 +76,14 @@ const InventoryMatrix = () => {
     [items]
   );
 
-  const filteredData = useMemo(() => {
-    if (!Array.isArray(items)) return [];
-    let result = items;
-    if (oosFilter) {
-      result = result.filter((r) => r.status === "Out of Stock");
-    }
-    if (globalFilter.trim()) {
-      const q = globalFilter.toLowerCase();
-      result = result.filter(
-        (r) =>
-          r.sku.toLowerCase().includes(q) ||
-          r.itemName.toLowerCase().includes(q) ||
-          r.packageType.toLowerCase().includes(q)
-      );
-    }
-    return result;
-  }, [items, globalFilter, oosFilter]);
+  useEffect(() => {
+    setPage(1);
+  }, [globalFilter, oosFilter]);
+
+  useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(totalItems / pageSize));
+    if (page > maxPage) setPage(maxPage);
+  }, [totalItems, page, pageSize]);
 
   const columns = useMemo(
     () => [
@@ -191,14 +190,12 @@ const InventoryMatrix = () => {
   );
 
   const table = useReactTable({
-    data: filteredData,
+    data: items,
     columns,
     state: { sorting },
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: 15 } },
   });
 
   const rows = table.getRowModel().rows;
@@ -236,7 +233,7 @@ const InventoryMatrix = () => {
         <div>
           <h1 className="text-xl font-bold text-slate-900">Inventory Matrix</h1>
           <p className="text-xs text-slate-500">
-            {filteredData.length} item{filteredData.length !== 1 ? "s" : ""} in stock ledger
+            {totalItems} item{totalItems !== 1 ? "s" : ""} in stock ledger
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -266,13 +263,13 @@ const InventoryMatrix = () => {
             <CardTitle className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Items</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center justify-between">
-            <div className="text-2xl font-bold text-slate-900 tabular-nums">{Array.isArray(items) ? items.length : 0}</div>
+            <div className="text-2xl font-bold text-slate-900 tabular-nums">{totalItems}</div>
             <Package className="w-5 h-5 text-sky-500" />
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm ring-1 ring-slate-200">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold text-slate-400 uppercase tracking-widest">Low / Out of Stock</CardTitle>
+            <CardTitle className="text-xs font-bold text-slate-400 uppercase tracking-widest">Low / Out on Page</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center justify-between">
             <div className="text-2xl font-bold text-rose-500 tabular-nums">{lowStockCount}</div>
@@ -281,7 +278,7 @@ const InventoryMatrix = () => {
         </Card>
         <Card className="border-none shadow-sm ring-1 ring-slate-200">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Value</CardTitle>
+            <CardTitle className="text-xs font-bold text-slate-400 uppercase tracking-widest">Page Value</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center justify-between">
             <div className="text-2xl font-bold text-slate-900 tabular-nums">
@@ -298,7 +295,7 @@ const InventoryMatrix = () => {
             <Input
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
-              placeholder="Search SKU, name, package..."
+              placeholder="Search name, generic, category..."
               className="pl-9 h-9 text-sm bg-white border-slate-200"
             />
           </div>
@@ -310,7 +307,7 @@ const InventoryMatrix = () => {
                 : "bg-white text-slate-400 ring-1 ring-slate-200 hover:ring-red-200 hover:text-red-500"
             }`}
           >
-            Out of Stock {oosFilter && items ? `(${items.filter((i) => i.status === "Out of Stock").length})` : ""}
+            Out of Stock
           </button>
         </div>
 
@@ -351,9 +348,9 @@ const InventoryMatrix = () => {
                     <div className="flex flex-col items-center gap-2 text-slate-400">
                       <Package className="w-8 h-8" />
                       <span className="text-sm">
-                        {!Array.isArray(items)
-                          ? "Error loading inventory"
-                          : globalFilter
+                          {!Array.isArray(items)
+                            ? "Error loading inventory"
+                            : globalFilter
                           ? "No items match your search"
                           : "No inventory items found"}
                       </span>
@@ -384,11 +381,11 @@ const InventoryMatrix = () => {
         </div>
 
         <Pagination
-          currentPage={table.getState().pagination.pageIndex + 1}
-          pageSize={table.getState().pagination.pageSize}
-          totalItems={filteredData.length}
-          onPageChange={(p) => table.setPageIndex(p - 1)}
-          onPageSizeChange={(s) => table.setPageSize(s)}
+          currentPage={page}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
         />
       </div>
 

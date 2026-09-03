@@ -215,6 +215,12 @@ const ConsultationWorkspace = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["consultations"] });
+      queryClient.invalidateQueries({ queryKey: ["all-vitals"] });
+      queryClient.invalidateQueries({ queryKey: ["patient-consultations"] });
+      queryClient.invalidateQueries({ queryKey: ["pharmacy-prescriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["lab-requests-count"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
       reset();
       setSelectedPatient(null);
       toast.success("Consultation saved successfully!");

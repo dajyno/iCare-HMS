@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -6,7 +6,6 @@ import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
-  getPaginationRowModel,
   createColumnHelper,
   flexRender,
   SortingState,
@@ -51,9 +50,18 @@ const PrescriptionTerminal = () => {
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const patientIdParam = searchParams.get("patientId");
-  const { data: prescriptions, isLoading, error } = usePrescriptionQueue();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
+  const deferredFilter = useDeferredValue(globalFilter);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const { data: prescriptionResult, isLoading, error } = usePrescriptionQueue({
+    page,
+    pageSize,
+    search: deferredFilter,
+  });
+  const prescriptions = prescriptionResult?.prescriptions || [];
+  const totalPrescriptions = prescriptionResult?.total || 0;
   const [selectedPrescription, setSelectedPrescription] = useState<PharmacyPrescription | null>(null);
   const [newPrescriptionOpen, setNewPrescriptionOpen] = useState(!!patientIdParam);
 
@@ -69,16 +77,14 @@ const PrescriptionTerminal = () => {
     }));
   }, [prescriptions]);
 
-  const filteredData = useMemo(() => {
-    if (!globalFilter.trim()) return data;
-    const q = globalFilter.toLowerCase();
-    return data.filter(
-      (r) =>
-        r.patientCode.toLowerCase().includes(q) ||
-        r.patientName.toLowerCase().includes(q) ||
-        r.id.toLowerCase().includes(q)
-    );
-  }, [data, globalFilter]);
+  useEffect(() => {
+    setPage(1);
+  }, [deferredFilter]);
+
+  useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(totalPrescriptions / pageSize));
+    if (page > maxPage) setPage(maxPage);
+  }, [totalPrescriptions, page, pageSize]);
 
   const columns = useMemo(
     () => [
@@ -140,14 +146,12 @@ const PrescriptionTerminal = () => {
   );
 
   const table = useReactTable({
-    data: filteredData,
+    data,
     columns,
     state: { sorting },
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: 14 } },
   });
 
   const rows = table.getRowModel().rows;
@@ -190,7 +194,7 @@ const PrescriptionTerminal = () => {
         <div>
           <h1 className="text-xl font-bold text-slate-900">Prescription Terminal</h1>
           <p className="text-xs text-slate-500">
-            {filteredData.length} prescription{filteredData.length !== 1 ? "s" : ""} in queue
+            {totalPrescriptions} prescription{totalPrescriptions !== 1 ? "s" : ""} in queue
           </p>
         </div>
         <Button
@@ -250,8 +254,8 @@ const PrescriptionTerminal = () => {
                     <div className="flex flex-col items-center gap-2 text-slate-400">
                       <Pill className="w-8 h-8" />
                       <span className="text-sm">
-                        {!Array.isArray(prescriptions)
-                          ? "Error loading prescriptions"
+                          {!Array.isArray(prescriptions)
+                            ? "Error loading prescriptions"
                           : globalFilter
                           ? "No prescriptions match your search"
                           : "No prescriptions in queue"}
@@ -282,11 +286,11 @@ const PrescriptionTerminal = () => {
         </div>
 
         <Pagination
-          currentPage={table.getState().pagination.pageIndex + 1}
-          pageSize={table.getState().pagination.pageSize}
-          totalItems={filteredData.length}
-          onPageChange={(p) => table.setPageIndex(p - 1)}
-          onPageSizeChange={(s) => table.setPageSize(s)}
+          currentPage={page}
+          pageSize={pageSize}
+          totalItems={totalPrescriptions}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
         />
       </div>
 

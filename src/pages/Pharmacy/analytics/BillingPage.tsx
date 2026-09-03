@@ -17,6 +17,19 @@ const statusStyles: Record<string, string> = {
   Cancelled: "bg-slate-50 text-slate-400 border-slate-200",
 };
 
+const PHARMACY_BILLING_COLUMNS = [
+  "id",
+  "invoice_number",
+  "status",
+  "source_type",
+  "prescription_id",
+  "total_amount",
+  "amount_paid",
+  "balance",
+  "created_at",
+  "patient:patients(id, patient_id, first_name, last_name)",
+].join(", ");
+
 const BillingPage = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
@@ -26,7 +39,7 @@ const BillingPage = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("invoices")
-        .select("*, patient:patients(*)")
+        .select(PHARMACY_BILLING_COLUMNS)
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;

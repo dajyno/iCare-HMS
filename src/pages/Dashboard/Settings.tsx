@@ -146,6 +146,7 @@ export default function Settings() {
   const [localEmail, setLocalEmail] = useState(settings.systemEmail);
 
   const [localCurrency, setLocalCurrency] = useState(settings.baseCurrency);
+  const [localVatEnabled, setLocalVatEnabled] = useState(settings.vatEnabled);
   const [localVat, setLocalVat] = useState(String(settings.vatPercentage));
   const [localTerms, setLocalTerms] = useState(settings.invoicePaymentTerms);
   const [localConditions, setLocalConditions] = useState(settings.invoiceConditions);
@@ -232,6 +233,7 @@ export default function Settings() {
     setLocalCode(settings.hospitalCode);
     setLocalEmail(settings.systemEmail);
     setLocalCurrency(settings.baseCurrency);
+    setLocalVatEnabled(settings.vatEnabled);
     setLocalVat(String(settings.vatPercentage));
     setLocalTerms(settings.invoicePaymentTerms);
     setLocalConditions(settings.invoiceConditions);
@@ -252,6 +254,7 @@ export default function Settings() {
     if (isNaN(vat) || vat < 0 || vat > 100) return;
     updateSettings({
       baseCurrency: localCurrency,
+      vatEnabled: localVatEnabled,
       vatPercentage: vat,
       invoicePaymentTerms: localTerms,
       invoiceConditions: localConditions,
@@ -444,22 +447,34 @@ export default function Settings() {
                   <CardTitle>VAT / Tax Rate</CardTitle>
                   <CardDescription>Global tax percentage applied to invoice line items</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-32">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        step={0.1}
-                        value={localVat}
-                        onChange={(e) => setLocalVat(e.target.value)}
-                        className="h-10 pr-8 text-right font-mono"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-slate-800">Enable VAT / Tax</p>
+                      <p className="text-xs text-slate-500">Apply tax to all invoice totals</p>
                     </div>
-                    <span className="text-sm text-slate-500">of total invoice amount</span>
+                    <Switch
+                      checked={localVatEnabled}
+                      onCheckedChange={setLocalVatEnabled}
+                    />
                   </div>
+                  {localVatEnabled && (
+                    <div className="flex items-center gap-3">
+                      <div className="relative w-32">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={0.1}
+                          value={localVat}
+                          onChange={(e) => setLocalVat(e.target.value)}
+                          className="h-10 pr-8 text-right font-mono"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+                      </div>
+                      <span className="text-sm text-slate-500">of total invoice amount</span>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 

@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/src/lib/supabase";
 import { generateInvoiceNumber } from "@/src/lib/invoiceNumber";
+import { computeTotalWithVat } from "../../Billing/billingTypes";
+import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
 import { useAuth } from "@/src/context/AuthContext";
 import {
   Dialog,
@@ -32,6 +34,7 @@ interface PrescriptionLineItem {
 const ROUTES = ["Oral", "IV", "IM", "Subcutaneous", "Topical", "Inhalation", "Ophthalmic", "Otic", "Rectal", "Sublingual"];
 
 const NewPrescriptionDialog = ({ open, onOpenChange, initialPatientId }: { open: boolean; onOpenChange: (open: boolean) => void; initialPatientId?: string }) => {
+  const { settings } = useGlobalSettings();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [patientQuery, setPatientQuery] = useState("");
@@ -89,14 +92,10 @@ const NewPrescriptionDialog = ({ open, onOpenChange, initialPatientId }: { open:
         instructions: item.route,
         quantity: item.quantity,
       }));
-      console.log("Inserting prescription items:", JSON.stringify(itemsPayload));
-
       const itemsResult = await (supabase as any).from("prescription_items").insert(itemsPayload);
       if (itemsResult.error) {
-        console.error("Items insert failed:", itemsResult.error);
         throw new Error(itemsResult.error.message || "Failed to add medication items");
       }
-      console.log("Items created successfully");
 
       const itemTotal = items.filter((i) => i.medicationId).reduce((s, i) => s + (i.quantity || 1) * 0, 0);
       const invNumber = await generateInvoiceNumber(supabase, "PHA");
@@ -108,9 +107,10 @@ const NewPrescriptionDialog = ({ open, onOpenChange, initialPatientId }: { open:
       const priceMap: Record<string, number> = {};
       if (medPrices) for (const m of medPrices) priceMap[m.id] = m.unit_price ?? 0;
 
-      const totalAmount = items.filter((i) => i.medicationId).reduce(
+      const subtotal = items.filter((i) => i.medicationId).reduce(
         (s, i) => s + (priceMap[i.medicationId] ?? 0) * (i.quantity || 1), 0
       );
+      const totalAmount = computeTotalWithVat(subtotal, settings.vatPercentage, settings.vatEnabled);
 
       const { data: invData, error: invError } = await (supabase as any)
         .from("invoices")
@@ -133,6 +133,7 @@ const NewPrescriptionDialog = ({ open, onOpenChange, initialPatientId }: { open:
       const invItemsPayload = items.filter((i) => i.medicationId).map((item) => ({
         invoice_id: invId,
         description: item.medicationName,
+        category: "Pharmacy",
         quantity: item.quantity || 1,
         unit_price: priceMap[item.medicationId] ?? 0,
         total: (priceMap[item.medicationId] ?? 0) * (item.quantity || 1),

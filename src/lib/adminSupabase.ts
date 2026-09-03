@@ -20,10 +20,15 @@ async function proxyFetch(body: any): Promise<{ data: any; error: any; count?: n
     if (!response.ok) {
       let message = "Request failed";
       try {
-        const err = await response.json();
-        message = err.error || message;
+        const text = await response.text();
+        try {
+          const err = JSON.parse(text);
+          message = err.error || message;
+        } catch {
+          message = text || message;
+        }
       } catch {
-        message = (await response.text()) || message;
+        message = "Request failed";
       }
       return { data: null, error: message };
     }
@@ -35,7 +40,7 @@ async function proxyFetch(body: any): Promise<{ data: any; error: any; count?: n
 }
 
 // Tables that should NOT receive automatic tenant filtering
-const SKIP_TENANT_TABLES = new Set<string>();
+const SKIP_TENANT_TABLES = new Set<string>(["users"]);
 
 // ─────────────────────────────────────────────
 // QueryBuilder — chainable, thenable, mimics Supabase query builder
@@ -192,28 +197,27 @@ const rawAdminSupabase = new AdminClient();
 // ─────────────────────────────────────────────
 
 function addTenantFilter(table: string, builder: any): any {
-  const tenantId = getCurrentTenantId();
-  if (!tenantId || SKIP_TENANT_TABLES.has(table)) return builder;
+  if (!getCurrentTenantId() || SKIP_TENANT_TABLES.has(table)) return builder;
 
   return new Proxy(builder, {
     get(bTarget: any, bProp: string, bReceiver: any) {
       if (bProp === "select") {
-        return (...args: any[]) => bTarget.select(...args).eq("tenant_id", tenantId);
+        return (...args: any[]) => bTarget.select(...args).eq("tenant_id", getCurrentTenantId());
       }
       if (bProp === "update") {
-        return (...args: any[]) => bTarget.update(...args).eq("tenant_id", tenantId);
+        return (...args: any[]) => bTarget.update(...args).eq("tenant_id", getCurrentTenantId());
       }
       if (bProp === "delete") {
-        return (...args: any[]) => bTarget.delete(...args).eq("tenant_id", tenantId);
+        return (...args: any[]) => bTarget.delete(...args).eq("tenant_id", getCurrentTenantId());
       }
       if (bProp === "insert") {
         return (...args: any[]) => {
           const data = args[0];
           if (Array.isArray(data)) {
-            return bTarget.insert(data.map((item: any) => ({ ...item, tenant_id: tenantId })), args[1]);
+            return bTarget.insert(data.map((item: any) => ({ ...item, tenant_id: getCurrentTenantId() })), args[1]);
           }
           if (data && typeof data === "object") {
-            return bTarget.insert({ ...data, tenant_id: tenantId }, args[1]);
+            return bTarget.insert({ ...data, tenant_id: getCurrentTenantId() }, args[1]);
           }
           return bTarget.insert(data, args[1]);
         };
@@ -222,10 +226,10 @@ function addTenantFilter(table: string, builder: any): any {
         return (...args: any[]) => {
           const data = args[0];
           if (Array.isArray(data)) {
-            return bTarget.upsert(data.map((item: any) => ({ ...item, tenant_id: tenantId })), args[1]);
+            return bTarget.upsert(data.map((item: any) => ({ ...item, tenant_id: getCurrentTenantId() })), args[1]);
           }
           if (data && typeof data === "object") {
-            return bTarget.upsert({ ...data, tenant_id: tenantId }, args[1]);
+            return bTarget.upsert({ ...data, tenant_id: getCurrentTenantId() }, args[1]);
           }
           return bTarget.upsert(data, args[1]);
         };

@@ -17,6 +17,19 @@ import SearchableSelect from "@/components/ui/searchable-select";
 import Pagination from "@/components/ui/pagination";
 import { toast } from "sonner";
 
+const VITAL_SIGNS_LIST_COLUMNS = [
+  "id",
+  "temperature",
+  "blood_pressure",
+  "pulse_rate",
+  "respiratory_rate",
+  "weight",
+  "height",
+  "bmi",
+  "oxygen_saturation",
+  "consultation:consultations!consultation_id(id, created_at, patient:patients!patient_id(id, patient_id, first_name, last_name))",
+].join(", ");
+
 const VitalSigns = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -34,7 +47,8 @@ const VitalSigns = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vital_signs")
-        .select("*, consultation:consultations!consultation_id(id, created_at, patient:patients!patient_id(id, patient_id, first_name, last_name))");
+        .select(VITAL_SIGNS_LIST_COLUMNS)
+        .limit(500);
       if (error) throw error;
       const sorted = (data || []).sort(
         (a, b) => new Date(b.consultation?.created_at || 0).getTime() - new Date(a.consultation?.created_at || 0).getTime()

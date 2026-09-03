@@ -55,23 +55,31 @@ const Profile = () => {
   const [editError, setEditError] = useState("");
 
   const { data: staffRecord } = useQuery({
-    queryKey: ["profile-staff", user?.id],
+    queryKey: ["profile-staff", user?.id, user?.email],
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data } = await (adminSupabase as any)
+      let { data } = await (adminSupabase as any)
         .from("staff")
         .select("*")
         .eq("auth_user_id", user.id)
         .maybeSingle();
+      if (!data && user?.email) {
+        const { data: byEmail } = await (adminSupabase as any)
+          .from("staff")
+          .select("*")
+          .eq("email", user.email)
+          .maybeSingle();
+        data = byEmail;
+      }
       return data as Record<string, any> | null;
     },
     enabled: !!user?.id,
     refetchOnWindowFocus: true,
   });
 
-  const profileRole = staffRecord?.position
+  const profileRole = user?.role || (staffRecord?.position
     ? mapPositionToRole(staffRecord.position)
-    : user?.role;
+    : undefined);
 
   const openEdit = () => {
     setEditName(user?.fullName || "");
@@ -136,7 +144,16 @@ const Profile = () => {
         }, { onConflict: "id" });
       if (userErr) throw new Error(userErr.message || "Failed to update profile");
 
-      if (staffRecord) {
+      let targetStaff = staffRecord;
+      if (!targetStaff && user.email) {
+        const { data: byEmail } = await (adminSupabase as any)
+          .from("staff")
+          .select("*")
+          .eq("email", user.email)
+          .maybeSingle();
+        targetStaff = byEmail;
+      }
+      if (targetStaff) {
         const { error: staffErr } = await (adminSupabase as any)
           .from("staff")
           .update({
@@ -149,7 +166,7 @@ const Profile = () => {
             gender: editGender,
             address: editAddress,
           })
-          .eq("staff_id", staffRecord.staff_id);
+          .eq("staff_id", targetStaff.staff_id);
         if (staffErr) throw new Error(staffErr.message || "Failed to update staff record");
       }
 

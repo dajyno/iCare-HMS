@@ -45,22 +45,6 @@ export default defineConfig(({mode}) => {
         workbox: {
           maximumFileSizeToCacheInBytes: 3000000,
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-          runtimeCaching: [
-            {
-              urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-              handler: 'StaleWhileRevalidate',
-              options: {
-                cacheName: 'supabase-api-cache',
-                expiration: {
-                  maxEntries: 100,
-                  maxAgeSeconds: 60 * 60 * 24,
-                },
-                cacheableResponse: {
-                  statuses: [0, 200],
-                },
-              },
-            },
-          ],
         },
       }),
     ],
@@ -81,6 +65,36 @@ export default defineConfig(({mode}) => {
         '/api': {
           target: 'http://localhost:3000',
           changeOrigin: true,
+        },
+      },
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            const normalizedId = id.split(path.sep).join('/');
+            if (!normalizedId.includes('/node_modules/')) return;
+            if (
+              normalizedId.includes('/node_modules/react/') ||
+              normalizedId.includes('/node_modules/react-dom/') ||
+              normalizedId.includes('/node_modules/react-router-dom/')
+            ) {
+              return 'react-vendor';
+            }
+            if (normalizedId.includes('/node_modules/@supabase/')) return 'supabase-vendor';
+            if (normalizedId.includes('/node_modules/@tanstack/')) return 'tanstack-vendor';
+            if (normalizedId.includes('/node_modules/recharts/')) return 'charts-vendor';
+            if (normalizedId.includes('/node_modules/motion/')) return 'motion-vendor';
+            if (
+              normalizedId.includes('/node_modules/@base-ui/') ||
+              normalizedId.includes('/node_modules/radix-ui/') ||
+              normalizedId.includes('/node_modules/@floating-ui/') ||
+              normalizedId.includes('/node_modules/react-day-picker/')
+            ) {
+              return 'ui-vendor';
+            }
+            if (normalizedId.includes('/node_modules/lucide-react/')) return 'icons-vendor';
+          },
         },
       },
     },

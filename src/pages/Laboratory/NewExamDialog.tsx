@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
+import { useAuth } from "../../context/AuthContext";
 import { Plus, Beaker } from "lucide-react";
 import {
   Dialog,
@@ -18,6 +19,7 @@ import SearchableSelect from "@/components/ui/searchable-select";
 import { toast } from "sonner";
 
 const NewExamDialog = ({ onCreated }: { onCreated: () => void }) => {
+  const { user } = useAuth();
   const [patientId, setPatientId] = useState("");
   const [testId, setTestId] = useState("");
   const [open, setOpen] = useState(false);
@@ -54,6 +56,7 @@ const NewExamDialog = ({ onCreated }: { onCreated: () => void }) => {
         patient_id: patientId,
         test_id: testId,
         status: "Requested",
+        requested_by_name: user?.fullName ?? null,
       });
       if (error) throw error;
     },

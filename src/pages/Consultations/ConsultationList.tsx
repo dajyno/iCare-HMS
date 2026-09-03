@@ -13,6 +13,31 @@ import ConsultationDetailCard from "@/src/components/ConsultationDetailCard";
 import { PageSkeleton } from "@/src/components/skeletons/PageSkeleton";
 import { TableSkeleton } from "@/src/components/skeletons/TableSkeleton";
 
+const CONSULTATION_LIST_COLUMNS = [
+  "id",
+  "patient_id",
+  "doctor_id",
+  "status",
+  "chief_complaint",
+  "diagnosis",
+  "clinical_notes",
+  "treatment_plan",
+  "created_at",
+  "vital_signs(temperature, blood_pressure, pulse_rate, respiratory_rate, weight, oxygen_saturation, bmi)",
+].join(", ");
+
+const PRESCRIPTION_DIALOG_COLUMNS = [
+  "id",
+  "status",
+  "consultation_id",
+  "patient_id",
+  "date",
+  "items:prescription_items(id, dosage, frequency, duration, instructions, quantity, medication:medications(name, strength))",
+].join(", ");
+
+const LAB_DIALOG_COLUMNS = "id, consultation_id, patient_id, status, created_at, test:lab_tests(name, category), results:lab_results(result_value, unit, reference_range, interpretation)";
+const RADIOLOGY_DIALOG_COLUMNS = "id, consultation_id, patient_id, status, created_at, exam:radiology_exams(name), result:radiology_results(findings, conclusion)";
+
 const statusConfig: Record<string, { icon: any; label: string; color: string; bg: string }> = {
   VitalsRecorded: { icon: Clock, label: "Vitals Recorded", color: "text-amber-600", bg: "bg-amber-50" },
   InProgress: { icon: Play, label: "In Progress", color: "text-blue-600", bg: "bg-blue-50" },
@@ -33,8 +58,9 @@ const ConsultationList = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("consultations")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .select(CONSULTATION_LIST_COLUMNS)
+        .order("created_at", { ascending: false })
+        .limit(500);
       if (error) throw error;
       return toCamel(data);
     },
@@ -45,7 +71,8 @@ const ConsultationList = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("patients")
-        .select("id, patient_id, first_name, last_name");
+        .select("id, patient_id, first_name, last_name")
+        .limit(1000);
       if (error) throw error;
       return toCamel(data);
     },
@@ -68,7 +95,7 @@ const ConsultationList = () => {
       if (!selectedConsultation?.patientId) return [];
       const { data, error } = await supabase
         .from("prescriptions")
-        .select("*, items:prescription_items(*, medication:medications(name, strength))")
+        .select(PRESCRIPTION_DIALOG_COLUMNS)
         .eq("patient_id", selectedConsultation.patientId)
         .order("date", { ascending: false });
       if (error) throw error;
@@ -83,7 +110,7 @@ const ConsultationList = () => {
       if (!selectedConsultation?.patientId) return [];
       const { data, error } = await supabase
         .from("lab_requests")
-        .select("*, test:lab_tests(name, category), results:lab_results(*)")
+        .select(LAB_DIALOG_COLUMNS)
         .eq("patient_id", selectedConsultation.patientId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -98,7 +125,7 @@ const ConsultationList = () => {
       if (!selectedConsultation?.patientId) return [];
       const { data, error } = await supabase
         .from("radiology_requests")
-        .select("*, exam:radiology_exams(name), result:radiology_results(*)")
+        .select(RADIOLOGY_DIALOG_COLUMNS)
         .eq("patient_id", selectedConsultation.patientId)
         .order("created_at", { ascending: false });
       if (error) throw error;

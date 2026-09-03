@@ -21,11 +21,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useStaff } from "./StaffContext";
 import { POSITION_FILTERS } from "./data";
 import AddStaffModal from "./AddStaffDrawer";
 import StaffUploadModal from "./StaffUploadModal";
+import Pagination from "@/components/ui/pagination";
 import type { StaffRecord } from "./types";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -39,7 +41,7 @@ const columnHelper = createColumnHelper<StaffRecord>();
 export default function StaffList() {
   const navigate = useNavigate();
   const { hospital_slug } = useParams();
-  const { records } = useStaff();
+  const { records, loading, page, pageSize, totalCount, setPage, setPageSize } = useStaff();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("All Staff");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -220,7 +222,13 @@ export default function StaffList() {
           </div>
 
           {/* Table */}
-          {filteredData.length === 0 ? (
+          {loading && records.length === 0 ? (
+            <div className="p-6 space-y-3">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full rounded-md" />
+              ))}
+            </div>
+          ) : filteredData.length === 0 ? (
             <div className="text-center py-24">
               <UserPlus className="w-16 h-16 text-slate-200 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-slate-900">
@@ -296,15 +304,15 @@ export default function StaffList() {
             </div>
           )}
 
-          {/* Footer stats */}
-          <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between text-xs text-slate-400">
-            <span>
-              {filteredData.length} of {records.length} staff members
-            </span>
-            <span className="text-[10px] text-slate-300">
-              Click a row to manage profile and permissions
-            </span>
-          </div>
+          {!loading && records.length > 0 && (
+            <Pagination
+              currentPage={page}
+              pageSize={pageSize}
+              totalItems={totalCount}
+              onPageChange={setPage}
+              onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+            />
+          )}
         </div>
       </div>
 

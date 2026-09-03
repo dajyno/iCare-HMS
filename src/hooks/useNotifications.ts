@@ -8,13 +8,25 @@ import type { AppNotification } from "@/src/lib/types";
 
 const POLL_INTERVAL = 5 * 60 * 1000;
 
-export function useNotifications() {
+export function useNotifications(active = false) {
   const { user } = useAuth();
   const { settings } = useGlobalSettings();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const fetchUnreadCount = useCallback(async () => {
+    if (!user) return;
+    const { count, error } = await supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("is_read", false);
+
+    if (!error) {
+      setUnreadCount(count || 0);
+    }
+  }, [user]);
 
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
@@ -30,7 +42,9 @@ export function useNotifications() {
       return;
     }
 
-    setNotifications(toCamel(data) as AppNotification[]);
+    const next = toCamel(data) as AppNotification[];
+    setNotifications(next);
+    setUnreadCount(next.filter((n) => !n.isRead).length);
     setLoading(false);
   }, [user]);
 
@@ -39,6 +53,7 @@ export function useNotifications() {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
     );
+    setUnreadCount((prev) => Math.max(0, prev - 1));
   }, []);
 
   const markAllAsRead = useCallback(async () => {
@@ -49,6 +64,7 @@ export function useNotifications() {
       .eq("user_id", user.id)
       .eq("is_read", false);
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setUnreadCount(0);
   }, [user]);
 
   const ensureNotification = useCallback(
@@ -155,7 +171,20 @@ export function useNotifications() {
   }, [settings.lowStockAlerts, user, ensureNotification]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setNotifications([]);
+      setUnreadCount(0);
+      setLoading(false);
+      return;
+    }
+
+    if (!active) {
+      fetchUnreadCount();
+      const interval = setInterval(fetchUnreadCount, POLL_INTERVAL);
+      return () => clearInterval(interval);
+    }
+
+    setLoading(true);
     fetchNotifications();
     checkPendingTransactions();
     checkLowStock();
@@ -167,7 +196,7 @@ export function useNotifications() {
     }, POLL_INTERVAL);
 
     return () => clearInterval(interval);
-  }, [user, fetchNotifications, checkPendingTransactions, checkLowStock]);
+  }, [user, active, fetchUnreadCount, fetchNotifications, checkPendingTransactions, checkLowStock]);
 
   return { notifications, unreadCount, loading, markAsRead, markAllAsRead, refresh: fetchNotifications };
 }

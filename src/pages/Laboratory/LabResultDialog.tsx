@@ -9,10 +9,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Printer, Edit3, Beaker, CalendarClock, FileText } from "lucide-react";
+import { Printer, Edit3, Beaker, CalendarClock, FileText, User } from "lucide-react";
 import { format } from "date-fns";
 import StatusBadge from "./StatusBadge";
-import { getHospitalName } from "@/src/lib/hospitalConfig";
+import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
+
 
 const mapStatus = (dbStatus: string) => {
   const map: Record<string, string> = {
@@ -51,9 +52,11 @@ const LabResultDialog = ({
     enabled: open,
   });
 
+  const { settings } = useGlobalSettings();
+
   const handlePrint = useCallback(() => {
     if (!order || !result) return;
-    const hospitalName = getHospitalName();
+    const hospitalName = settings.hospitalName;
     const orderId = `REQ-${order.id?.slice(-6)?.toUpperCase() ?? "—"}`;
     const patientName = order?.patient
       ? `${order.patient.firstName ?? ""} ${order.patient.lastName ?? ""}`.trim()
@@ -193,10 +196,26 @@ const LabResultDialog = ({
 
               {result.interpretation?.startsWith("[ATTACHMENT:") && (
                 <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                  <FileText className="w-4 h-4 text-[#005EB8]" />
-                  <span className="text-xs text-slate-700 font-medium">
-                    {result.interpretation.match(/\[ATTACHMENT:(.+?)\]/)?.[1] ?? "Attached file"}
-                  </span>
+                  {(result as any).attachment_url ? (
+                    <a
+                      href={(result as any).attachment_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-[#005EB8] hover:underline"
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span className="text-xs font-medium">
+                        {result.interpretation.match(/\[ATTACHMENT:(.+?)\]/)?.[1] ?? "Attached file"}
+                      </span>
+                    </a>
+                  ) : (
+                    <>
+                      <FileText className="w-4 h-4 text-[#005EB8]" />
+                      <span className="text-xs text-slate-700 font-medium">
+                        {result.interpretation.match(/\[ATTACHMENT:(.+?)\]/)?.[1] ?? "Attached file"}
+                      </span>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -205,15 +224,29 @@ const LabResultDialog = ({
                 <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
                   <CalendarClock className="w-3.5 h-3.5" />
                   <span>Requested: {order?.createdAt ? format(new Date(order.createdAt), "MMM dd, yyyy HH:mm") : "—"}</span>
+                  {order?.requestedByName && (
+                    <>
+                      <span className="text-slate-300">·</span>
+                      <User className="w-3 h-3 text-slate-400" />
+                      <span className="font-medium text-slate-600">{order.requestedByName}</span>
+                    </>
+                  )}
                 </div>
                 <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
                   <CalendarClock className="w-3.5 h-3.5" />
                   <span>Completed: {result?.date ? format(new Date(result.date), "MMM dd, yyyy HH:mm") : "—"}</span>
+                  {order?.completedByName && (
+                    <>
+                      <span className="text-slate-300">·</span>
+                      <User className="w-3 h-3 text-slate-400" />
+                      <span className="font-medium text-slate-600">{order.completedByName}</span>
+                    </>
+                  )}
                 </div>
-                {(result as any)?.editedAt || (result as any)?.editedBy ? (
+                {(result as any)?.edited_at || (result as any)?.edited_by ? (
                   <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
                     <Edit3 className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Edited by <span className="font-medium text-slate-700">{(result as any)?.editedBy ?? "Lab Technician"}</span>{(result as any)?.editedAt && <span> on {format(new Date((result as any).editedAt), "MMM dd, yyyy HH:mm")}</span>}</span>
+                    <span>Edited by <span className="font-medium text-slate-700">{(result as any)?.edited_by ?? "Lab Technician"}</span>{(result as any)?.edited_at && <span> on {format(new Date((result as any).edited_at), "MMM dd, yyyy HH:mm")}</span>}</span>
                   </div>
                 ) : null}
               </div>

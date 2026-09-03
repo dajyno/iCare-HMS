@@ -40,6 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (data && !error) {
       setUser(toCamel(data) as unknown as User);
+      if (data.tenant_id) setCurrentTenantId(data.tenant_id);
     } else if (authUser) {
       const { data: staffRow } = await (supabase.from("staff") as any)
         .select("name, position")
@@ -47,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .maybeSingle();
 
       if (staffRow) {
-        const role = mapPositionToRole(staffRow.position) as User["role"];
+        const role = (authUser.user_metadata?.role || mapPositionToRole(staffRow.position)) as User["role"];
         setUser({
           id: userId,
           email: authUser.email || "",

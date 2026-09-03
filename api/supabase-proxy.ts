@@ -67,11 +67,11 @@ async function handleTable(supabase: any, body: any) {
       if (single === "maybeSingle") query = query.maybeSingle();
     }
   } else if (action === "update") {
-    query = applyFilters(query);
     query = query.update(payload);
-  } else if (action === "delete") {
     query = applyFilters(query);
+  } else if (action === "delete") {
     query = query.delete();
+    query = applyFilters(query);
   } else {
     query = query.select(columns || "*", selectOptions);
     query = applyFilters(query);

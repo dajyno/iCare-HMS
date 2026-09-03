@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { useIncome, useExpenses } from "../hooks";
 import { STATUS_STYLES, type LedgerEntry as LedgerEntryType } from "../types";
 
@@ -193,11 +194,11 @@ const LedgerPage = () => {
           <div className="grid grid-cols-2 sm:flex gap-3">
             <div className="space-y-1.5">
               <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">From</label>
-              <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setCurrentPage(1); }} className="h-8 text-xs w-full sm:w-36" />
+              <DatePicker value={dateFrom} onChange={(v) => { setDateFrom(v); setCurrentPage(1); }} className="h-8 text-xs w-full sm:w-36" />
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">To</label>
-              <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setCurrentPage(1); }} className="h-8 text-xs w-full sm:w-36" />
+              <DatePicker value={dateTo} onChange={(v) => { setDateTo(v); setCurrentPage(1); }} className="h-8 text-xs w-full sm:w-36" />
             </div>
           </div>
           <div className="space-y-1 flex-1 min-w-[180px]">

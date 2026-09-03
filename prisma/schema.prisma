@@ -225,19 +225,23 @@ model LabTest {
 }
 
 model LabRequest {
-  id             String       @id @default(cuid())
-  tenantId       String?
-  tenant         Tenant?      @relation(fields: [tenantId], references: [tenantId])
-  patientId      String
-  patient        Patient      @relation(fields: [patientId], references: [id])
-  testId         String
-  test           LabTest      @relation(fields: [testId], references: [id])
-  consultationId String?
-  consultation   Consultation? @relation(fields: [consultationId], references: [id])
-  batchId        String?
-  status         String       @default("Requested") // Requested, SampleCollected, InProgress, AwaitingValidation, Completed, Cancelled
-  createdAt      DateTime     @default(now())
-  results        LabResult?
+  id               String       @id @default(cuid())
+  tenantId         String?
+  tenant           Tenant?      @relation(fields: [tenantId], references: [tenantId])
+  patientId        String
+  patient          Patient      @relation(fields: [patientId], references: [id])
+  testId           String
+  test             LabTest      @relation(fields: [testId], references: [id])
+  consultationId   String?
+  consultation     Consultation? @relation(fields: [consultationId], references: [id])
+  batchId          String?
+  status           String       @default("Requested")
+  requestedByName  String?
+  completedByName  String?
+  paymentStatus    String?      @default("Unpaid")
+  invoiceId        String?
+  createdAt        DateTime     @default(now())
+  results          LabResult?
 }
 
 model LabResult {
@@ -255,6 +259,9 @@ model LabResult {
   technicianId   String?
   validatedById  String?
   validatedBy    User?      @relation("ValidatedBy", fields: [validatedById], references: [id])
+  editedBy       String?
+  editedAt       DateTime?
+  attachmentUrl  String?
   date           DateTime   @default(now())
 }
 

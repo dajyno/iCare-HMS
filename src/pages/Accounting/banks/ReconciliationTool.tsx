@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { STATUS_STYLES, generateId } from "../types";
@@ -358,11 +359,11 @@ const ReconciliationTool = ({ bank, onBack }: Props) => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs">Period Start</Label>
-                <Input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} className="h-10" />
+                <DatePicker value={periodStart} onChange={(v) => setPeriodStart(v)} className="h-10" />
               </div>
               <div>
                 <Label className="text-xs">Period End</Label>
-                <Input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} className="h-10" />
+                <DatePicker value={periodEnd} onChange={(v) => setPeriodEnd(v)} className="h-10" />
               </div>
             </div>
             <div>
@@ -463,7 +464,7 @@ const ReconciliationTool = ({ bank, onBack }: Props) => {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div>
                   <Label className="text-[10px]">Date</Label>
-                  <Input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="h-8 text-xs" />
+                  <DatePicker value={newDate} onChange={(v) => setNewDate(v)} className="h-8 text-xs" />
                 </div>
                 <div className="col-span-2">
                   <Label className="text-[10px]">Description</Label>

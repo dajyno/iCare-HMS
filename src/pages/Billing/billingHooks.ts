@@ -2,9 +2,39 @@ import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tansta
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { logAudit } from "@/src/lib/auditLogger";
 import type { LineItem, InvoiceSummary, CatalogItem } from "./billingTypes";
-import { computeLineItemAmount, MOCK_MEDICATIONS, MOCK_LAB_TESTS } from "./billingTypes";
+import { computeLineItemAmount, computeTotalWithVat, MOCK_MEDICATIONS, MOCK_LAB_TESTS } from "./billingTypes";
+import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
 import { createIncomeFromPayment } from "../Accounting/hooks";
 import { toast } from "sonner";
+
+const INVOICE_LIST_COLUMNS = [
+  "id",
+  "invoice_number",
+  "patient_id",
+  "total_amount",
+  "amount_paid",
+  "balance",
+  "status",
+  "source_type",
+  "prescription_id",
+  "payment_method",
+  "created_by",
+  "paid_at",
+  "created_at",
+  "updated_at",
+  "patient:patients(id, patient_id, first_name, last_name)",
+  "items:invoice_items(id, invoice_id, description, category, quantity, unit_price, total)",
+].join(", ");
+
+function lineItemCategory(code: string): string {
+  if (code.startsWith("ADM")) return "Admin";
+  if (code.startsWith("CONS")) return "Consultation";
+  if (code.startsWith("INP")) return "Inpatient";
+  if (code.startsWith("PHM")) return "Pharmacy";
+  if (code.startsWith("LAB")) return "Lab";
+  if (code.startsWith("RAD")) return "Radiology";
+  return "General";
+}
 
 export function useInvoices() {
   return useQuery<InvoiceSummary[]>({
@@ -12,8 +42,9 @@ export function useInvoices() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("invoices")
-        .select("*, patient:patients(*), items:invoice_items(*)")
-        .order("created_at", { ascending: false });
+        .select(INVOICE_LIST_COLUMNS)
+        .order("created_at", { ascending: false })
+        .limit(500);
       if (error) return [];
       return (toCamel(data) as InvoiceSummary[]) || [];
     },
@@ -97,11 +128,15 @@ export function useMedications(query: string) {
       try {
         const { data, error } = await (supabase as any)
           .from("medications")
-          .select("id, name, price")
+          .select("id, name, unit_price")
           .ilike("name", `%${query}%`)
           .limit(10);
         if (error) return filtered;
-        const results = toCamel(data) as CatalogItem[];
+        const results = ((toCamel(data) as any[]) || []).map((item) => ({
+          id: item.id,
+          name: item.name,
+          price: item.unitPrice ?? 0,
+        })) as CatalogItem[];
         return results.length > 0 ? results : filtered;
       } catch {
         return filtered;
@@ -139,6 +174,7 @@ export function useLabTests(query: string) {
 
 export function useCreateInvoice() {
   const queryClient = useQueryClient();
+  const { settings } = useGlobalSettings();
 
   return useMutation({
     mutationFn: async ({
@@ -154,10 +190,11 @@ export function useCreateInvoice() {
       lineItems: LineItem[];
       invoiceNumber: string;
     }) => {
-      const totalAmount = lineItems.reduce(
+      const subtotal = lineItems.reduce(
         (sum, item) => sum + computeLineItemAmount(item.price, item.qty),
         0
       );
+      const totalAmount = computeTotalWithVat(subtotal, settings.vatPercentage, settings.vatEnabled);
 
       const supabaseInvoicePayload: Record<string, any> = {
         invoice_number: invoiceNumber,
@@ -183,6 +220,7 @@ export function useCreateInvoice() {
         .map((item) => ({
           invoice_id: invoiceId,
           description: item.name,
+          category: lineItemCategory(item.code),
           quantity: item.qty,
           unit_price: item.price,
           total: computeLineItemAmount(item.price, item.qty),
@@ -259,7 +297,7 @@ async function processPaymentSideEffects(
     queryClient.invalidateQueries({ queryKey: ["admissions"] });
   }
 
-  if (sourceType === "Lab & Radiology") {
+  if (sourceType === "Lab" || sourceType === "Lab & Radiology") {
     try {
       await (supabase as any)
         .from("lab_requests")
@@ -269,7 +307,9 @@ async function processPaymentSideEffects(
       // Local fallback
     }
     queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
+  }
 
+  if (sourceType === "Radiology" || sourceType === "Lab & Radiology") {
     try {
       await (supabase as any)
         .from("radiology_requests")

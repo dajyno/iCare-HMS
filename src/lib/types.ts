@@ -201,10 +201,16 @@ export interface LabRequest {
   consultation_id?: string | null;
   consultationId?: string | null;
   status: "Requested" | "SampleCollected" | "InProgress" | "AwaitingValidation" | "Completed" | "Cancelled";
+  requested_by_name?: string | null;
+  requestedByName?: string | null;
+  completed_by_name?: string | null;
+  completedByName?: string | null;
   created_at: string;
   createdAt?: string;
   invoice_id?: string | null;
   invoiceId?: string | null;
+  referred_by?: string | null;
+  referredBy?: string | null;
   payment_status?: string | null;
   paymentStatus?: string | null;
   patient?: Patient;
@@ -224,6 +230,7 @@ export interface LabResult {
   date: string;
   edited_by?: string | null;
   edited_at?: string | null;
+  attachment_url?: string | null;
 }
 
 export interface AppNotification {
@@ -353,6 +360,8 @@ export interface RadiologyRequest {
   updatedAt?: string;
   invoice_id?: string | null;
   invoiceId?: string | null;
+  referred_by?: string | null;
+  referredBy?: string | null;
   payment_status?: string | null;
   paymentStatus?: string | null;
   patient?: Patient;
@@ -383,6 +392,7 @@ export interface InvoiceItem {
   invoice_id: string;
   invoiceId?: string;
   description: string;
+  category?: string;
   quantity: number;
   unit_price: number;
   unitPrice?: number;

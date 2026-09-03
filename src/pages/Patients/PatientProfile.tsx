@@ -5,6 +5,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
 import { generateInvoiceNumber } from "@/src/lib/invoiceNumber";
 import { useAuth } from "@/src/context/AuthContext";
+import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
+import { computeTotalWithVat } from "../Billing/billingTypes";
 import {
   ArrowLeft, User, Phone, Mail, MapPin, Calendar, Edit, Save,
   Stethoscope, FlaskConical, Pill, Activity, AlertCircle, Loader2,
@@ -17,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import SearchableSelect from "@/components/ui/searchable-select";
@@ -34,6 +37,7 @@ const PatientProfile = () => {
   const { id, hospital_slug } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { settings } = useGlobalSettings();
   const { user: currentUser } = useAuth();
   const [showEditModal, setShowEditModal] = useState(false);
   const [editForm, setEditForm] = useState<any>({});
@@ -156,7 +160,7 @@ const PatientProfile = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("prescriptions")
-        .select("*, items:prescription_items(*, medication:medications(name, strength))")
+        .select("id, patient_id, doctor_id, consultation_id, date, status, items:prescription_items(id, prescription_id, medication_id, dosage, frequency, duration, instructions, quantity, medication:medications(name, strength))")
         .eq("patient_id", id)
         .order("date", { ascending: false });
       if (error) {
@@ -392,6 +396,8 @@ const PatientProfile = () => {
     onSuccess: () => {
       toast.success("Lab request created successfully");
       queryClient.invalidateQueries({ queryKey: ["patient-labs", id] });
+      queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["lab-requests-count"] });
       setShowLabModal(false);
       setLabForm({});
     },
@@ -423,7 +429,7 @@ const PatientProfile = () => {
       const { data: rx, error: rxError } = await supabase
         .from("prescriptions")
         .insert(prescription)
-        .select()
+        .select("id")
         .single();
       if (rxError) throw rxError;
       if (items && items.length > 0) {
@@ -450,7 +456,7 @@ const PatientProfile = () => {
       const { data: inv, error: invError } = await supabase
         .from("invoices")
         .insert(invoice)
-        .select()
+        .select("id")
         .single();
       if (invError) throw invError;
       if (inv && items && items.length > 0) {
@@ -617,6 +623,7 @@ const PatientProfile = () => {
       patient_id: id,
       test_id: labForm.testId,
       status: "Requested",
+      requested_by_name: currentUser?.fullName ?? null,
     });
   };
 
@@ -649,16 +656,17 @@ const PatientProfile = () => {
     e.preventDefault();
     const qty = parseInt(billForm.quantity) || 1;
     const unitPrice = parseFloat(billForm.unitPrice) || 0;
-    const total = qty * unitPrice;
+    const subtotal = qty * unitPrice;
+    const totalAmount = computeTotalWithVat(subtotal, settings.vatPercentage, settings.vatEnabled);
     const invNum = await generateInvoiceNumber(supabase);
     createInvoice.mutate({
       patient_id: id,
       invoice_number: invNum,
-      total_amount: total,
+      total_amount: totalAmount,
       amount_paid: 0,
-      balance: total,
+      balance: totalAmount,
       status: "Unpaid",
-      items: [{ description: billForm.description, quantity: qty, unit_price: unitPrice, total }],
+      items: [{ description: billForm.description, quantity: qty, unit_price: unitPrice, total: subtotal }],
     });
   };
 
@@ -1209,7 +1217,7 @@ const PatientProfile = () => {
                 </div>
                 <div>
                   <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Date of Birth</Label>
-                  <Input type="date" value={editForm.dateOfBirth || ""} onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none" />
+                  <DatePicker value={editForm.dateOfBirth || ""} onChange={(v) => setEditForm({ ...editForm, dateOfBirth: v })} fromYear={1930} toYear={new Date().getFullYear()} className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none" />
                 </div>
                 <div>
                   <Label className="block text-xs font-semibold text-slate-700 mb-1 tracking-wide">Category <span className="text-red-500">*</span></Label>
@@ -1350,7 +1358,7 @@ const PatientProfile = () => {
             <div className="space-y-1.5"><Label>Clinical Notes</Label><Textarea value={consultForm.clinicalNotes || ""} onChange={(e) => setConsultForm({ ...consultForm, clinicalNotes: e.target.value })} /></div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5"><Label>Treatment Plan</Label><Textarea value={consultForm.treatmentPlan || ""} onChange={(e) => setConsultForm({ ...consultForm, treatmentPlan: e.target.value })} /></div>
-              <div className="space-y-1.5"><Label>Follow-up Date</Label><Input type="date" value={consultForm.followUpDate || ""} onChange={(e) => setConsultForm({ ...consultForm, followUpDate: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>Follow-up Date</Label><DatePicker value={consultForm.followUpDate || ""} onChange={(v) => setConsultForm({ ...consultForm, followUpDate: v })} /></div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowConsultModal(false)}>Cancel</Button>
@@ -1579,7 +1587,7 @@ const PatientProfile = () => {
               </div>
               <div className="space-y-1.5">
                 <Label>Date of Birth *</Label>
-                <Input type="date" required value={dependantForm.dateOfBirth} onChange={(e) => setDependantForm({ ...dependantForm, dateOfBirth: e.target.value })} />
+                <DatePicker value={dependantForm.dateOfBirth} onChange={(v) => setDependantForm({ ...dependantForm, dateOfBirth: v })} fromYear={1930} toYear={new Date().getFullYear()} />
               </div>
               <div className="space-y-1.5">
                 <Label>Blood Group</Label>

@@ -23,7 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import StatusBadge from "./StatusBadge";
 import { format } from "date-fns";
 import { supabase, toCamel } from "@/src/lib/supabase";
-import { getHospitalName } from "@/src/lib/hospitalConfig";
+import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "sonner";
 
@@ -56,6 +56,7 @@ const LabDetailView = ({
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+  const { settings } = useGlobalSettings();
   const { user } = useAuth();
 
   const resultValuesRef = useRef(resultValues);
@@ -140,6 +141,20 @@ const LabDetailView = ({
         if (!interp.startsWith("[ATTACHMENT:")) interp = fileTag + interp;
       }
 
+      let attachmentUrl: string | null = null;
+      if (latestFile && val) {
+        const filePath = `lab-results/${o.id}/${latestFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from("lab-attachments")
+          .upload(filePath, latestFile, { upsert: true });
+        if (!uploadError) {
+          const { data: urlData } = supabase.storage
+            .from("lab-attachments")
+            .getPublicUrl(filePath);
+          attachmentUrl = urlData?.publicUrl ?? null;
+        }
+      }
+
       const upsertPayload: any = {
         request_id: o.id,
         patient_id: o.patientId,
@@ -147,8 +162,9 @@ const LabDetailView = ({
         unit: unit || null,
         reference_range: o.test?.referenceRange ?? null,
         interpretation: interp || null,
-        edited_by: (user as any)?.full_name ?? null,
+        edited_by: user?.fullName ?? null,
         edited_at: new Date().toISOString(),
+        attachment_url: attachmentUrl,
         tenant_id: (user as any)?.tenantId ?? null,
       };
 
@@ -156,26 +172,12 @@ const LabDetailView = ({
         .from("lab_results")
         .upsert(upsertPayload, { onConflict: "request_id", ignoreDuplicates: false });
 
-      if (error && error.message?.includes("edited_at")) {
-        delete upsertPayload.edited_at;
-        const { error: retryError } = await supabase
-          .from("lab_results")
-          .upsert(upsertPayload, { onConflict: "request_id", ignoreDuplicates: false });
-        if (retryError) throw retryError;
-      } else if (error && error.message?.includes("edited_by")) {
-        delete upsertPayload.edited_by;
-        const { error: retryError } = await supabase
-          .from("lab_results")
-          .upsert(upsertPayload, { onConflict: "request_id", ignoreDuplicates: false });
-        if (retryError) throw retryError;
-      } else if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       if (markCompleted) {
         const { error } = await supabase
           .from("lab_requests")
-          .update({ status: "Completed" })
+          .update({ status: "Completed", completed_by_name: user?.fullName ?? null })
           .eq("id", o.id);
         if (error) throw error;
       }
@@ -245,7 +247,7 @@ const LabDetailView = ({
   }, []);
 
   const handlePrintAll = useCallback(() => {
-    const hospitalName = getHospitalName();
+    const hospitalName = settings.hospitalName;
     const batchId = orders.length > 1
       ? `BATCH-${order?.consultationId?.slice(-4).toUpperCase() || order?.batchId?.slice(-4).toUpperCase()}`
       : `REQ-${order.id?.slice(-6).toUpperCase()}`;
@@ -473,10 +475,26 @@ const LabDetailView = ({
                     </p>
                     {existingResults.find((r: any) => r.requestId === o.id)?.interpretation?.startsWith("[ATTACHMENT:") && (
                       <div className="flex items-center gap-2 p-2 bg-slate-50 rounded border border-slate-200">
-                        <FileText className="w-3.5 h-3.5 text-[#005EB8]" />
-                        <span className="text-[11px] text-slate-700 font-medium">
-                          {existingResults.find((r: any) => r.requestId === o.id)?.interpretation?.match(/\[ATTACHMENT:(.+?)\]/)?.[1]}
-                        </span>
+                        {existingResults.find((r: any) => r.requestId === o.id)?.attachmentUrl ? (
+                          <a
+                            href={existingResults.find((r: any) => r.requestId === o.id)?.attachmentUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-[#005EB8] hover:underline"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            <span className="text-[11px] font-medium">
+                              {existingResults.find((r: any) => r.requestId === o.id)?.interpretation?.match(/\[ATTACHMENT:(.+?)\]/)?.[1]}
+                            </span>
+                          </a>
+                        ) : (
+                          <>
+                            <FileText className="w-3.5 h-3.5 text-[#005EB8]" />
+                            <span className="text-[11px] text-slate-700 font-medium">
+                              {existingResults.find((r: any) => r.requestId === o.id)?.interpretation?.match(/\[ATTACHMENT:(.+?)\]/)?.[1]}
+                            </span>
+                          </>
+                        )}
                       </div>
                     )}
                     {(() => {
@@ -496,9 +514,22 @@ const LabDetailView = ({
                       }
                       return null;
                     })()}
-                    <div className="flex items-center gap-4 pt-2 border-t border-slate-100 text-[11px] text-slate-500">
+                    <div className="flex items-center gap-4 pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex-wrap">
                       <span>Requested: {o?.createdAt ? format(new Date(o.createdAt), "MMM dd, yyyy HH:mm") : "—"}</span>
+                      {o?.requestedByName && (
+                        <>
+                          <span className="text-slate-300">·</span>
+                          <span>by <span className="font-medium text-slate-600">{o.requestedByName}</span></span>
+                        </>
+                      )}
+                      <span className="text-slate-300">|</span>
                       <span>Completed: {(() => { const r = existingResults?.find((r: any) => r.requestId === o.id); return r?.date ? format(new Date(r.date), "MMM dd, yyyy HH:mm") : "—"; })()}</span>
+                      {o?.completedByName && (
+                        <>
+                          <span className="text-slate-300">·</span>
+                          <span>by <span className="font-medium text-slate-600">{o.completedByName}</span></span>
+                        </>
+                      )}
                     </div>
                   </div>
                 ) : (

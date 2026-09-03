@@ -116,7 +116,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   );
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);
 
@@ -189,6 +189,8 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         { label: "Analytics Hub", href: p("/reports") },
         { label: "Clinical", href: p("/reports/clinical") },
         { label: "Revenue", href: p("/reports/revenue") },
+        { label: "Service Type Revenue", href: p("/reports/revenue-by-service-type") },
+        { label: "Referrals", href: p("/reports/referrals") },
       ]},
       { icon: Settings, label: "System Settings", href: p("/settings") },
     ];
@@ -428,7 +430,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
             
             <NotificationBell />
             <span className="hidden md:inline text-xs text-slate-500 font-mono whitespace-nowrap">
-              {currentTime.toLocaleDateString()} {currentTime.toLocaleTimeString()}
+              {currentTime.toLocaleDateString()} {currentTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </span>
           </div>
         </header>

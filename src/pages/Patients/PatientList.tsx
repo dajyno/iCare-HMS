@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import SearchableSelect from "@/components/ui/searchable-select";
@@ -27,6 +28,38 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { PageSkeleton } from "@/src/components/skeletons/PageSkeleton";
 import { TableSkeleton } from "@/src/components/skeletons/TableSkeleton";
+
+const PATIENT_LIST_COLUMNS = [
+  "id",
+  "patient_id",
+  "first_name",
+  "last_name",
+  "gender",
+  "date_of_birth",
+  "phone",
+  "email",
+  "address",
+  "category",
+  "status",
+  "is_primary",
+  "family_id",
+  "blood_group",
+  "allergies",
+  "medical_history",
+  "next_of_kin_name",
+  "next_of_kin_phone",
+  "next_of_kin_relation",
+  "company_name",
+  "company_phone",
+  "company_address",
+  "insurance_provider",
+  "insurance_id",
+  "registration_date",
+].join(", ");
+
+function sanitizeSearchTerm(term: string) {
+  return term.trim().replace(/[,()]/g, " ").replace(/\s+/g, " ");
+}
 
 const categoryBadge: Record<string, string> = {
   Individual: "bg-blue-50 text-blue-700 border-blue-100",
@@ -68,16 +101,50 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
     });
   }, []);
 
-  const { data: patients, isLoading, isError, error } = useQuery({
-    queryKey: ["patients"],
+  const { data: patientsResult, isLoading, isError, error } = useQuery({
+    queryKey: ["patients", page, pageSize, categoryFilter, statusFilter, searchTerm],
+    queryFn: async () => {
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      const search = sanitizeSearchTerm(searchTerm);
+
+      let query = supabase
+        .from("patients")
+        .select(PATIENT_LIST_COLUMNS, { count: "exact" });
+
+      if (categoryFilter && categoryFilter !== "All") {
+        query = query.eq("category", categoryFilter);
+      }
+      if (statusFilter && statusFilter !== "All") {
+        query = query.eq("status", statusFilter);
+      }
+      if (search) {
+        query = query.or(`patient_id.ilike.%${search}%,first_name.ilike.%${search}%,last_name.ilike.%${search}%,phone.ilike.%${search}%`);
+      }
+
+      const result = await query
+        .order("registration_date", { ascending: false })
+        .range(from, to);
+      if (result.error) throw result.error;
+      return { patients: toCamel(result.data || []), total: result.count || 0 };
+    },
+  });
+
+  const patients = patientsResult?.patients || [];
+  const totalPatients = patientsResult?.total || 0;
+
+  const { data: patientFolderRows = [] } = useQuery({
+    queryKey: ["patients-folder-numbers"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("patients")
-        .select("*")
-        .order("registration_date", { ascending: false });
+        .select("patient_id, category")
+        .order("registration_date", { ascending: false })
+        .limit(2000);
       if (error) throw error;
       return toCamel(data);
     },
+    staleTime: 1000 * 60 * 5,
   });
 
   const { data: primaryPatients } = useQuery({
@@ -94,7 +161,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
     },
   });
 
-  const { data: doctors = [] } = useDoctors();
+  const { data: doctors = [] } = useDoctors(showApptModal);
 
   const createMutation = useMutation({
     mutationFn: async (formData: any) => {
@@ -105,11 +172,11 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
     onSuccess: (data) => {
       const patient = toCamel(data);
       toast.success("Patient created successfully");
-      queryClient.setQueryData(["patients"], (old: any) => Array.isArray(old) ? [...old, patient] : [patient]);
       if (patient?.category === "Family" && patient?.isPrimary) {
         queryClient.setQueryData(["patients-family-primaries-list"], (old: any) => Array.isArray(old) ? [...old, patient] : [patient]);
       }
       queryClient.invalidateQueries({ queryKey: ["patients"] });
+      queryClient.invalidateQueries({ queryKey: ["patients-folder-numbers"] });
       queryClient.invalidateQueries({ queryKey: ["patients-family-primaries-list"] });
       setShowNewModal(false);
       setNewForm({});
@@ -145,6 +212,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
     onSuccess: () => {
       toast.success("Patient archived successfully");
       queryClient.invalidateQueries({ queryKey: ["patients"] });
+      queryClient.invalidateQueries({ queryKey: ["patients-folder-numbers"] });
     },
   });
 
@@ -164,16 +232,16 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
   };
 
   const lastFolderNumbers = useMemo(() => {
-    if (!Array.isArray(patients)) return {};
+    if (!Array.isArray(patientFolderRows)) return {};
     const latest: Record<string, string> = {};
-    for (const p of patients) {
+    for (const p of patientFolderRows) {
       const cat = p.category || "Individual";
       if (!latest[cat] && p.patientId) {
         latest[cat] = p.patientId;
       }
     }
     return latest;
-  }, [patients]);
+  }, [patientFolderRows]);
 
   const handleNewSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -229,36 +297,16 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
     updateMutation.mutate({ id: editPatient.id, ...payload });
   };
 
-  const filteredPatients = useMemo(() => {
-    if (!Array.isArray(patients)) return [];
-    let result = patients;
-    if (categoryFilter && categoryFilter !== "All") {
-      result = result.filter((p: any) => p.category === categoryFilter);
-    }
-    if (statusFilter && statusFilter !== "All") {
-      result = result.filter((p: any) => p.status === statusFilter);
-    }
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter((p: any) =>
-        (p.patientId && p.patientId.toLowerCase().includes(term)) ||
-        (p.firstName && p.firstName.toLowerCase().includes(term)) ||
-        (p.lastName && p.lastName.toLowerCase().includes(term)) ||
-        (p.phone && p.phone.toLowerCase().includes(term))
-      );
-    }
-    return result;
-  }, [patients, categoryFilter, statusFilter, searchTerm]);
-
-  const paginatedPatients = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return filteredPatients.slice(start, start + pageSize);
-  }, [filteredPatients, page, pageSize]);
+  const paginatedPatients = patients;
 
   useEffect(() => {
-    const maxPage = Math.max(1, Math.ceil(filteredPatients.length / pageSize));
+    const maxPage = Math.max(1, Math.ceil(totalPatients / pageSize));
     if (page > maxPage) setPage(maxPage);
-  }, [filteredPatients.length, pageSize]);
+  }, [totalPatients, page, pageSize]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [categoryFilter, statusFilter, searchTerm]);
 
   if (isLoading) {
     return (
@@ -417,7 +465,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
               ) : (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
-                    {!Array.isArray(filteredPatients) ? "Unexpected data format received." : "No patients found."}
+                    {!Array.isArray(paginatedPatients) ? "Unexpected data format received." : "No patients found."}
                   </td>
                 </tr>
               )}
@@ -425,7 +473,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
           </table>
         </div>
 
-        <Pagination currentPage={page} pageSize={pageSize} totalItems={filteredPatients.length} onPageChange={setPage} onPageSizeChange={setPageSize} />
+        <Pagination currentPage={page} pageSize={pageSize} totalItems={totalPatients} onPageChange={setPage} onPageSizeChange={setPageSize} />
       </div>
 
       {/* New Patient Modal */}
@@ -454,8 +502,8 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
                     const lastName = e.target.value;
                     if (!patientIdManuallySet) {
                       const base = (lastName || "PAT").toUpperCase().replace(/[^A-Z]/g, "").substring(0, 4) || "PAT";
-                      const existing = Array.isArray(patients)
-                        ? patients.filter((p: any) => p.patientId?.toUpperCase().startsWith(base))
+                      const existing = Array.isArray(patientFolderRows)
+                        ? patientFolderRows.filter((p: any) => p.patientId?.toUpperCase().startsWith(base))
                         : [];
                       const next = (existing.length + 1).toString().padStart(3, "0");
                       setNewForm({ ...newForm, lastName, patientId: `${base}-${next}` });
@@ -477,7 +525,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Date of Birth <span className="text-red-500">*</span></Label>
-                  <Input type="date" required value={newForm.dateOfBirth || ""} onChange={(e) => setNewForm({ ...newForm, dateOfBirth: e.target.value })} />
+                  <DatePicker value={newForm.dateOfBirth || ""} onChange={(v) => setNewForm({ ...newForm, dateOfBirth: v })} fromYear={1930} toYear={new Date().getFullYear()} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Folder Type <span className="text-red-500">*</span></Label>
@@ -632,7 +680,7 @@ const PatientList = ({ defaultCategory }: { defaultCategory?: string }) => {
                   </div>
                   <div className="space-y-1.5">
                     <Label>Date of Birth</Label>
-                    <Input type="date" value={editForm.dateOfBirth ? editForm.dateOfBirth.substring(0, 10) : ""} onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })} />
+                    <DatePicker value={editForm.dateOfBirth ? editForm.dateOfBirth.substring(0, 10) : ""} onChange={(v) => setEditForm({ ...editForm, dateOfBirth: v })} fromYear={1930} toYear={new Date().getFullYear()} />
                   </div>
                   <div className="space-y-1.5">
                     <Label>Category</Label>

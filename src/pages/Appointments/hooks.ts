@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
-import { adminSupabase } from "@/src/lib/adminSupabase";
 import { logAudit } from "@/src/lib/auditLogger";
 import type { Appointment, AppointmentStatus } from "@/src/lib/types";
+import { computeTotalWithVat } from "../Billing/billingTypes";
+import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
 import { toast } from "sonner";
 
 export interface DoctorSlot {
@@ -37,22 +38,34 @@ export function useAppointments(date: Date) {
   });
 }
 
-export function useDoctors() {
+export function useDoctors(enabled = true) {
   return useQuery<DoctorSlot[]>({
     queryKey: ["doctors-grid"],
     queryFn: async () => {
       const [usersResult, staffResult] = await Promise.allSettled([
-        adminSupabase
+        supabase
           .from("users")
           .select("id, full_name")
           .eq("role", "Doctor")
           .eq("status", "active"),
-        (adminSupabase as any)
+        supabase
           .from("staff")
           .select("staff_id, name, auth_user_id")
           .eq("is_clinician", true)
           .neq("availability_status", "On Leave"),
       ]);
+
+      if (usersResult.status === "rejected") {
+        console.error("useDoctors: users query failed:", usersResult.reason);
+      } else if (usersResult.value.error) {
+        console.error("useDoctors: users query returned error:", usersResult.value.error);
+      }
+
+      if (staffResult.status === "rejected") {
+        console.error("useDoctors: staff query failed:", staffResult.reason);
+      } else if (staffResult.value.error) {
+        console.error("useDoctors: staff query returned error:", staffResult.value.error);
+      }
 
       const doctorMap = new Map<string, string>();
 
@@ -66,9 +79,9 @@ export function useDoctors() {
       if (staffResult.status === "fulfilled" && staffResult.value.data) {
         const staff = toCamel(staffResult.value.data) as { staffId: string; name: string; authUserId: string | null }[];
         for (const s of staff) {
-          const id = s.authUserId || s.staffId;
-          if (!doctorMap.has(id)) {
-            doctorMap.set(id, s.name);
+          if (!s.authUserId) continue;
+          if (!doctorMap.has(s.authUserId)) {
+            doctorMap.set(s.authUserId, s.name);
           }
         }
       }
@@ -77,6 +90,7 @@ export function useDoctors() {
     },
     staleTime: 1000 * 30,
     refetchOnWindowFocus: true,
+    enabled,
   });
 }
 
@@ -119,7 +133,7 @@ export function useCreateAppointment() {
       reason: string;
       status: AppointmentStatus;
     }) => {
-      const { error } = await (adminSupabase as any).from("appointments").insert({
+      const { error } = await (supabase as any).from("appointments").insert({
         patient_id: data.patientId,
         doctor_id: data.doctorId,
         start_time: data.startTime,
@@ -161,7 +175,7 @@ export function useUpdateAppointment() {
       if (data.notes !== undefined) payload.notes = data.notes;
 
       console.log("[useUpdateAppointment] payload:", payload, "id:", data.id);
-      const { error } = await (adminSupabase as any)
+      const { error } = await (supabase as any)
         .from("appointments")
         .update(payload)
         .eq("id", data.id);
@@ -180,7 +194,7 @@ export function useDeleteAppointment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (adminSupabase as any).from("appointments").delete().eq("id", id);
+      const { error } = await (supabase as any).from("appointments").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -192,6 +206,7 @@ export function useDeleteAppointment() {
 }
 
 export function useCreateInvoice() {
+  const { settings } = useGlobalSettings();
   return useMutation({
     mutationFn: async (data: {
       patientId: string;
@@ -200,30 +215,32 @@ export function useCreateInvoice() {
       appointmentId: string;
     }) => {
       const invNumber = `INV-APT-${Date.now()}`;
+      const totalAmount = computeTotalWithVat(data.amount, settings.vatPercentage, settings.vatEnabled);
       const payload = {
         invoice_number: invNumber,
         patient_id: data.patientId,
-        total_amount: data.amount,
+        total_amount: totalAmount,
         amount_paid: 0,
-        balance: data.amount,
+        balance: totalAmount,
         status: "Unpaid",
         source_type: "Consultation",
       };
-      const { data: invoiceData, error } = await (adminSupabase as any)
+      const { data: invoiceData, error } = await (supabase as any)
         .from("invoices")
         .insert(payload)
         .select("id")
         .single();
       if (error) throw error;
       const invoiceId = invoiceData.id;
-      await (adminSupabase as any).from("invoice_items").insert({
+      await (supabase as any).from("invoice_items").insert({
         invoice_id: invoiceId,
         description: `Consultation — ${data.doctorName}`,
+        category: "Consultation",
         quantity: 1,
         unit_price: data.amount,
         total: data.amount,
       });
-      await (adminSupabase as any)
+      await (supabase as any)
         .from("appointments")
         .update({ invoice_id: invoiceId, invoice_amount: data.amount })
         .eq("id", data.appointmentId);

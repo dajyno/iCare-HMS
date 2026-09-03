@@ -6,6 +6,11 @@ import type { StaffRecord } from "./types";
 interface StaffContextType {
   records: StaffRecord[];
   loading: boolean;
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  setPage: (page: number) => void;
+  setPageSize: (size: number) => void;
   addRecord: (record: StaffRecord) => Promise<void>;
   updateRecord: (staffId: string, updates: Partial<StaffRecord>) => Promise<{ error?: any }>;
   deleteRecord: (staffId: string) => Promise<void>;
@@ -55,22 +60,38 @@ export function StaffProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [records, setRecords] = useState<StaffRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [totalCount, setTotalCount] = useState(0);
 
   const staffTable = () => supabase.from("staff") as any;
 
   useEffect(() => {
-    if (!user?.tenantId) return;
+    setPage(1);
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user) return;
     setLoading(true);
-    staffTable()
-      .select("*")
-      .order("created_at", { ascending: false })
-      .then(({ data, error }: any) => {
-        if (!error && data) {
-          setRecords(data.map(dbToStaffRecord));
-        }
-        setLoading(false);
-      });
-  }, [user?.tenantId]);
+
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    Promise.all([
+      staffTable()
+        .select("*", { count: "exact", head: true }),
+      staffTable()
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(from, to),
+    ]).then(([countResult, dataResult]: any) => {
+      if (!dataResult.error && dataResult.data) {
+        setRecords(dataResult.data.map(dbToStaffRecord));
+      }
+      setTotalCount(countResult.count ?? 0);
+      setLoading(false);
+    });
+  }, [user?.id, page, pageSize]);
 
   const addRecord = async (record: StaffRecord) => {
     const { error } = await staffTable().insert(staffToDb(record));
@@ -109,15 +130,20 @@ export function StaffProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <StaffContext.Provider
-      value={{
-        records,
-        loading,
-        addRecord,
-        updateRecord,
-        deleteRecord,
-      }}
-    >
+      <StaffContext.Provider
+        value={{
+          records,
+          loading,
+          page,
+          pageSize,
+          totalCount,
+          setPage,
+          setPageSize,
+          addRecord,
+          updateRecord,
+          deleteRecord,
+        }}
+      >
       {children}
     </StaffContext.Provider>
   );

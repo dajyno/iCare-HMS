@@ -2,9 +2,11 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion } from "motion/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
+import { computeTotalWithVat } from "../Billing/billingTypes";
+import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
+import { useAuth } from "../../context/AuthContext";
 import {
   Search,
-  AlertTriangle,
   ChevronDown,
   FlaskConical,
   ArrowLeft,
@@ -16,10 +18,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import SearchableSelect from "@/components/ui/searchable-select";
 import { testCategories } from "./testCategories";
 import ToggleTile from "./ToggleTile";
-import { useStaff } from "../Staff/StaffContext";
 import { generateInvoiceNumber } from "@/src/lib/invoiceNumber";
 import { toast } from "sonner";
 
@@ -30,7 +30,6 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
   const [patientId, setPatientId] = useState(initialPatientId || "");
   const [patientQuery, setPatientQuery] = useState("");
   const [referredBy, setReferredBy] = useState("");
-  const [urgency, setUrgency] = useState<"normal" | "urgent">("normal");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(testCategories.map((c) => c.id))
   );
@@ -39,6 +38,8 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
     { id: "row-0", name: "", price: "" },
   ]);
   const [hormoneValues, setHormoneValues] = useState<Record<string, string>>({});
+  const { user } = useAuth();
+  const { settings } = useGlobalSettings();
   const queryClient = useQueryClient();
 
   const { data: patients } = useQuery({
@@ -53,14 +54,6 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
       return toCamel(data);
     },
   });
-
-  const { records: staffRecords } = useStaff();
-  const doctors = useMemo(
-    () => staffRecords
-      .filter((r: any) => r.is_clinician && r.availability_status !== "On Leave")
-      .map((r: any) => ({ id: r.staff_id, fullName: r.name })),
-    [staffRecords]
-  );
 
   const { data: dbLabTests } = useQuery({
     queryKey: ["lab-tests-all"],
@@ -87,6 +80,16 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
         : [],
     [dbLabTests]
   );
+
+  const testPriceMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (Array.isArray(dbLabTests)) {
+      for (const t of dbLabTests) {
+        if (t?.name) map.set(t.name, Number(t.price ?? 0));
+      }
+    }
+    return map;
+  }, [dbLabTests]);
 
   useEffect(() => {
     if (customDbTests.length > 0) {
@@ -237,7 +240,6 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
           .insert({
             patient_id: patientId,
             chief_complaint: "Laboratory batch",
-            doctor_id: referredBy || null,
           })
           .select("id")
           .maybeSingle();
@@ -253,6 +255,8 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
         batch_id: batchId,
         status: "Requested" as const,
         payment_status: "Unpaid",
+        requested_by_name: user?.fullName ?? null,
+        referred_by: referredBy.trim() ? referredBy.trim() : null,
       }));
 
       const { data: createdRequests, error: reqError } = await supabase
@@ -266,13 +270,13 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
       const testIds = validNames.map((name) => testIdMap.get(name)).filter(Boolean);
       const { data: testPrices } = await supabase
         .from("lab_tests")
-        .select("id, name, price")
+        .select("id, name, price, category")
         .in("id", testIds);
 
-      const priceMap = new Map<string, { name: string; price: number }>();
+      const priceMap = new Map<string, { name: string; price: number; category?: string | null }>();
       if (testPrices) {
         for (const t of testPrices) {
-          priceMap.set(t.id, { name: t.name, price: t.price ?? 0 });
+          priceMap.set(t.id, { name: t.name, price: t.price ?? 0, category: t.category });
         }
       }
 
@@ -280,10 +284,11 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
       let invoiceError: any = null;
       for (let attempt = 0; attempt < 2; attempt++) {
         const invoiceNumber = await generateInvoiceNumber(supabase);
-        const totalAmount = createdRequests.reduce((sum: number, req: any) => {
+        const subtotal = createdRequests.reduce((sum: number, req: any) => {
           const info = priceMap.get(req.test_id);
           return sum + (info?.price ?? 0);
         }, 0);
+        const totalAmount = computeTotalWithVat(subtotal, settings.vatPercentage, settings.vatEnabled);
 
         const { data: invData, error: invError } = await supabase
           .from("invoices")
@@ -294,7 +299,7 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
             amount_paid: 0,
             balance: totalAmount,
             status: "Unpaid",
-            source_type: "Lab & Radiology",
+            source_type: "Lab",
           })
           .select("id")
           .maybeSingle();
@@ -324,6 +329,7 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
         return {
           invoice_id: invoiceId,
           description: info?.name ?? "Lab Test",
+          category: info?.category ?? null,
           quantity: 1,
           unit_price: info?.price ?? 0,
           total: info?.price ?? 0,
@@ -342,6 +348,7 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
     onSuccess: () => {
       toast.success("Laboratory request created successfully");
       queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["lab-requests-count"] });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["lab-tests"] });
       queryClient.invalidateQueries({ queryKey: ["lab-tests-all"] });
@@ -436,64 +443,16 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
               {!patientId && <div className="h-[18px]" />}
             </div>
 
-            <div className="min-w-[180px]">
+            <div className="min-w-[220px] flex-1">
               <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                 Referred By
               </Label>
-              <SearchableSelect
+              <Input
                 value={referredBy}
-                onValueChange={setReferredBy}
-                placeholder="Select doctor..."
-                options={(Array.isArray(doctors) ? doctors : []).map((d: any) => ({
-                  value: d.id,
-                  label: d.fullName,
-                }))}
-                triggerClassName="h-9 text-sm"
+                onChange={(e) => setReferredBy(e.target.value)}
+                placeholder="Optional — e.g. Dr. Smith or external clinic"
+                className="h-9 text-sm"
               />
-              <div className="h-[18px]" />
-            </div>
-
-            <div className="min-w-[160px]">
-              <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                Urgency
-              </Label>
-              <div className="flex rounded-lg border border-slate-200 overflow-hidden h-9">
-                <button
-                  type="button"
-                  onClick={() => setUrgency("normal")}
-                  className={`flex-1 text-xs font-semibold transition-colors ${
-                    urgency === "normal"
-                      ? "bg-slate-900 text-white"
-                      : "bg-white text-slate-500 hover:bg-slate-50"
-                  }`}
-                >
-                  Normal
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setUrgency("urgent")}
-                  className={`flex-1 text-xs font-semibold transition-colors relative ${
-                    urgency === "urgent"
-                      ? "bg-amber-500 text-white"
-                      : "bg-white text-slate-500 hover:bg-slate-50"
-                  }`}
-                >
-                  {urgency === "urgent" && (
-                    <motion.span
-                      className="absolute inset-0 rounded-r-md"
-                      animate={{
-                        boxShadow: [
-                          "inset 0 0 0 0 rgba(245,158,11,0)",
-                          "inset 0 0 12px 2px rgba(245,158,11,0.4)",
-                          "inset 0 0 0 0 rgba(245,158,11,0)",
-                        ],
-                      }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                    />
-                  )}
-                  <span className="relative z-10">URGENT</span>
-                </button>
-              </div>
               <div className="h-[18px]" />
             </div>
           </div>
@@ -539,6 +498,7 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
                       <ToggleTile
                         key={test}
                         label={test}
+                        sublabel={`₦${(testPriceMap.get(test) ?? 0).toFixed(2)}`}
                         selected={selectedTests.has(test)}
                         onToggle={() => toggleTest(test)}
                       />
@@ -579,7 +539,8 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
                   {customDbTests.map((test: any) => (
                     <ToggleTile
                       key={test.id}
-                      label={`${test.name}${test.price ? ` — ₦${Number(test.price).toFixed(2)}` : ""}`}
+                      label={test.name}
+                      sublabel={`₦${(Number(test.price ?? 0)).toFixed(2)}`}
                       selected={selectedDbTests.has(test.id)}
                       onToggle={() => toggleDbTest(test.id)}
                     />
@@ -743,12 +704,6 @@ const LabTestGrid = ({ onBack, initialPatientId }: { onBack: () => void; initial
             <span className="text-[11px] text-slate-500">
               Est. Processing: ~{Math.max(1, Math.ceil(allSelectedTestNames.length / 3))}h
             </span>
-            {urgency === "urgent" && (
-              <div className="flex items-center gap-1 text-amber-600 text-[11px] font-semibold">
-                <AlertTriangle className="w-3 h-3" />
-                URGENT
-              </div>
-            )}
           </div>
 
           <motion.button

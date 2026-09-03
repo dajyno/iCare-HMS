@@ -13,12 +13,14 @@ import {
   User,
   Pill,
   FlaskConical,
+  Radiation,
   Beaker,
   ShoppingCart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { usePatients, useCreateInvoice } from "./billingHooks";
@@ -37,6 +39,7 @@ import {
   type CatalogItem,
   MOCK_MEDICATIONS,
   MOCK_LAB_TESTS,
+  MOCK_RADIOLOGY_TESTS,
 } from "./billingTypes";
 
 interface NewInvoiceModalProps {
@@ -51,7 +54,8 @@ function sourceCategory(code: string): string {
   if (code.startsWith("CONS")) return "Consultation";
   if (code.startsWith("INP")) return "Inpatient";
   if (code.startsWith("PHM")) return "Pharmacy";
-  if (code.startsWith("LAB")) return "Lab & Radiology";
+  if (code.startsWith("LAB")) return "Lab";
+  if (code.startsWith("RAD")) return "Radiology";
   return "General";
 }
 
@@ -60,6 +64,8 @@ const CATEGORY_STYLES: Record<string, string> = {
   Consultation: "bg-teal-100 text-teal-700",
   Inpatient: "bg-rose-100 text-rose-700",
   Pharmacy: "bg-sky-100 text-sky-700",
+  Lab: "bg-purple-100 text-purple-700",
+  Radiology: "bg-violet-100 text-violet-700",
   "Lab & Radiology": "bg-purple-100 text-purple-700",
   General: "bg-indigo-100 text-indigo-700",
 };
@@ -165,11 +171,17 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
         sourceType: type,
         lineItems: [{ ...DEFAULT_LINE_ITEM, code: "PHM-01" }],
       }));
-    } else if (type === "Lab & Radiology") {
+    } else if (type === "Lab") {
       setForm((prev) => ({
         ...prev,
         sourceType: type,
         lineItems: [{ ...DEFAULT_LINE_ITEM, code: "LAB-01" }],
+      }));
+    } else if (type === "Radiology") {
+      setForm((prev) => ({
+        ...prev,
+        sourceType: type,
+        lineItems: [{ ...DEFAULT_LINE_ITEM, code: "RAD-01" }],
       }));
     } else if (type === "General") {
       setForm((prev) => ({
@@ -237,7 +249,7 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
 
   const addRow = () => {
     setForm((prev) => {
-      const prefix = prev.sourceType === "Pharmacy" ? "PHM" : prev.sourceType === "Lab & Radiology" ? "LAB" : "G";
+      const prefix = prev.sourceType === "Pharmacy" ? "PHM" : prev.sourceType === "Lab" ? "LAB" : prev.sourceType === "Radiology" ? "RAD" : "G";
       return {
         ...prev,
         lineItems: [
@@ -284,9 +296,13 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
     const invNumber = await generateInvoiceNumber(supabase);
 
     const sourceLabels = [...new Set(accumulatedItems.map((i) => sourceCategory(i.code)))] as string[];
-    const sourceLabel = String(sourceLabels.length === 1
-      ? sourceLabels[0]
-      : sourceLabels.join(", "));
+
+    let sourceLabel: string;
+    if (sourceLabels.includes("Lab") && sourceLabels.includes("Radiology")) {
+      sourceLabel = "Lab & Radiology";
+    } else {
+      sourceLabel = String(sourceLabels.length === 1 ? sourceLabels[0] : sourceLabels.join(", "));
+    }
 
     createInvoice.mutate(
       {
@@ -610,12 +626,21 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                   />
                   <MiniTile
                     icon={<FlaskConical className="w-4 h-4" />}
-                    label="Lab & Radiology"
+                    label="Lab"
                     color="purple"
-                    active={selectedTile === "Lab & Radiology"}
-                    onClick={() => handleTileSelect("Lab & Radiology")}
+                    active={selectedTile === "Lab"}
+                    onClick={() => handleTileSelect("Lab")}
                     hasItems={accumulatedItems.some((i) => i.code.startsWith("LAB"))}
                     itemCount={accumulatedItems.filter((i) => i.code.startsWith("LAB")).length}
+                  />
+                  <MiniTile
+                    icon={<Radiation className="w-4 h-4" />}
+                    label="Radiology"
+                    color="violet"
+                    active={selectedTile === "Radiology"}
+                    onClick={() => handleTileSelect("Radiology")}
+                    hasItems={accumulatedItems.some((i) => i.code.startsWith("RAD"))}
+                    itemCount={accumulatedItems.filter((i) => i.code.startsWith("RAD")).length}
                   />
                   <MiniTile
                     icon={<Beaker className="w-4 h-4" />}
@@ -623,8 +648,8 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                     color="indigo"
                     active={selectedTile === "General"}
                     onClick={() => handleTileSelect("General")}
-                    hasItems={accumulatedItems.some((i) => !i.code.startsWith("ADM") && !i.code.startsWith("CONS") && !i.code.startsWith("INP") && !i.code.startsWith("PHM") && !i.code.startsWith("LAB"))}
-                    itemCount={accumulatedItems.filter((i) => !i.code.startsWith("ADM") && !i.code.startsWith("CONS") && !i.code.startsWith("INP") && !i.code.startsWith("PHM") && !i.code.startsWith("LAB")).length}
+                    hasItems={accumulatedItems.some((i) => !i.code.startsWith("ADM") && !i.code.startsWith("CONS") && !i.code.startsWith("INP") && !i.code.startsWith("PHM") && !i.code.startsWith("LAB") && !i.code.startsWith("RAD"))}
+                    itemCount={accumulatedItems.filter((i) => !i.code.startsWith("ADM") && !i.code.startsWith("CONS") && !i.code.startsWith("INP") && !i.code.startsWith("PHM") && !i.code.startsWith("LAB") && !i.code.startsWith("RAD")).length}
                   />
                 </div>
               </div>
@@ -802,16 +827,29 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
                     <PharmacyLabContent
                       form={form} updateLineItem={updateLineItem} addRow={addRow} removeRow={removeRow}
                       catalog={MOCK_MEDICATIONS}
+                      title="Pharmacy Items"
                       onAddToInvoice={handleAddToInvoice}
                       hasItems={form.lineItems.some((i) => i.name.trim() && i.price > 0)}
                     />
                   </motion.div>
                 )}
-                {selectedTile === "Lab & Radiology" && (
+                {selectedTile === "Lab" && (
                   <motion.div key="lab" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
                     <PharmacyLabContent
                       form={form} updateLineItem={updateLineItem} addRow={addRow} removeRow={removeRow}
                       catalog={MOCK_LAB_TESTS}
+                      title="Lab Test Items"
+                      onAddToInvoice={handleAddToInvoice}
+                      hasItems={form.lineItems.some((i) => i.name.trim() && i.price > 0)}
+                    />
+                  </motion.div>
+                )}
+                {selectedTile === "Radiology" && (
+                  <motion.div key="radiology" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
+                    <PharmacyLabContent
+                      form={form} updateLineItem={updateLineItem} addRow={addRow} removeRow={removeRow}
+                      catalog={MOCK_RADIOLOGY_TESTS}
+                      title="Radiology Test Items"
                       onAddToInvoice={handleAddToInvoice}
                       hasItems={form.lineItems.some((i) => i.name.trim() && i.price > 0)}
                     />
@@ -905,7 +943,7 @@ const NewInvoiceModal = ({ open, onClose }: NewInvoiceModalProps) => {
 interface MiniTileProps {
   icon: ReactNode;
   label: string;
-  color: "amber" | "teal" | "rose" | "indigo" | "sky" | "purple";
+  color: "amber" | "teal" | "rose" | "indigo" | "sky" | "purple" | "violet";
   active: boolean;
   onClick: () => void;
   hasItems: boolean;
@@ -927,7 +965,7 @@ function TileContent({ children }: { children: ReactNode; key?: string | number 
 }
 
 function PharmacyLabContent({
-  form, updateLineItem, addRow, removeRow, catalog,
+  form, updateLineItem, addRow, removeRow, catalog, title,
   onAddToInvoice, hasItems,
 }: {
   form: NewInvoiceFormState;
@@ -935,6 +973,7 @@ function PharmacyLabContent({
   addRow: () => void;
   removeRow: (idx: number) => void;
   catalog: CatalogItem[];
+  title: string;
   onAddToInvoice: () => void;
   hasItems: boolean;
 }) {
@@ -1189,7 +1228,7 @@ function PharmacyLabContent({
     >
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-slate-700">
-          {catalog === MOCK_MEDICATIONS ? "Pharmacy Items" : "Lab & Radiology Items"}
+          {title}
         </h3>
       </div>
       <div className="bg-white rounded-xl border border-slate-200 p-4" style={{ overflow: "visible" }}>
@@ -1276,10 +1315,9 @@ function GeneralContent({
             </div>
             <div>
               <Label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">Date</Label>
-              <Input
-                type="date"
+              <DatePicker
                 value={item.date}
-                onChange={(e) => updateLineItem(idx, "date", e.target.value)}
+                onChange={(v) => updateLineItem(idx, "date", v)}
                 className="h-9 text-sm bg-slate-50/50 border-slate-200"
               />
             </div>
@@ -1373,10 +1411,9 @@ function GeneralContent({
                     </select>
                   </td>
                   <td className="px-3 py-2">
-                    <Input
-                      type="date"
+                    <DatePicker
                       value={item.date}
-                      onChange={(e) => updateLineItem(idx, "date", e.target.value)}
+                      onChange={(v) => updateLineItem(idx, "date", v)}
                       className="h-8 text-xs border-0 bg-transparent px-1 focus:bg-white focus:border"
                     />
                   </td>
@@ -1459,6 +1496,7 @@ const miniColorMap: Record<string, { bg: string; border: string; icon: string }>
   indigo: { bg: "bg-indigo-50 hover:bg-indigo-100", border: "border-indigo-200", icon: "text-indigo-600" },
   sky: { bg: "bg-sky-50 hover:bg-sky-100", border: "border-sky-200", icon: "text-sky-600" },
   purple: { bg: "bg-purple-50 hover:bg-purple-100", border: "border-purple-200", icon: "text-purple-600" },
+  violet: { bg: "bg-violet-50 hover:bg-violet-100", border: "border-violet-200", icon: "text-violet-600" },
 };
 
 const MiniTile = ({ icon, label, color, active, onClick, hasItems, itemCount }: MiniTileProps) => {

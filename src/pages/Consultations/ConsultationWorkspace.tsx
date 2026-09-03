@@ -2,9 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, toCamel } from "@/src/lib/supabase";
-import { adminSupabase } from "@/src/lib/adminSupabase";
 import { logAudit } from "@/src/lib/auditLogger";
 import { useAuth } from "../../context/AuthContext";
+import { useDoctors, useCreateAppointment } from "../Appointments/hooks";
+import { useGlobalSettings } from "@/src/context/GlobalSettingsContext";
+import { computeTotalWithVat } from "../Billing/billingTypes";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -19,9 +21,39 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
+import { TimePicker } from "@/components/ui/time-picker";
 import SearchableSelect from "@/components/ui/searchable-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+
+const PATIENT_OPTION_COLUMNS = "id, patient_id, first_name, last_name";
+const MEDICATION_OPTION_COLUMNS = "id, name, strength, unit_price";
+const LAB_TEST_OPTION_COLUMNS = "id, name, price, category";
+const RADIOLOGY_EXAM_OPTION_COLUMNS = "id, name, price, category:radiology_categories(name)";
+const ACTIVE_CONSULTATION_COLUMNS = [
+  "id",
+  "patient_id",
+  "doctor_id",
+  "status",
+  "chief_complaint",
+  "symptoms",
+  "diagnosis",
+  "clinical_notes",
+  "treatment_plan",
+  "follow_up_date",
+  "created_at",
+].join(", ");
+const PRESCRIPTION_WITH_ITEMS_COLUMNS = [
+  "id",
+  "status",
+  "consultation_id",
+  "patient_id",
+  "date",
+  "items:prescription_items(id, dosage, frequency, duration, instructions, quantity, medication:medications(name, strength))",
+].join(", ");
+const LAB_REQUEST_WITH_TEST_COLUMNS = "id, consultation_id, patient_id, status, payment_status, invoice_id, created_at, test:lab_tests(name, category, price)";
+const RADIOLOGY_REQUEST_WITH_EXAM_COLUMNS = "id, consultation_id, patient_id, status, payment_status, invoice_id, created_at, exam:radiology_exams(name, price, category:radiology_categories(name))";
 
 const consultationSchema = z.object({
   patientId: z.string().optional(),
@@ -55,6 +87,7 @@ const ConsultationWorkspace = () => {
   const { patientId, hospital_slug } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { settings } = useGlobalSettings();
   const { user } = useAuth();
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [consultationId, setConsultationId] = useState<string | null>(null);
@@ -84,7 +117,7 @@ const ConsultationWorkspace = () => {
   const { data: patients, isLoading: patientsLoading } = useQuery({
     queryKey: ["patients"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("patients").select("*").order("registration_date", { ascending: false });
+      const { data, error } = await supabase.from("patients").select(PATIENT_OPTION_COLUMNS).order("registration_date", { ascending: false }).limit(1000);
       if (error) throw error;
       return toCamel(data);
     },
@@ -93,55 +126,18 @@ const ConsultationWorkspace = () => {
   const { data: medications } = useQuery({
     queryKey: ["medications"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("medications").select("*").order("name", { ascending: true });
+      const { data, error } = await supabase.from("medications").select(MEDICATION_OPTION_COLUMNS).order("name", { ascending: true }).limit(1000);
       if (error) throw error;
       return toCamel(data);
     },
   });
 
-  const { data: doctors } = useQuery({
-    queryKey: ["doctors"],
-    queryFn: async () => {
-      const [usersResult, staffResult] = await Promise.allSettled([
-        adminSupabase
-          .from("users")
-          .select("id, full_name")
-          .eq("role", "Doctor")
-          .eq("status", "active"),
-        (adminSupabase as any)
-          .from("staff")
-          .select("staff_id, name, auth_user_id")
-          .eq("is_clinician", true)
-          .neq("availability_status", "On Leave"),
-      ]);
-
-      const doctorMap = new Map<string, string>();
-
-      if (usersResult.status === "fulfilled" && usersResult.value.data) {
-        const doctors = toCamel(usersResult.value.data) as { id: string; fullName: string }[];
-        for (const d of doctors) {
-          doctorMap.set(d.id, d.fullName);
-        }
-      }
-
-      if (staffResult.status === "fulfilled" && staffResult.value.data) {
-        const staff = toCamel(staffResult.value.data) as { staffId: string; name: string; authUserId: string | null }[];
-        for (const s of staff) {
-          const id = s.authUserId || s.staffId;
-          if (!doctorMap.has(id)) {
-            doctorMap.set(id, s.name);
-          }
-        }
-      }
-
-      return Array.from(doctorMap.entries()).map(([id, name]) => ({ id, name }));
-    },
-  });
+  const { data: doctors = [] } = useDoctors();
 
   const { data: labTests } = useQuery({
     queryKey: ["labTests"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("lab_tests").select("*").eq("status", "active");
+      const { data, error } = await supabase.from("lab_tests").select(LAB_TEST_OPTION_COLUMNS).eq("status", "active").order("name", { ascending: true }).limit(1000);
       if (error) throw error;
       return toCamel(data);
     },
@@ -150,7 +146,7 @@ const ConsultationWorkspace = () => {
   const { data: radiologyExams } = useQuery({
     queryKey: ["radiologyExams"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("radiology_exams").select("*, category:radiology_categories(name)").eq("status", "active");
+      const { data, error } = await supabase.from("radiology_exams").select(RADIOLOGY_EXAM_OPTION_COLUMNS).eq("status", "active").order("name", { ascending: true }).limit(1000);
       if (error) throw error;
       return toCamel(data);
     },
@@ -173,7 +169,7 @@ const ConsultationWorkspace = () => {
   const { data: existingConsultation, isLoading: existingLoading } = useQuery({
     queryKey: ["existing-consultation", lookupId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("consultations").select("*").eq("patient_id", lookupId).in("status", ["VitalsRecorded", "InProgress"]).order("created_at", { ascending: false }).limit(1);
+      const { data, error } = await supabase.from("consultations").select(ACTIVE_CONSULTATION_COLUMNS).eq("patient_id", lookupId).in("status", ["VitalsRecorded", "InProgress"]).order("created_at", { ascending: false }).limit(1);
       if (error) throw error;
       return data && data.length > 0 ? toCamel(data[0]) : null;
     },
@@ -186,7 +182,7 @@ const ConsultationWorkspace = () => {
       if (!consultationId) return [];
       const { data, error } = await supabase
         .from("prescriptions")
-        .select("*, items:prescription_items(*, medication:medications(name, strength))")
+        .select(PRESCRIPTION_WITH_ITEMS_COLUMNS)
         .eq("consultation_id", consultationId)
         .order("date", { ascending: false });
       if (error) throw error;
@@ -201,7 +197,7 @@ const ConsultationWorkspace = () => {
       if (!consultationId) return [];
       const { data, error } = await supabase
         .from("lab_requests")
-        .select("*, test:lab_tests(name, category)")
+        .select(LAB_REQUEST_WITH_TEST_COLUMNS)
         .eq("consultation_id", consultationId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -216,7 +212,7 @@ const ConsultationWorkspace = () => {
       if (!consultationId) return [];
       const { data, error } = await supabase
         .from("radiology_requests")
-        .select("*, exam:radiology_exams(name)")
+        .select(RADIOLOGY_REQUEST_WITH_EXAM_COLUMNS)
         .eq("consultation_id", consultationId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -292,6 +288,8 @@ const ConsultationWorkspace = () => {
     return data.id;
   };
 
+  const createAppt = useCreateAppointment();
+
   const saveClinicalNotes = useMutation({
     mutationFn: async (formData: any) => {
       const pId = formData.patientId || selectedPatient?.id;
@@ -324,7 +322,7 @@ const ConsultationWorkspace = () => {
       const cId = await ensureConsultation(pId);
       const { data: prescription, error: rxError } = await supabase.from("prescriptions").insert({
         patient_id: pId, doctor_id: user?.id, consultation_id: cId, status: "Pending",
-      }).select("*, items:prescription_items(*, medication:medications(name, strength))").single();
+      }).select(PRESCRIPTION_WITH_ITEMS_COLUMNS).single();
       if (rxError) throw rxError;
       const itemRows = items.map((p: any) => ({
         prescription_id: prescription.id, medication_id: p.medicationId,
@@ -336,10 +334,11 @@ const ConsultationWorkspace = () => {
       const medIds = items.map((p: any) => p.medicationId);
       const { data: medPrices } = await supabase.from("medications").select("id, unit_price").in("id", medIds);
       const priceMap = new Map((medPrices || []).map((m: any) => [m.id, m.unit_price || 0]));
-      const totalAmount = itemRows.reduce((sum, item) => {
+      const subtotal = itemRows.reduce((sum, item) => {
         const unitPrice = Number(priceMap.get(item.medication_id) || 0);
         return sum + unitPrice * (Number(item.quantity) || 1);
       }, 0);
+      const totalAmount = computeTotalWithVat(subtotal, settings.vatPercentage, settings.vatEnabled);
       const { error: invError } = await supabase.from("invoices").insert({
         invoice_number: `PHA-${Date.now()}`,
         patient_id: pId, prescription_id: prescription.id,
@@ -349,7 +348,7 @@ const ConsultationWorkspace = () => {
       if (invError) throw invError;
       const { error: statusError } = await supabase.from("prescriptions").update({ status: "Unpaid" }).eq("id", prescription.id);
       if (statusError) throw statusError;
-      const { data: fullRx } = await supabase.from("prescriptions").select("*, items:prescription_items(*, medication:medications(name, strength))").eq("id", prescription.id).single();
+      const { data: fullRx } = await supabase.from("prescriptions").select(PRESCRIPTION_WITH_ITEMS_COLUMNS).eq("id", prescription.id).single();
       return toCamel(fullRx);
     },
     onSuccess: (savedRx) => {
@@ -377,20 +376,22 @@ const ConsultationWorkspace = () => {
       const inserts = items.map((lr: any) => ({
         patient_id: pId, test_id: lr.testId, consultation_id: cId, status: "Requested",
       }));
-      const { data, error } = await supabase.from("lab_requests").insert(inserts).select("*, test:lab_tests(name, category, price)");
+      const { data, error } = await supabase.from("lab_requests").insert(inserts).select(LAB_REQUEST_WITH_TEST_COLUMNS);
       if (error) throw error;
       const savedData = toCamel(data || []);
       for (const lr of savedData) {
         const testPrice = lr.test?.price || 0;
+        const vatAmount = computeTotalWithVat(testPrice, settings.vatPercentage, settings.vatEnabled);
         const { data: inv, error: invError } = await supabase.from("invoices").insert({
           invoice_number: `LAB-${Date.now()}-${lr.id.substring(0, 8)}`,
           patient_id: pId,
-          source_type: "Laboratory", status: "Unpaid",
-          total_amount: testPrice, amount_paid: 0, balance: testPrice,
+          source_type: "Lab", status: "Unpaid",
+          total_amount: vatAmount, amount_paid: 0, balance: vatAmount,
         }).select("id").single();
         if (invError) throw invError;
         await supabase.from("invoice_items").insert({
           invoice_id: inv.id, description: lr.test?.name || "Lab test",
+          category: lr.test?.category ?? null,
           quantity: 1, unit_price: testPrice, total: testPrice,
         });
         await supabase.from("lab_requests").update({ invoice_id: inv.id, payment_status: "Unpaid" }).eq("id", lr.id);
@@ -419,20 +420,22 @@ const ConsultationWorkspace = () => {
       const inserts = items.map((rr: any) => ({
         patient_id: pId, exam_id: rr.examId, requested_by_id: user?.id, status: "Requested",
       }));
-      const { data, error } = await supabase.from("radiology_requests").insert(inserts).select("*, exam:radiology_exams(name, price)");
+      const { data, error } = await supabase.from("radiology_requests").insert(inserts).select(RADIOLOGY_REQUEST_WITH_EXAM_COLUMNS);
       if (error) throw error;
       const savedData = toCamel(data || []);
       for (const rr of savedData) {
         const examPrice = rr.exam?.price || 0;
+        const vatAmount = computeTotalWithVat(examPrice, settings.vatPercentage, settings.vatEnabled);
         const { data: inv, error: invError } = await supabase.from("invoices").insert({
           invoice_number: `RAD-${Date.now()}-${rr.id.substring(0, 8)}`,
           patient_id: pId,
           source_type: "Radiology", status: "Unpaid",
-          total_amount: examPrice, amount_paid: 0, balance: examPrice,
+          total_amount: vatAmount, amount_paid: 0, balance: vatAmount,
         }).select("id").single();
         if (invError) throw invError;
         await supabase.from("invoice_items").insert({
           invoice_id: inv.id, description: rr.exam?.name || "Radiology exam",
+          category: rr.exam?.category?.name ?? null,
           quantity: 1, unit_price: examPrice, total: examPrice,
         });
         await supabase.from("radiology_requests").update({ invoice_id: inv.id, payment_status: "Unpaid" }).eq("id", rr.id);
@@ -507,10 +510,11 @@ const ConsultationWorkspace = () => {
         const medIds = formData.prescriptions.map((p: any) => p.medicationId);
         const { data: medPrices } = await supabase.from("medications").select("id, unit_price").in("id", medIds);
         const priceMap = new Map((medPrices || []).map((m: any) => [m.id, m.unit_price || 0]));
-        const totalAmount = itemRows.reduce((sum, item) => {
+        const subtotal = itemRows.reduce((sum, item) => {
           const unitPrice = Number(priceMap.get(item.medication_id) || 0);
           return sum + unitPrice * (Number(item.quantity) || 1);
         }, 0);
+        const totalAmount = computeTotalWithVat(subtotal, settings.vatPercentage, settings.vatEnabled);
         const { error: invError } = await supabase.from("invoices").insert({
           invoice_number: `PHA-${Date.now()}`,
           patient_id: pId, prescription_id: prescription.id,
@@ -526,19 +530,21 @@ const ConsultationWorkspace = () => {
         const labInserts = formData.labRequests.map((lr: any) => ({
           patient_id: pId, test_id: lr.testId, consultation_id: cId, status: "Requested",
         }));
-        const { data: savedLabs, error } = await supabase.from("lab_requests").insert(labInserts).select("*, test:lab_tests(name, price)");
+        const { data: savedLabs, error } = await supabase.from("lab_requests").insert(labInserts).select(LAB_REQUEST_WITH_TEST_COLUMNS);
         if (error) throw error;
         for (const lr of toCamel(savedLabs || [])) {
           const testPrice = lr.test?.price || 0;
+          const vatAmount = computeTotalWithVat(testPrice, settings.vatPercentage, settings.vatEnabled);
           const { data: inv, error: invError } = await supabase.from("invoices").insert({
             invoice_number: `LAB-${Date.now()}-${lr.id.substring(0, 8)}`,
             patient_id: pId,
-            source_type: "Laboratory", status: "Unpaid",
-            total_amount: testPrice, amount_paid: 0, balance: testPrice,
+            source_type: "Lab", status: "Unpaid",
+            total_amount: vatAmount, amount_paid: 0, balance: vatAmount,
           }).select("id").single();
           if (invError) throw invError;
           await supabase.from("invoice_items").insert({
             invoice_id: inv.id, description: lr.test?.name || "Lab test",
+            category: lr.test?.category ?? null,
             quantity: 1, unit_price: testPrice, total: testPrice,
           });
           await supabase.from("lab_requests").update({ invoice_id: inv.id, payment_status: "Unpaid" }).eq("id", lr.id);
@@ -549,19 +555,21 @@ const ConsultationWorkspace = () => {
         const radInserts = formData.radiologyRequests.map((rr: any) => ({
           patient_id: pId, exam_id: rr.examId, requested_by_id: user?.id, status: "Requested",
         }));
-        const { data: savedRads, error } = await supabase.from("radiology_requests").insert(radInserts).select("*, exam:radiology_exams(name, price)");
+        const { data: savedRads, error } = await supabase.from("radiology_requests").insert(radInserts).select(RADIOLOGY_REQUEST_WITH_EXAM_COLUMNS);
         if (error) throw error;
         for (const rr of toCamel(savedRads || [])) {
           const examPrice = rr.exam?.price || 0;
+          const vatAmount = computeTotalWithVat(examPrice, settings.vatPercentage, settings.vatEnabled);
           const { data: inv, error: invError } = await supabase.from("invoices").insert({
             invoice_number: `RAD-${Date.now()}-${rr.id.substring(0, 8)}`,
             patient_id: pId,
             source_type: "Radiology", status: "Unpaid",
-            total_amount: examPrice, amount_paid: 0, balance: examPrice,
+            total_amount: vatAmount, amount_paid: 0, balance: vatAmount,
           }).select("id").single();
           if (invError) throw invError;
           await supabase.from("invoice_items").insert({
             invoice_id: inv.id, description: rr.exam?.name || "Radiology exam",
+            category: rr.exam?.category?.name ?? null,
             quantity: 1, unit_price: examPrice, total: examPrice,
           });
           await supabase.from("radiology_requests").update({ invoice_id: inv.id, payment_status: "Unpaid" }).eq("id", rr.id);
@@ -620,6 +628,43 @@ const ConsultationWorkspace = () => {
     const first = Object.entries(formErrors)[0];
     if (first) setError(`Form error: ${first[0]} — ${(first[1] as any)?.message || "invalid"}`);
     else setError("Please fix the form errors before submitting.");
+  };
+
+  const handleSaveFollowUp = () => {
+    if (!selectedPatient?.id) {
+      setError("Please select a patient first");
+      return;
+    }
+    const doctorId = watch("followUpDoctorId");
+    const followUpDate = watch("followUpDate");
+    const followUpTime = watch("followUpTime");
+    if (!doctorId || !followUpDate || !followUpTime) {
+      setError("Please select doctor, date, and time for follow-up");
+      return;
+    }
+    const startTime = new Date(`${followUpDate}T${followUpTime}`);
+    const endTime = new Date(startTime.getTime() + 30 * 60 * 1000);
+    createAppt.mutate(
+      {
+        patientId: selectedPatient.id,
+        doctorId,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        reason: "Follow-up appointment",
+        status: "Confirmed",
+      },
+      {
+        onSuccess: () => {
+          toast.success("Follow-up appointment saved");
+          setValue("followUpDoctorId", "" as any);
+          setValue("followUpDate", "" as any);
+          setValue("followUpTime", "" as any);
+        },
+        onError: (err: any) => {
+          setError(err?.message || "Failed to save follow-up appointment");
+        },
+      }
+    );
   };
 
   if (patientsLoading || existingLoading) {
@@ -768,13 +813,18 @@ const ConsultationWorkspace = () => {
                         </select>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="followUpDate">Date</Label>
-                        <Input id="followUpDate" type="date" {...register("followUpDate")} />
+                        <Label>Date</Label>
+                        <DatePicker value={watch("followUpDate") || ""} onChange={(v) => setValue("followUpDate", v)} />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="followUpTime">Time</Label>
-                        <Input id="followUpTime" type="time" {...register("followUpTime")} />
+                        <Label>Time</Label>
+                        <TimePicker value={watch("followUpTime") || ""} onChange={(v) => setValue("followUpTime", v)} />
                       </div>
+                    </div>
+                    <div className="flex justify-end mt-4">
+                      <Button type="button" size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={handleSaveFollowUp} disabled={createAppt.isPending}>
+                        {createAppt.isPending ? "Saving..." : <><Save className="w-3 h-3 mr-1" /> Save Follow-up</>}
+                      </Button>
                     </div>
                   </div>
                 </CardContent>

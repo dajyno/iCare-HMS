@@ -24,6 +24,9 @@ const ALL_ROUTES = [
   "/staff",
   "/reports",
   "/reports/clinical",
+  "/reports/revenue",
+  "/reports/revenue-by-service-type",
+  "/reports/referrals",
   "/settings",
   "/profile",
 ] as const;
@@ -88,6 +91,7 @@ export function getDefaultSettings(): GlobalSettings {
     databaseLastBackup: null,
 
     baseCurrency: "USD",
+    vatEnabled: true,
     vatPercentage: 7.5,
     invoicePaymentTerms: "Payment is due within 30 days from the date of invoice.",
     invoiceConditions: "All prices are in the stated currency. Late payments may incur additional charges.",

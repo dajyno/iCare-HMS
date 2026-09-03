@@ -3,6 +3,7 @@ import type { GlobalSettings } from "@/src/types/globalSettings";
 import { getDefaultSettings } from "@/src/lib/globalSettings";
 import { fetchSettings, upsertSettings } from "@/src/services/globalSettingsService";
 import { supabase } from "@/src/lib/supabase";
+import { setHospitalName } from "@/src/lib/hospitalConfig";
 import { useAuth } from "./AuthContext";
 import { useTenant } from "./TenantContext";
 
@@ -46,18 +47,20 @@ async function fetchTenantHospitalName(tenantId: string): Promise<string | null>
   return data.hospital_name ?? null;
 }
 
-/** Merges global_settings DB data with the canonical hospital_name from tenants table. */
-async function buildSettings(tenantId: string): Promise<GlobalSettings> {
-  const [db, hospitalName] = await Promise.all([
-    fetchSettings(supabase, tenantId),
-    fetchTenantHospitalName(tenantId),
-  ]);
-  const defaults = getDefaultSettings();
-  const merged = { ...defaults, ...(db || {}) };
-  merged.rbacMatrix = { ...defaults.rbacMatrix, ...(db?.rbacMatrix || {}) };
-  if (hospitalName) merged.hospitalName = hospitalName;
-  return merged;
-}
+  /** Merges global_settings DB data with the canonical hospital_name from tenants table. */
+  async function buildSettings(tenantId: string): Promise<GlobalSettings> {
+    const [db, hospitalName] = await Promise.all([
+      fetchSettings(supabase, tenantId),
+      fetchTenantHospitalName(tenantId),
+    ]);
+    const defaults = getDefaultSettings();
+    const merged = { ...defaults, ...(db || {}) };
+    merged.rbacMatrix = { ...defaults.rbacMatrix, ...(db?.rbacMatrix || {}) };
+    // Use tenants table as fallback only when global_settings has not been customized
+    const isDefaultName = !db?.hospitalName || db.hospitalName === defaults.hospitalName;
+    if (isDefaultName && hospitalName) merged.hospitalName = hospitalName;
+    return merged;
+  }
 
 export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -73,11 +76,17 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
 
     async function init() {
       if (!effectiveTenantId) {
+        setSettings(getDefaultSettings());
         setLoading(false);
         return;
       }
 
-      setLoading(true);
+      const cached = loadLocalCache(effectiveTenantId);
+      if (cached) {
+        setSettings(cached);
+      }
+      setLoading(!cached);
+
       const merged = await buildSettings(effectiveTenantId);
       if (cancelled) return;
       setSettings(merged);
@@ -108,6 +117,9 @@ export function GlobalSettingsProvider({ children }: { children: ReactNode }) {
         ? { ...prev, ...partial, rbacMatrix: { ...prev.rbacMatrix, ...partial.rbacMatrix } }
         : { ...prev, ...partial };
       saveLocalCache(next, effectiveTenantId);
+      if (partial.hospitalName !== undefined) {
+        setHospitalName(partial.hospitalName);
+      }
       pendingUpsert.current = pendingUpsert.current.then(() =>
         upsertSettings(supabase, next, user?.id, effectiveTenantId)
       );
