@@ -3,6 +3,9 @@
   "buildCommand": "vite build",
   "outputDirectory": "dist",
   "installCommand": "npm install --legacy-peer-deps --no-package-lock",
+  "crons": [
+    { "path": "/api/keepalive", "schedule": "0 11 * * *" }
+  ],
   "rewrites": [
     { "source": "/sw.js", "destination": "/sw.js" },
     { "source": "/workbox-:id.js", "destination": "/workbox-:id.js" },
