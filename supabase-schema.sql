@@ -1141,3 +1141,37 @@ end $$;
 alter table public.appointments add constraint appointments_status_check
   check (status in ('Unconfirmed','Confirmed','Waiting','Ongoing','Completed','Conflict','Unavailable','Cancelled'));
 
+-- ============================================================
+-- DATA API GRANTS
+-- From 2026-10-30 Supabase no longer auto-grants Data API access to
+-- new tables in the public schema. This script drops and recreates
+-- tables, so it must re-apply grants itself or the API will return
+-- permission-denied errors.
+--   anon          -> SELECT only
+--   authenticated -> SELECT, INSERT, UPDATE, DELETE
+--   service_role  -> SELECT, INSERT, UPDATE, DELETE
+-- Safe to re-run.
+-- ============================================================
+do $$
+declare
+  r record;
+begin
+  for r in
+    select tablename
+    from pg_tables
+    where schemaname = 'public'
+  loop
+    execute format('grant select on table public.%I to anon', r.tablename);
+    execute format('grant select, insert, update, delete on table public.%I to authenticated', r.tablename);
+    execute format('grant select, insert, update, delete on table public.%I to service_role', r.tablename);
+  end loop;
+end
+$$;
+
+alter default privileges in schema public
+  grant select on tables to anon;
+alter default privileges in schema public
+  grant select, insert, update, delete on tables to authenticated;
+alter default privileges in schema public
+  grant select, insert, update, delete on tables to service_role;
+

@@ -240,6 +240,21 @@ npx prisma db push
 npx prisma db seed
 ```
 
+> **Adding a table? Include its data API grants.**
+> From 2026-10-30, Supabase no longer automatically grants Data API access to new
+> tables in the `public` schema. Any migration that creates a table must also grant
+> privileges, or the table will be unreachable through supabase-js/PostgREST even
+> when RLS policies exist. Add this alongside every new `create table`:
+> ```sql
+> grant select on public.your_table to anon;
+> grant select, insert, update, delete on public.your_table to authenticated;
+> grant select, insert, update, delete on public.your_table to service_role;
+> ```
+> The `public` schema already has default privileges set (see
+> `supabase/migrations/20261012000001_grant_data_api_privileges.sql`), so tables
+> created by migrations inherit these grants automatically. Add the explicit
+> statements anyway so the migration stays self-contained on any project.
+
 ### Run
 
 ```bash
